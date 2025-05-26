@@ -59,7 +59,7 @@ class AnimalListPage extends StatelessWidget {
                     final animalLetter = getFirstLetter(animal);
                     final animalName = normalizeFileName(animal);
                     final imageAsset =
-                        'animals/$animalLetter/$animalName/${animalName}.png';
+                        'animals/$animalLetter/$animalName/$animalName.png';
                     return _AnimalCard(
                       animal: animal,
                       imageAsset: imageAsset,

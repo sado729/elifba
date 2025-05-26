@@ -166,7 +166,7 @@ class _AnimatedLetterCard extends StatefulWidget {
 class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
     with SingleTickerProviderStateMixin {
   bool _pressed = false;
-  bool _selected = false;
+  final bool _selected = false;
 
   @override
   Widget build(BuildContext context) {
@@ -176,9 +176,7 @@ class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
       onTapCancel: () => setState(() => _pressed = false),
       onTap: () {
         // Hərf seçimi və ya səhifəyə keçid
-        final parent =
-            context.findAncestorWidgetOfExactType<AlphabetPage>()
-                as AlphabetPage?;
+        final parent = context.findAncestorWidgetOfExactType<AlphabetPage>();
         if (parent != null) {
           parent._openAnimalList(context, widget.letter);
         }

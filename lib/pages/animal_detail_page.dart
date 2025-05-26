@@ -119,7 +119,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
     final animalSoundAsset =
         'animals/$animalLetter/$animalName/${animalName}_sound.mp3';
 
-    final List<_ActionButtonData> _actions = [
+    final List<_ActionButtonData> actions = [
       _ActionButtonData(
         tooltip: 'Haqqında',
         icon: Icons.info,
@@ -149,7 +149,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
         ),
     ];
     // Səs iconu
-    _actions.add(
+    actions.add(
       _ActionButtonData(
         tooltip: 'Heyvanın səsi',
         icon: Icons.volume_up,
@@ -159,7 +159,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
       ),
     );
     // Puzzle iconu
-    _actions.add(
+    actions.add(
       _ActionButtonData(
         tooltip: 'Puzzle',
         icon: Icons.extension,
@@ -221,7 +221,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            ..._actions
+                            ...actions
                                 .map((action) {
                                   if (action.visibleFuture != null) {
                                     return FutureBuilder<bool>(
@@ -589,7 +589,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
     final foodBox = foodKey.currentContext?.findRenderObject() as RenderBox?;
     if (animalBox == null || foodBox == null) return;
     final overlay = Overlay.of(context, rootOverlay: true);
-    if (overlay == null) return;
     final start = foodBox.localToGlobal(foodBox.size.center(Offset.zero));
     final end = animalBox.localToGlobal(animalBox.size.center(Offset.zero));
     OverlayEntry? entry;
