@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'animal_list_page.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 
 class AlphabetPage extends StatelessWidget {
   const AlphabetPage({super.key});
@@ -42,23 +44,23 @@ class AlphabetPage extends StatelessWidget {
   static const Map<String, List<String>> animalsByLetter = {
     'A': ['At', 'Ayı', 'Ağcaqanad'],
     'B': ['Balıq', 'Bayquş', 'Böcək'],
-    'C': ['Ceyran', 'Cücə', 'Cırtdan balıq'],
+    'C': ['Ceyran', 'Cücə'],
     'Ç': ['Çalağan', 'Çaylaq'],
     'D': ['Dovşan', 'Dəvə', 'Dəvəquşu'],
     'E': ['Eşşək', 'Eşşəkarısı'],
     'Ə': ['Əqrəb'],
-    'F': ['Fil', 'Fərasət quşu'],
-    'G': ['Gəmirici', 'Güvən'],
-    'Ğ': ['Ğöyərçin'],
+    'F': ['Fil'],
+    'G': ['Gəmirici', 'Göyərçin'],
+    'Ğ': [],
     'H': ['Hinduşka', 'Hörümçək'],
     'X': ['Xallı kəpənək'],
-    'I': ['Ilbiz'],
+    'I': [],
     'İ': ['İlan', 'İt'],
     'J': ['Jeyran'],
     'K': ['Kəpənək', 'Kərgədan'],
     'Q': ['Qartal', 'Qurbağa', 'Qurd'],
-    'L': ['Ləpirdə', 'Lələ'],
-    'M': ['Meymun', 'Marsa quşu'],
+    'L': ['Lama', 'Lələ'],
+    'M': ['Meymun'],
     'N': ['Nərə balığı'],
     'O': ['Oğlaq', 'Ordek'],
     'Ö': ['Ördək'],
@@ -70,7 +72,7 @@ class AlphabetPage extends StatelessWidget {
     'U': ['Ulaq'],
     'Ü': ['Üzgüçü balıq'],
     'V': ['Vaşaq'],
-    'Y': ['Yarasa', 'Yaylaq quşu'],
+    'Y': ['Yarasa'],
     'Z': ['Zürafə', 'Zebra'],
   };
 
@@ -155,6 +157,23 @@ class AlphabetPage extends StatelessWidget {
   }
 }
 
+// Asset manifesti oxuyub cache-ləyən util sinfi
+class AssetChecker {
+  static Set<String>? _assets;
+
+  static Future<void> _loadAssets() async {
+    if (_assets != null) return;
+    final manifestContent = await rootBundle.loadString('AssetManifest.json');
+    final Map<String, dynamic> manifestMap = jsonDecode(manifestContent);
+    _assets = manifestMap.keys.toSet();
+  }
+
+  static Future<bool> hasAsset(String assetPath) async {
+    await _loadAssets();
+    return _assets!.contains(assetPath);
+  }
+}
+
 class _AnimatedLetterCard extends StatefulWidget {
   final String letter;
   const _AnimatedLetterCard({required this.letter});
@@ -166,16 +185,34 @@ class _AnimatedLetterCard extends StatefulWidget {
 class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
     with SingleTickerProviderStateMixin {
   bool _pressed = false;
-  final bool _selected = false;
+  bool? _hasImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAsset();
+  }
+
+  Future<void> _checkAsset() async {
+    final letterLower = widget.letter.toLowerCase();
+    final assetPath = 'assets/animals/$letterLower/$letterLower.png';
+    final exists = await AssetChecker.hasAsset(assetPath);
+    if (mounted) {
+      setState(() {
+        _hasImage = exists;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final letterLower = widget.letter.toLowerCase();
+    final assetPath = 'assets/animals/$letterLower/$letterLower.png';
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
       onTap: () {
-        // Hərf seçimi və ya səhifəyə keçid
         final parent = context.findAncestorWidgetOfExactType<AlphabetPage>();
         if (parent != null) {
           parent._openAnimalList(context, widget.letter);
@@ -189,7 +226,7 @@ class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.deepPurple.withOpacity(0.10),
+              color: Colors.deepPurple.withAlpha(26),
               blurRadius: _pressed ? 18 : 10,
               offset: const Offset(0, 6),
             ),
@@ -199,17 +236,42 @@ class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Hərf
-            Text(
-              widget.letter,
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple.shade800,
-                letterSpacing: 1.5,
-                shadows: [Shadow(color: Colors.black12, blurRadius: 4)],
+            if (_hasImage == null)
+              const CircularProgressIndicator(strokeWidth: 2)
+            else if (_hasImage == true)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder:
+                      (context, error, stackTrace) => Text(
+                        widget.letter,
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple.shade800,
+                          letterSpacing: 1.5,
+                          shadows: [
+                            Shadow(color: Colors.black12, blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                ),
+              )
+            else
+              Text(
+                widget.letter,
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple.shade800,
+                  letterSpacing: 1.5,
+                  shadows: [Shadow(color: Colors.black12, blurRadius: 4)],
+                ),
               ),
-            ),
           ],
         ),
       ),
