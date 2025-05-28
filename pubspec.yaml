@@ -94,4 +94,43 @@ flutter:
 
   assets:
     - assets/animals/
+    - assets/animals/a/
+    - assets/animals/b/
+    - assets/animals/c/
+    - assets/animals/ç/
+    - assets/animals/d/
+    - assets/animals/e/
+    - assets/animals/ə/
+    - assets/animals/f/
+    - assets/animals/g/
+    - assets/animals/ğ/
+    - assets/animals/h/
+    - assets/animals/i/
+    - assets/animals/ı/
+    - assets/animals/j/
+    - assets/animals/k/
+    - assets/animals/l/
+    - assets/animals/m/
+    - assets/animals/n/
+    - assets/animals/o/
+    - assets/animals/ö/
+    - assets/animals/p/
+    - assets/animals/q/
+    - assets/animals/r/
+    - assets/animals/s/
+    - assets/animals/t/
+    - assets/animals/u/
+    - assets/animals/ü/
+    - assets/animals/v/
+    - assets/animals/x/
+    - assets/animals/y/
+    - assets/animals/z/
+    
+
     - assets/foods/
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700

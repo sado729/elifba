@@ -4,7 +4,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import 'puzzle_page.dart';
-import 'dart:io';
 import 'package:flutter/services.dart';
 
 class AnimalDetailPage extends StatefulWidget {
@@ -177,237 +176,208 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: _Breadcrumbs(
-          animal: animal,
-          animalLetter: animalLetter,
-          animalsList: animalsList,
-          currentIndex: currentIndex,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 26,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Geri',
         ),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          animal,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.deepPurple.shade700,
+        foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
         automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
           child: Stack(
             children: [
               Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.shade50,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.deepPurple.withOpacity(0.07),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                          border: Border.all(
-                            color: Colors.deepPurple.shade100,
-                            width: 1.1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ...actions
-                                .map((action) {
-                                  if (action.visibleFuture != null) {
-                                    return FutureBuilder<bool>(
-                                      future: action.visibleFuture,
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                                ConnectionState.waiting ||
-                                            snapshot.data == false) {
-                                          return const SizedBox();
-                                        }
-                                        return _ActionButton(action: action);
-                                      },
-                                    );
-                                  } else if (action.visible) {
-                                    return _ActionButton(action: action);
-                                  } else {
-                                    return const SizedBox();
-                                  }
-                                })
-                                .expand((w) => [w, const SizedBox(width: 8)])
-                                .toList()
-                              ..removeLast(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (showPuzzle)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 24.0),
-                        child: PuzzlePage(animal: animal),
-                      ),
-                    )
-                  else ...[
-                    ClipRRect(
-                      key: _animalImageKey,
+                  // Heyvan şəkli və oxlar bir blokda
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(32),
-                      child: Image.asset(
-                        imageAsset,
-                        width: 220,
-                        height: 220,
-                        fit: BoxFit.contain,
-                        errorBuilder:
-                            (context, error, stackTrace) => Container(
-                              width: 220,
-                              height: 220,
-                              color: Colors.grey.shade200,
-                              child: const Icon(
-                                Icons.image_not_supported,
-                                size: 40,
-                              ),
-                            ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      animal,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (showInfo)
-                      Center(
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 480),
-                          margin: EdgeInsets.symmetric(vertical: 8),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.deepPurple.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.deepPurple.withOpacity(0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: Colors.deepPurple.shade100,
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.deepPurple,
-                                    size: 26,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Heyvan haqqında',
-                                    style: TextStyle(
-                                      color: Colors.deepPurple.shade700,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    tooltip: 'Haqqında səsləndir',
-                                    icon: const Icon(
-                                      Icons.record_voice_over,
-                                      size: 24,
-                                    ),
-                                    color: Colors.deepPurple,
-                                    onPressed: () => _playAnimalInfo(animal),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                info,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF3D2067),
-                                  height: 1.4,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepPurple.withOpacity(0.08),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
                         ),
+                      ],
+                      border: Border.all(
+                        color: Colors.deepPurple.shade50,
+                        width: 1.2,
                       ),
-                    if (showFoods)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Qidaları:',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ClipRRect(
+                              key: _animalImageKey,
+                              borderRadius: BorderRadius.circular(28),
+                              child: Image.asset(
+                                imageAsset,
+                                width: 180,
+                                height: 180,
+                                fit: BoxFit.contain,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Container(
+                                      width: 180,
+                                      height: 180,
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        size: 40,
+                                      ),
+                                    ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: List.generate(foods.length, (idx) {
-                                final food = foods[idx];
-                                final foodLetter = getFirstLetter(food);
-                                final foodImage =
-                                    'foods/${normalizeFileName(food)}.png';
-                                _foodButtonKeys.putIfAbsent(
-                                  idx,
-                                  () => GlobalKey(),
-                                );
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6.0,
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(18),
-                                      onTap: () {}, // gələcəkdə istifadə üçün
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
+                          ],
+                        ),
+                        // Ortalanmış oxlar
+                        if (animalsList != null &&
+                            currentIndex != null &&
+                            animalsList.length > 1) ...[
+                          if (currentIndex > 0)
+                            Positioned(
+                              left: 0,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Tooltip(
+                                  message: 'Əvvəlki',
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.arrow_back_ios,
+                                      size: 36,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => AnimalDetailPage(
+                                                animal:
+                                                    animalsList[currentIndex -
+                                                        1],
+                                                animals: animalsList,
+                                                currentIndex: currentIndex - 1,
+                                              ),
                                         ),
-                                        curve: Curves.easeInOut,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (currentIndex < animalsList.length - 1)
+                            Positioned(
+                              right: 0,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Tooltip(
+                                  message: 'Növbəti',
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 36,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => AnimalDetailPage(
+                                                animal:
+                                                    animalsList[currentIndex +
+                                                        1],
+                                                animals: animalsList,
+                                                currentIndex: currentIndex + 1,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Şəkil ilə buttonlar arasında məsafə
+                  const SizedBox(height: 18),
+                  // Action buttonlar ayrıca və ortada
+                  Builder(
+                    builder: (context) {
+                      return FutureBuilder<List<Widget>>(
+                        future: _buildVisibleActions(actions),
+                        builder: (context, snapshot) {
+                          final visibleActions = snapshot.data ?? [];
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: separatedBySpace(visibleActions),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child:
+                            showPuzzle
+                                ? Padding(
+                                  padding: const EdgeInsets.only(top: 12.0),
+                                  child: PuzzlePage(animal: animal),
+                                )
+                                : Column(
+                                  children: [
+                                    if (showInfo)
+                                      Container(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 520,
+                                        ),
+                                        margin: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 22,
+                                          vertical: 20,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.deepPurple.shade50,
                                           borderRadius: BorderRadius.circular(
-                                            18,
+                                            22,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.deepPurple
                                                   .withOpacity(0.08),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
                                             ),
                                           ],
                                           border: Border.all(
@@ -415,165 +385,331 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                                             width: 1.2,
                                           ),
                                         ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 10,
-                                        ),
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
                                           children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              child: Image.asset(
-                                                foodImage,
-                                                width: 56,
-                                                height: 56,
-                                                fit: BoxFit.contain,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) => Container(
-                                                      width: 56,
-                                                      height: 56,
-                                                      color:
-                                                          Colors.grey.shade200,
-                                                      child: const Icon(
-                                                        Icons.fastfood,
-                                                        size: 28,
-                                                      ),
-                                                    ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    Colors.deepPurple.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: Text(
-                                                food,
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w600,
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.info_outline,
                                                   color: Colors.deepPurple,
+                                                  size: 26,
                                                 ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            ElevatedButton(
-                                              key: _foodButtonKeys[idx],
-                                              onPressed: () {
-                                                _animateFoodToAnimal(idx);
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.white,
-                                                foregroundColor:
-                                                    Colors.deepPurple,
-                                                elevation: 0,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                      vertical: 8,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  side: BorderSide(
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Heyvan haqqında',
+                                                  style: TextStyle(
                                                     color:
                                                         Colors
                                                             .deepPurple
-                                                            .shade200,
+                                                            .shade700,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 20,
                                                   ),
                                                 ),
+                                                const SizedBox(width: 8),
+                                                IconButton(
+                                                  tooltip: 'Haqqında səsləndir',
+                                                  icon: const Icon(
+                                                    Icons.record_voice_over,
+                                                    size: 24,
+                                                  ),
+                                                  color: Colors.deepPurple,
+                                                  onPressed:
+                                                      () => _playAnimalInfo(
+                                                        animal,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              info,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w500,
+                                                color: Color(0xFF3D2067),
+                                                height: 1.4,
                                               ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (showFoods)
+                                      Container(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 520,
+                                        ),
+                                        margin: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 22,
+                                          vertical: 20,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepPurple.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            22,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.deepPurple
+                                                  .withOpacity(0.08),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                          border: Border.all(
+                                            color: Colors.deepPurple.shade100,
+                                            width: 1.2,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Qidaları:',
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
                                               child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.favorite,
-                                                    size: 18,
-                                                    color: Colors.pink,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Text(
-                                                    'Qidalandır',
-                                                    style: const TextStyle(
-                                                      fontSize: 15,
+                                                children: List.generate(foods.length, (
+                                                  idx,
+                                                ) {
+                                                  final food = foods[idx];
+                                                  final foodLetter =
+                                                      getFirstLetter(food);
+                                                  final foodImage =
+                                                      'foods/${normalizeFileName(food)}.png';
+                                                  _foodButtonKeys.putIfAbsent(
+                                                    idx,
+                                                    () => GlobalKey(),
+                                                  );
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 6.0,
+                                                        ),
+                                                    child: Material(
+                                                      color: Colors.transparent,
+                                                      child: InkWell(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              18,
+                                                            ),
+                                                        onTap:
+                                                            () {}, // gələcəkdə istifadə üçün
+                                                        child: AnimatedContainer(
+                                                          duration:
+                                                              const Duration(
+                                                                milliseconds:
+                                                                    200,
+                                                              ),
+                                                          curve:
+                                                              Curves.easeInOut,
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.white,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  18,
+                                                                ),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors
+                                                                    .deepPurple
+                                                                    .withOpacity(
+                                                                      0.08,
+                                                                    ),
+                                                                blurRadius: 8,
+                                                                offset:
+                                                                    const Offset(
+                                                                      0,
+                                                                      2,
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                            border: Border.all(
+                                                              color:
+                                                                  Colors
+                                                                      .deepPurple
+                                                                      .shade100,
+                                                              width: 1.2,
+                                                            ),
+                                                          ),
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 12,
+                                                                vertical: 10,
+                                                              ),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              ClipRRect(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                                child: Image.asset(
+                                                                  foodImage,
+                                                                  width: 56,
+                                                                  height: 56,
+                                                                  fit:
+                                                                      BoxFit
+                                                                          .contain,
+                                                                  errorBuilder:
+                                                                      (
+                                                                        context,
+                                                                        error,
+                                                                        stackTrace,
+                                                                      ) => Container(
+                                                                        width:
+                                                                            56,
+                                                                        height:
+                                                                            56,
+                                                                        color:
+                                                                            Colors.grey.shade200,
+                                                                        child: const Icon(
+                                                                          Icons
+                                                                              .fastfood,
+                                                                          size:
+                                                                              28,
+                                                                        ),
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                height: 8,
+                                                              ),
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          10,
+                                                                      vertical:
+                                                                          4,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      Colors
+                                                                          .deepPurple
+                                                                          .shade100,
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        10,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  food,
+                                                                  style: const TextStyle(
+                                                                    fontSize:
+                                                                        15,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    color:
+                                                                        Colors
+                                                                            .deepPurple,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                height: 6,
+                                                              ),
+                                                              ElevatedButton(
+                                                                key:
+                                                                    _foodButtonKeys[idx],
+                                                                onPressed: () {
+                                                                  _animateFoodToAnimal(
+                                                                    idx,
+                                                                  );
+                                                                },
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .white,
+                                                                  foregroundColor:
+                                                                      Colors
+                                                                          .deepPurple,
+                                                                  elevation: 0,
+                                                                  padding:
+                                                                      const EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            16,
+                                                                        vertical:
+                                                                            8,
+                                                                      ),
+                                                                  shape: RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                          12,
+                                                                        ),
+                                                                    side: BorderSide(
+                                                                      color:
+                                                                          Colors
+                                                                              .deepPurple
+                                                                              .shade200,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
+                                                                  children: [
+                                                                    const Icon(
+                                                                      Icons
+                                                                          .favorite,
+                                                                      size: 18,
+                                                                      color:
+                                                                          Colors
+                                                                              .pink,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      width: 6,
+                                                                    ),
+                                                                    Text(
+                                                                      'Qidalandır',
+                                                                      style: const TextStyle(
+                                                                        fontSize:
+                                                                            15,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ),
-                                                ],
+                                                  );
+                                                }),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                          ),
-                        ],
+                                  ],
+                                ),
                       ),
-                  ],
+                    ),
+                  ),
                 ],
               ),
-              if (animalsList != null &&
-                  currentIndex != null &&
-                  animalsList.length > 1) ...[
-                if (currentIndex > 0)
-                  Positioned(
-                    left: 0,
-                    top: MediaQuery.of(context).size.height * 0.25,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, size: 36),
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => AnimalDetailPage(
-                                  animal: animalsList[currentIndex - 1],
-                                  animals: animalsList,
-                                  currentIndex: currentIndex - 1,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                if (currentIndex < animalsList.length - 1)
-                  Positioned(
-                    right: 0,
-                    top: MediaQuery.of(context).size.height * 0.25,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, size: 36),
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => AnimalDetailPage(
-                                  animal: animalsList[currentIndex + 1],
-                                  animals: animalsList,
-                                  currentIndex: currentIndex + 1,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-              ],
             ],
           ),
         ),
@@ -624,6 +760,23 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
     } catch (e) {
       return false;
     }
+  }
+
+  Future<List<Widget>> _buildVisibleActions(
+    List<_ActionButtonData> actions,
+  ) async {
+    List<Widget> result = [];
+    for (final action in actions) {
+      if (action.visibleFuture != null) {
+        final visible = await action.visibleFuture!;
+        if (visible) {
+          result.add(_ActionButton(action: action));
+        }
+      } else if (action.visible) {
+        result.add(_ActionButton(action: action));
+      }
+    }
+    return result;
   }
 }
 
@@ -828,134 +981,13 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _Breadcrumbs extends StatelessWidget {
-  final String animal;
-  final String animalLetter;
-  final List<String>? animalsList;
-  final int? currentIndex;
-  const _Breadcrumbs({
-    required this.animal,
-    required this.animalLetter,
-    this.animalsList,
-    this.currentIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Əsas səhifə (Əlifba)
-          _BreadcrumbCircle(
-            icon: Icons.home,
-            label: 'Əlifba',
-            color: Colors.deepPurple.shade400,
-            onTap:
-                () => Navigator.of(context).popUntil((route) => route.isFirst),
-            selected: false,
-          ),
-          _BreadcrumbArrow(),
-          // Hərf
-          _BreadcrumbCircle(
-            icon: null,
-            label: animalLetter.toUpperCase(),
-            color: Colors.deepPurple.shade200,
-            onTap:
-                (animalsList != null && currentIndex != null)
-                    ? () => Navigator.of(context).pop()
-                    : null,
-            selected: true,
-          ),
-        ],
-      ),
-    );
+List<Widget> separatedBySpace(List<Widget> widgets, {double space = 10}) {
+  final result = <Widget>[];
+  for (var i = 0; i < widgets.length; i++) {
+    result.add(widgets[i]);
+    if (i != widgets.length - 1) {
+      result.add(SizedBox(width: space));
+    }
   }
-}
-
-class _BreadcrumbCircle extends StatelessWidget {
-  final IconData? icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
-  final bool selected;
-  const _BreadcrumbCircle({
-    this.icon,
-    required this.label,
-    required this.color,
-    this.onTap,
-    this.selected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.18) : color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? color : color.withOpacity(0.4),
-            width: selected ? 2 : 1.1,
-          ),
-          boxShadow:
-              selected
-                  ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.13),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                  : [],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) Icon(icon, color: color, size: 20),
-            if (icon != null) const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: selected ? FontWeight.bold : FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BreadcrumbArrow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Icon(
-        Icons.chevron_right,
-        color: Colors.deepPurple.shade300,
-        size: 22,
-      ),
-    );
-  }
+  return result;
 }

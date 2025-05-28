@@ -66,74 +66,71 @@ class _PuzzlePageState extends State<PuzzlePage> {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, right: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTapDown:
-                          (_) => _showFullImageOverlay(context, imageAsset),
-                      onTapUp: (_) => _removeFullImageOverlay(),
-                      onTapCancel: () => _removeFullImageOverlay(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.shade50,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.deepPurple.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.deepPurple.withAlpha(
-                                (255 * 0.08).round(),
-                              ),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTapDown:
+                        (_) => _showFullImageOverlay(context, imageAsset),
+                    onTapUp: (_) => _removeFullImageOverlay(),
+                    onTapCancel: () => _removeFullImageOverlay(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade50,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.deepPurple.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepPurple.withAlpha(
+                              (255 * 0.08).round(),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.visibility,
-                              color: Colors.deepPurple,
-                              size: 22,
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.visibility,
+                            color: Colors.deepPurple,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Şəkli göstər',
+                            style: TextStyle(
+                              color: Colors.deepPurple.shade700,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Şəkli göstər',
-                              style: TextStyle(
-                                color: Colors.deepPurple.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: _resetPuzzle,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Yenidən başla'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                  ),
+                  const SizedBox(width: 18),
+                  ElevatedButton.icon(
+                    onPressed: _resetPuzzle,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Yenidən başla'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             Container(
