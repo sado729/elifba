@@ -38,6 +38,7 @@ dependencies:
   audioplayers: ^5.2.1
   confetti: ^0.7.0
   collection: ^1.18.0
+  webview_flutter: ^4.2.2
 
 dev_dependencies:
   flutter_test:
