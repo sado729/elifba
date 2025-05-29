@@ -5,6 +5,11 @@ import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import 'puzzle_page.dart';
 import 'package:flutter/services.dart';
+import 'animal_word_puzzle.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:ui' as ui;
+import 'dart:html' as html;
 
 class AnimalDetailPage extends StatefulWidget {
   final String animal;
@@ -27,12 +32,13 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
   bool showInfo = true;
   bool showFoods = false;
   bool showPuzzle = false;
+  bool showWordPuzzle = false;
+  bool showYoutube = false;
   late ConfettiController _confettiController;
 
   // --- ANİMASİYA üçün əlavə ---
   final GlobalKey _animalImageKey = GlobalKey();
   final Map<int, GlobalKey> _foodButtonKeys = {};
-  OverlayEntry? _flyingEntry;
 
   static const Map<String, String> animalInfo = {
     'At':
@@ -61,17 +67,43 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
     // ... digər heyvanlar üçün qida əlavə edə bilərsən ...
   };
 
-  void _speak(String text) async {
-    await flutterTts.setLanguage('az-AZ');
-    await flutterTts.setPitch(1.0);
-    await flutterTts.speak(text);
-  }
+  // --- Əlavə: Səs və puzzle üçün map-lar ---
+  static const Map<String, bool> animalHasSound = {
+    'At': false,
+    'Ayı': true,
+    'Ceyran': false,
+    'Fil': false,
+    'Pələng': false,
+    'İlan': false,
+    'Qartal': false,
+    'Dovşan': false,
+    'Balıq': false,
+    // ... digər heyvanlar ...
+  };
+
+  static const Map<String, bool> animalHasPuzzle = {
+    'At': true,
+    'Ayı': false,
+    'Ceyran': false,
+    'Fil': false,
+    'Pələng': false,
+    'İlan': false,
+    'Qartal': false,
+    'Dovşan': false,
+    'Balıq': false,
+    // ... digər heyvanlar ...
+  };
+
+  // Youtube embed kodları üçün map
+  static const Map<String, String> animalYoutubeEmbeds = {
+    'At': 'https://www.youtube.com/embed/24FqPV30Af4',
+    // ... digər heyvanlar üçün əlavə edə bilərsən ...
+  };
 
   void _playAnimalSound(String animal) async {
     final animalLetter = getFirstLetter(animal);
     final animalName = normalizeFileName(animal);
-    final audioAsset =
-        'animals/$animalLetter/$animalName/${animalName}_sound.mp3';
+    final audioAsset = 'animals/$animalLetter/${animalName}_sound.mp3';
     try {
       await audioPlayer.stop();
       await audioPlayer.play(AssetSource(audioAsset));
@@ -81,8 +113,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
   void _playAnimalInfo(String animal) async {
     final animalLetter = getFirstLetter(animal);
     final animalName = normalizeFileName(animal);
-    final audioAsset =
-        'animals/$animalLetter/$animalName/${animalName}_info.mp3';
+    final audioAsset = 'animals/$animalLetter/${animalName}_info.mp3';
     try {
       await audioPlayer.stop();
       await audioPlayer.play(AssetSource(audioAsset));
@@ -108,15 +139,13 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
     final animal = widget.animal;
     final animalLetter = getFirstLetter(animal);
     final animalName = normalizeFileName(animal);
-    final imageAsset = 'animals/$animalLetter/$animalName/$animalName.png';
-    final puzzleAsset =
-        'animals/$animalLetter/$animalName/${animalName}_puzzle.jpg';
+    final imageAsset = 'animals/$animalLetter/$animalName.png';
+    final puzzleAsset = 'animals/$animalLetter/${animalName}_puzzle.jpg';
     final info = animalInfo[animal] ?? 'Bu heyvan haqqında məlumat yoxdur.';
     final foods = animalFoods[animal] ?? [];
     final animalsList = widget.animals;
     final currentIndex = widget.currentIndex;
-    final animalSoundAsset =
-        'animals/$animalLetter/$animalName/${animalName}_sound.mp3';
+    final animalSoundAsset = 'animals/$animalLetter/${animalName}_sound.mp3';
 
     final List<_ActionButtonData> actions = [
       _ActionButtonData(
@@ -128,6 +157,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
             showInfo = true;
             showFoods = false;
             showPuzzle = false;
+            showWordPuzzle = false;
+            showYoutube = false;
           });
         },
         visible: true,
@@ -142,37 +173,89 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
               showFoods = true;
               showInfo = false;
               showPuzzle = false;
+              showWordPuzzle = false;
+              showYoutube = false;
             });
           },
           visible: true,
         ),
     ];
-    // Səs iconu
+    // Səs iconunu yalnız map-da true olan heyvanlar üçün əlavə et
+    if (animalHasSound[animal] == true) {
+      actions.add(
+        _ActionButtonData(
+          tooltip: 'Heyvanın səsi',
+          icon: Icons.volume_up,
+          selected: false,
+          onTap: () {
+            _playAnimalSound(animal);
+            setState(() {
+              showYoutube = false;
+            });
+          },
+          visible: true,
+        ),
+      );
+    }
+    // Puzzle iconunu yalnız map-da true olan heyvanlar üçün əlavə et
+    if (animalHasPuzzle[animal] == true) {
+      actions.add(
+        _ActionButtonData(
+          tooltip: 'Puzzle',
+          icon: Icons.extension,
+          selected: showPuzzle,
+          onTap: () {
+            setState(() {
+              showPuzzle = true;
+              showInfo = false;
+              showFoods = false;
+              showWordPuzzle = false;
+              showYoutube = false;
+            });
+          },
+          visible: true,
+        ),
+      );
+    }
+    // Hərf oyunu iconu (ən sağda)
     actions.add(
       _ActionButtonData(
-        tooltip: 'Heyvanın səsi',
-        icon: Icons.volume_up,
-        selected: false,
-        onTap: () => _playAnimalSound(animal),
-        visibleFuture: _assetExists(animalSoundAsset),
-      ),
-    );
-    // Puzzle iconu
-    actions.add(
-      _ActionButtonData(
-        tooltip: 'Puzzle',
-        icon: Icons.extension,
-        selected: showPuzzle,
+        tooltip: 'Hərf oyunu',
+        icon: Icons.spellcheck,
+        selected: showWordPuzzle,
         onTap: () {
           setState(() {
-            showPuzzle = true;
+            showWordPuzzle = true;
             showInfo = false;
             showFoods = false;
+            showPuzzle = false;
+            showYoutube = false;
           });
         },
-        visibleFuture: _assetExists(puzzleAsset),
+        visible: true,
       ),
     );
+    // Youtube video iconu yalnız map-da varsa əlavə et
+    if (animalYoutubeEmbeds[animal] != null &&
+        animalYoutubeEmbeds[animal]!.isNotEmpty) {
+      actions.add(
+        _ActionButtonData(
+          tooltip: 'Youtube video',
+          icon: Icons.ondemand_video,
+          selected: showYoutube,
+          onTap: () {
+            setState(() {
+              showYoutube = true;
+              showInfo = false;
+              showFoods = false;
+              showPuzzle = false;
+              showWordPuzzle = false;
+            });
+          },
+          visible: true,
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -213,7 +296,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.08),
+                          color: Colors.deepPurple.withAlpha(
+                            (0.08 * 255).toInt(),
+                          ),
                           blurRadius: 18,
                           offset: const Offset(0, 6),
                         ),
@@ -343,6 +428,38 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                     },
                   ),
                   const SizedBox(height: 28),
+                  if (showWordPuzzle) ...[
+                    const Text(
+                      'Heyvanın adını düzgün yığ!',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AnimalWordPuzzle(word: animal),
+                  ],
+                  if (showYoutube && animalYoutubeEmbeds[animal] != null) ...[
+                    const SizedBox(height: 16),
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.black,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: YoutubeVideoWidget(
+                            embedUrl: animalYoutubeEmbeds[animal]!,
+                            uniqueKey:
+                                'youtube-iframe-${animalYoutubeEmbeds[animal]!}',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   Expanded(
                     child: SingleChildScrollView(
                       child: AnimatedSwitcher(
@@ -375,7 +492,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.deepPurple
-                                                  .withOpacity(0.08),
+                                                  .withAlpha(
+                                                    (0.08 * 255).toInt(),
+                                                  ),
                                               blurRadius: 12,
                                               offset: const Offset(0, 4),
                                             ),
@@ -460,7 +579,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.deepPurple
-                                                  .withOpacity(0.08),
+                                                  .withAlpha(
+                                                    (0.08 * 255).toInt(),
+                                                  ),
                                               blurRadius: 12,
                                               offset: const Offset(0, 4),
                                             ),
@@ -489,8 +610,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                                                   idx,
                                                 ) {
                                                   final food = foods[idx];
-                                                  final foodLetter =
-                                                      getFirstLetter(food);
                                                   final foodImage =
                                                       'foods/${normalizeFileName(food)}.png';
                                                   _foodButtonKeys.putIfAbsent(
@@ -529,8 +648,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
                                                               BoxShadow(
                                                                 color: Colors
                                                                     .deepPurple
-                                                                    .withOpacity(
-                                                                      0.08,
+                                                                    .withAlpha(
+                                                                      (0.08 * 255)
+                                                                          .toInt(),
                                                                     ),
                                                                 blurRadius: 8,
                                                                 offset:
@@ -739,7 +859,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
             },
           ),
     );
-    _flyingEntry = entry;
     overlay.insert(entry);
   }
 
@@ -890,8 +1009,8 @@ class _ArriveEffectState extends State<_ArriveEffect>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      Colors.pinkAccent.withOpacity(0.7),
-                      Colors.pink.withOpacity(0.0),
+                      Colors.pinkAccent.withAlpha((0.7 * 255).toInt()),
+                      Colors.pink.withAlpha((0.0 * 255).toInt()),
                     ],
                     stops: [0.5, 1.0],
                   ),
@@ -957,7 +1076,9 @@ class _ActionButton extends StatelessWidget {
                 action.selected
                     ? [
                       BoxShadow(
-                        color: Colors.deepPurple.withOpacity(0.10),
+                        color: Colors.deepPurple.withAlpha(
+                          (0.10 * 255).toInt(),
+                        ),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -990,4 +1111,59 @@ List<Widget> separatedBySpace(List<Widget> widgets, {double space = 10}) {
     }
   }
   return result;
+}
+
+// Youtube universal widget
+class YoutubeVideoWidget extends StatefulWidget {
+  final String embedUrl;
+  final String uniqueKey;
+  const YoutubeVideoWidget({
+    required this.embedUrl,
+    required this.uniqueKey,
+    super.key,
+  });
+
+  @override
+  State<YoutubeVideoWidget> createState() => _YoutubeVideoWidgetState();
+}
+
+class _YoutubeVideoWidgetState extends State<YoutubeVideoWidget> {
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      // ignore: undefined_prefixed_name
+      ui.platformViewRegistry.registerViewFactory(
+        widget.uniqueKey,
+        (int viewId) =>
+            html.IFrameElement()
+              ..width = '100%'
+              ..height = '100%'
+              ..src = widget.embedUrl
+              ..style.border = 'none'
+              ..allowFullscreen = true
+              ..allow = 'autoplay; encrypted-media',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return HtmlElementView(viewType: widget.uniqueKey);
+    } else {
+      return Container(
+        alignment: Alignment.center,
+        child: const Text(
+          'Youtube videosu yalnız mobil platformalarda göstərilir.',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+      // Əgər mobil üçün WebView əlavə etmək istəyirsinizsə, aşağıdakı kodu açın:
+      // return WebView(
+      //   initialUrl: widget.embedUrl,
+      //   javascriptMode: JavascriptMode.unrestricted,
+      // );
+    }
+  }
 }

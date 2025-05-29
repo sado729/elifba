@@ -99,13 +99,13 @@ class AnimalListPage extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.18),
+                          color: Colors.deepPurple.withAlpha(46),
                           blurRadius: 18,
                           offset: const Offset(0, 6),
                         ),
                       ],
                       border: Border.all(
-                        color: Colors.yellowAccent.withOpacity(0.3),
+                        color: Colors.yellowAccent.withAlpha(77),
                         width: 1.5,
                       ),
                     ),
@@ -159,8 +159,10 @@ class AnimalListPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(2),
                         gradient: LinearGradient(
                           colors: [
-                            Colors.yellowAccent.withOpacity(0.7),
-                            Colors.deepPurple.shade200.withOpacity(0.3),
+                            Colors.yellowAccent.withAlpha((0.7 * 255).toInt()),
+                            Colors.deepPurple.shade200.withAlpha(
+                              (0.3 * 255).toInt(),
+                            ),
                           ],
                         ),
                       ),
@@ -198,7 +200,7 @@ class AnimalListPage extends StatelessWidget {
                             final animalLetter = getFirstLetter(animal);
                             final animalName = normalizeFileName(animal);
                             final imageAsset =
-                                'animals/$animalLetter/$animalName/$animalName.png';
+                                'animals/$animalLetter/$animalName.png';
                             return _ModernAnimalCard(
                               animal: animal,
                               imageAsset: imageAsset,
@@ -261,7 +263,9 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.deepPurple.withOpacity(_hovered ? 0.22 : 0.10),
+                color: Colors.deepPurple.withAlpha(
+                  _hovered ? (0.22 * 255).toInt() : (0.10 * 255).toInt(),
+                ),
                 blurRadius: _hovered ? 28 : 14,
                 offset: const Offset(0, 8),
               ),
@@ -311,7 +315,7 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.06),
+                      color: Colors.deepPurple.withAlpha((0.06 * 255).toInt()),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),

@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'dart:math';
 
 class PuzzlePage extends StatefulWidget {
   final String animal;
@@ -21,6 +22,9 @@ class _PuzzlePageState extends State<PuzzlePage> {
   bool completed = false;
   late ConfettiController _confettiController;
   OverlayEntry? _imageOverlayEntry;
+  late List<String> letters;
+  late List<String?> placedLetters;
+  late List<Offset> randomOffsets;
 
   @override
   void initState() {
@@ -29,6 +33,15 @@ class _PuzzlePageState extends State<PuzzlePage> {
       duration: const Duration(seconds: 2),
     );
     _resetPuzzle();
+    letters = widget.animal.split('');
+    placedLetters = List.filled(letters.length, null);
+
+    // Random yerlər üçün offset-lər
+    final rand = Random();
+    randomOffsets = List.generate(
+      letters.length,
+      (_) => Offset(rand.nextDouble() * 200, rand.nextDouble() * 200),
+    );
   }
 
   void _resetPuzzle() {
@@ -59,8 +72,7 @@ class _PuzzlePageState extends State<PuzzlePage> {
     final animal = widget.animal;
     final animalLetter = getFirstLetter(animal);
     final animalName = normalizeFileName(animal);
-    final imageAsset =
-        'animals/$animalLetter/$animalName/${animalName}_puzzle.jpg';
+    final imageAsset = 'animals/$animalLetter/${animalName}_puzzle.jpg';
     return Stack(
       children: [
         Column(
@@ -429,6 +441,22 @@ class _PuzzlePageState extends State<PuzzlePage> {
             gravity: 0.3,
           ),
         ),
+        if (completed)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withAlpha(80),
+              child: const Center(
+                child: Text(
+                  'Uğur!',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
