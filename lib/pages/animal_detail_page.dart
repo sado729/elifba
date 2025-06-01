@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart'
 import 'dart:ui' as ui;
 import 'dart:html' as html;
 import '../widgets/youtube_video_widget.dart';
+import 'basket_game_widget.dart';
 
 class AnimalDetailPage extends StatefulWidget {
   final String animal;
@@ -406,6 +407,32 @@ class _AnimalDetailPageState extends State<AnimalDetailPage> {
             showPuzzle = false;
             showYoutube = false;
           });
+        },
+        visible: true,
+      ),
+    );
+    // Yeni: Səbət oyunu buttonu
+    actions.add(
+      _ActionButtonData(
+        tooltip: 'Səbət oyunu',
+        icon: Icons.sports_basketball,
+        selected: false,
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder:
+                (context) => Padding(
+                  padding: MediaQuery.of(context).viewInsets,
+                  child: SizedBox(
+                    height: 480,
+                    child: BasketGameWidget(letter: animal[0]),
+                  ),
+                ),
+          );
         },
         visible: true,
       ),
