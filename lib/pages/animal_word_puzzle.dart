@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 
@@ -142,99 +141,164 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                 ),
               ),
               // Düzgün yerlər (drop target-lər)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(letters.length, (i) {
-                  return GestureDetector(
-                    onTap: () {
-                      if (placedLetters[i] != null) {
-                        setState(() {
-                          placedLetters[i] = null;
-                          isCompleted = false;
-                        });
-                      }
-                    },
-                    child: DragTarget<String>(
-                      builder: (context, candidate, rejected) {
-                        Color bgColor;
-                        if (showCorrect) {
-                          bgColor = Colors.orangeAccent.withAlpha(180);
-                        } else if (placedLetters[i] == null) {
-                          bgColor = Colors.white;
-                        } else if (placedLetters[i] == letters[i]) {
-                          bgColor = Colors.greenAccent;
-                        } else {
-                          bgColor = Colors.redAccent.withOpacity(0.7);
-                        }
-                        return Container(
-                          width: 48,
-                          height: 60,
-                          margin: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            border: Border.all(
-                              color: Colors.deepPurple,
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            showCorrect ? letters[i] : (placedLetters[i] ?? ''),
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color:
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Ekranın eni və hərf sayı əsasında ölçü hesabla
+                  final maxWidth = constraints.maxWidth;
+                  final letterCount = letters.length;
+                  // Minimum və maksimum ölçü limitləri
+                  double boxWidth = 48;
+                  double boxHeight = 60;
+                  double minBoxWidth = 28;
+                  double minBoxHeight = 38;
+                  double spacing = 8;
+                  // Hesablanmış ölçü
+                  double totalWidth =
+                      letterCount * boxWidth + (letterCount - 1) * spacing;
+                  if (totalWidth > maxWidth) {
+                    // Sığmırsa, ölçünü kiçilt
+                    boxWidth = ((maxWidth - (letterCount - 1) * spacing) /
+                            letterCount)
+                        .clamp(minBoxWidth, boxWidth);
+                    boxHeight = (boxHeight * boxWidth / 48).clamp(
+                      minBoxHeight,
+                      boxHeight,
+                    );
+                  }
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(letters.length, (i) {
+                        return GestureDetector(
+                          onTap: () {
+                            if (placedLetters[i] != null) {
+                              setState(() {
+                                placedLetters[i] = null;
+                                isCompleted = false;
+                              });
+                            }
+                          },
+                          child: DragTarget<String>(
+                            builder: (context, candidate, rejected) {
+                              Color bgColor;
+                              if (showCorrect) {
+                                bgColor = Colors.orangeAccent.withAlpha(180);
+                              } else if (placedLetters[i] == null) {
+                                bgColor = Colors.white;
+                              } else if (placedLetters[i] == letters[i]) {
+                                bgColor = Colors.greenAccent;
+                              } else {
+                                bgColor = Colors.redAccent.withOpacity(0.7);
+                              }
+                              return Container(
+                                width: boxWidth,
+                                height: boxHeight,
+                                margin: EdgeInsets.all(spacing / 2),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  border: Border.all(
+                                    color: Colors.deepPurple,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
                                   showCorrect
-                                      ? Colors.deepPurple
-                                      : Colors.black,
-                            ),
+                                      ? letters[i]
+                                      : (placedLetters[i] ?? ''),
+                                  style: TextStyle(
+                                    fontSize: boxWidth * 0.65,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        showCorrect
+                                            ? Colors.deepPurple
+                                            : Colors.black,
+                                  ),
+                                ),
+                              );
+                            },
+                            onWillAcceptWithDetails:
+                                (data) => placedLetters[i] == null,
+                            onAcceptWithDetails: (data) {
+                              setState(() {
+                                placedLetters[i] = data.data;
+                              });
+                              checkCompleted();
+                            },
                           ),
                         );
-                      },
-                      onWillAcceptWithDetails:
-                          (data) => placedLetters[i] == null,
-                      onAcceptWithDetails: (data) {
-                        setState(() {
-                          placedLetters[i] = data.data;
-                        });
-                        checkCompleted();
-                      },
+                      }),
                     ),
                   );
-                }),
+                },
               ),
               const SizedBox(height: 32),
               // Səpələnmiş hərflər (draggable) - AŞAĞIDA
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
-                children: List.generate(shuffledLetters.length, (i) {
-                  final letter = shuffledLetters[i];
-                  // Əgər bu hərf artıq istifadə olunubsa (yəni placedLetters-də neçə dəfə varsa, o qədərini gizlət)
-                  int usedCount =
-                      placedLetters.where((e) => e == letter).length;
-                  int letterCountBefore = 0;
-                  for (int j = 0; j < i; j++) {
-                    if (shuffledLetters[j] == letter) letterCountBefore++;
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxWidth = constraints.maxWidth;
+                  final letterCount = shuffledLetters.length;
+                  double boxWidth = 48;
+                  double boxHeight = 60;
+                  double minBoxWidth = 28;
+                  double minBoxHeight = 38;
+                  double spacing = 8;
+                  double totalWidth =
+                      letterCount * boxWidth + (letterCount - 1) * spacing;
+                  if (totalWidth > maxWidth) {
+                    boxWidth = ((maxWidth - (letterCount - 1) * spacing) /
+                            letterCount)
+                        .clamp(minBoxWidth, boxWidth);
+                    boxHeight = (boxHeight * boxWidth / 48).clamp(
+                      minBoxHeight,
+                      boxHeight,
+                    );
                   }
-                  if (letterCountBefore < usedCount) {
-                    return const SizedBox.shrink();
-                  }
-                  return Draggable<String>(
-                    data: letter,
-                    feedback: Material(
-                      color: Colors.transparent,
-                      child: _buildLetter(letter, dragging: true),
-                    ),
-                    childWhenDragging: Opacity(
-                      opacity: 0.3,
-                      child: _buildLetter(letter),
-                    ),
-                    child: _buildLetter(letter),
+                  return Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: spacing,
+                    runSpacing: 12,
+                    children: List.generate(shuffledLetters.length, (i) {
+                      final letter = shuffledLetters[i];
+                      int usedCount =
+                          placedLetters.where((e) => e == letter).length;
+                      int letterCountBefore = 0;
+                      for (int j = 0; j < i; j++) {
+                        if (shuffledLetters[j] == letter) letterCountBefore++;
+                      }
+                      if (letterCountBefore < usedCount) {
+                        return const SizedBox.shrink();
+                      }
+                      return Draggable<String>(
+                        data: letter,
+                        feedback: Material(
+                          color: Colors.transparent,
+                          child: _buildLetter(
+                            letter,
+                            dragging: true,
+                            width: boxWidth,
+                            height: boxHeight,
+                          ),
+                        ),
+                        childWhenDragging: Opacity(
+                          opacity: 0.3,
+                          child: _buildLetter(
+                            letter,
+                            width: boxWidth,
+                            height: boxHeight,
+                          ),
+                        ),
+                        child: _buildLetter(
+                          letter,
+                          width: boxWidth,
+                          height: boxHeight,
+                        ),
+                      );
+                    }),
                   );
-                }),
+                },
               ),
             ],
           ),
@@ -257,10 +321,17 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
     );
   }
 
-  Widget _buildLetter(String letter, {bool dragging = false}) {
+  Widget _buildLetter(
+    String letter, {
+    bool dragging = false,
+    double? width,
+    double? height,
+  }) {
+    final boxWidth = width ?? 48.0;
+    final boxHeight = height ?? 60.0;
     return Container(
-      width: 48,
-      height: 60,
+      width: boxWidth,
+      height: boxHeight,
       alignment: Alignment.center,
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -280,7 +351,10 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
       ),
       child: Text(
         letter,
-        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: boxWidth * 0.65,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
