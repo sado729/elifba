@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-const String basketImageUrl =
-    'https://png.pngtree.com/png-vector/20230903/ourmid/pngtree-empty-red-plastic-cup-isolated-with-reflect-floor-for-mockup-png-image_9950721.png';
-const String ballImageUrl =
-    'https://static.vecteezy.com/system/resources/thumbnails/022/651/656/small_2x/3d-round-ball-free-png.png';
+const String basketImageUrl = 'assets/basket.png';
+const String ballImageUrl = 'assets/ball.webp';
 
 enum BasketGamePhase { showBall, basketsDrop, shuffle, guess, result }
 
@@ -55,8 +53,7 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
     _rotateAnimation = Tween<double>(begin: 0, end: math.pi).animate(
       CurvedAnimation(parent: _rotateController, curve: Curves.easeInOut),
     );
-    resetGame();
-    WidgetsBinding.instance.addPostFrameCallback((_) => startIntroAnimation());
+    // Oyun avtomatik başlamasın deyə, burada heç bir oyun başlatma funksiyası çağırmıram.
   }
 
   @override
@@ -80,9 +77,9 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
     // Qalan faza keçidləri səbət animasiyası bitəndə AnimatedPositioned.onEnd ilə olacaq
   }
 
-  void resetGame() {
+  Future<void> resetGame() async {
     setState(() {
-      ballIndex = math.Random().nextInt(3);
+      ballIndex = 1; // Top həmişə ortadakı səbətdə başlayır
       selectedBasket = null;
       shuffled = false;
       showResult = false;
@@ -92,8 +89,19 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
       shuffleStep = 0;
       isShuffling = false;
       phase = BasketGamePhase.showBall;
+      selectedBasketIdx = null;
+      isCorrect = null;
+      basketsDropHandled = false;
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => startIntroAnimation());
+    await Future.delayed(const Duration(milliseconds: 1000));
+    setState(() {
+      phase = BasketGamePhase.basketsDrop;
+    });
+    await Future.delayed(const Duration(milliseconds: 1000));
+    await animateShuffle();
+    setState(() {
+      gameStarted = true;
+    });
   }
 
   Future<void> shuffleBaskets() async {
@@ -139,7 +147,9 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
       setState(() {
         int a = math.Random().nextInt(3);
         int b = math.Random().nextInt(3);
-        while (b == a) b = math.Random().nextInt(3);
+        while (b == a) {
+          b = math.Random().nextInt(3);
+        }
         int tmp = shuffleOrder[a];
         shuffleOrder[a] = shuffleOrder[b];
         shuffleOrder[b] = tmp;
@@ -167,47 +177,7 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Image.network(
-            ballImageUrl,
-            width: 48,
-            height: 48,
-            fit: BoxFit.contain,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.orange,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withAlpha(60),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.orange,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withAlpha(60),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          Image.asset(ballImageUrl, width: 48, height: 48, fit: BoxFit.contain),
           Positioned(
             bottom: 2,
             child: Text(
@@ -232,313 +202,313 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Səbət Oyunu',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Topun üstündəki hərf: ',
-              style: TextStyle(fontSize: 18, color: Colors.deepPurple.shade700),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 180,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  double basketWidth = 56;
-                  double spacing = (constraints.maxWidth - basketWidth * 3) / 4;
-                  // Topun animasiyası və fazalara görə göstərilməsi
-                  Widget ballWidget = const SizedBox.shrink();
-                  if (!gameStarted) {
-                    if (phase == BasketGamePhase.showBall ||
-                        phase == BasketGamePhase.basketsDrop) {
-                      // Ortadakı səbət topun üstünə düşəndə top gizlənir
-                      bool hideBall = false;
-                      if (phase == BasketGamePhase.basketsDrop &&
-                          basketsDropHandled) {
-                        hideBall = true;
-                      }
-                      ballWidget = Positioned(
-                        top: 60,
-                        left: constraints.maxWidth / 2 - 24,
-                        child: Opacity(
-                          opacity:
-                              (hideBallDuringShuffle || hideBall) ? 0.0 : 1.0,
-                          child: SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: Image.network(
-                              ballImageUrl,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  } else if (phase == BasketGamePhase.result &&
-                      selectedBasket != null) {
-                    // Seçimdən sonra yalnız seçilmiş səbətin altında top
-                    int realIdx = ballIndex;
-                    int pos = shuffleOrder.indexOf(realIdx);
-                    if (selectedBasket == pos) {
-                      double left = spacing + pos * (basketWidth + spacing);
-                      ballWidget = Positioned(
-                        top: 50 + basketWidth,
-                        left: left + basketWidth / 2 - 24,
-                        child: SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Image.network(
-                            ballImageUrl,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      );
-                    }
-                  } else {
-                    // Shuffle və ya oyun zamanı topu gizlət
-                    bool hideBall = false;
-                    if (phase == BasketGamePhase.basketsDrop &&
-                        basketsDropHandled) {
-                      hideBall = true;
-                    }
-                    ballWidget = Positioned(
-                      top: 60,
-                      left: constraints.maxWidth / 2 - 24,
-                      child: Opacity(
-                        opacity:
-                            (hideBallDuringShuffle ||
-                                    hideBall ||
-                                    (gameStarted && selectedBasketIdx == null))
-                                ? 0.0
-                                : 1.0,
-                        child: SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Image.network(
-                            ballImageUrl,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Səbət Oyunu',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
                       ),
-                    );
-                  }
-                  return Stack(
-                    children: [
-                      // Əvvəlcə top (aşağı layer)
-                      ballWidget,
-                      // Səbətlər (yuxarı layer)
-                      ...List.generate(3, (realIdx) {
-                        int pos = shuffleOrder.indexOf(realIdx);
-                        double left = spacing + pos * (basketWidth + spacing);
-                        Widget basketImg = Image.network(
-                          basketImageUrl,
-                          width: basketWidth,
-                          height: basketWidth,
-                          fit: BoxFit.contain,
-                        );
-                        // Səbətlərin yuxarıdan aşağı düşməsi animasiyası
-                        double basketDropTop = 50;
-                        if (realIdx == 1) {
-                          if (phase == BasketGamePhase.showBall) {
-                            basketDropTop = 20;
-                          } else if (phase == BasketGamePhase.basketsDrop) {
-                            basketDropTop = 50;
-                          }
-                        } else {
-                          basketDropTop = 50;
-                        }
-                        // Səbət seçimi üçün rəng
-                        ColorFilter filter = const ColorFilter.mode(
-                          Colors.transparent,
-                          BlendMode.dst,
-                        );
-                        if (selectedBasketIdx != null &&
-                            selectedBasketIdx == pos) {
-                          filter = ColorFilter.mode(
-                            isCorrect == true
-                                ? Colors.green.withOpacity(0.3)
-                                : Colors.red.withOpacity(0.3),
-                            BlendMode.srcATop,
-                          );
-                        }
-                        return AnimatedPositioned(
-                          key: ValueKey(realIdx),
-                          duration: const Duration(milliseconds: 700),
-                          curve: Curves.easeInOut,
-                          left: left,
-                          top: basketDropTop,
-                          width: basketWidth,
-                          child: Column(
-                            children: [
-                              Transform.scale(
-                                scale: 1.2,
-                                child: Transform.rotate(
-                                  angle: math.pi,
-                                  child: ColorFiltered(
-                                    colorFilter: filter,
-                                    child: basketImg,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 180,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          double basketWidth = 56;
+                          double spacing =
+                              (constraints.maxWidth - basketWidth * 3) / 4;
+                          // Topun animasiyası və fazalara görə göstərilməsi
+                          Widget ballWidget = const SizedBox.shrink();
+                          if (!gameStarted) {
+                            if (phase == BasketGamePhase.showBall ||
+                                phase == BasketGamePhase.basketsDrop) {
+                              // Ortadakı səbət yuxarıda olanda top tam görünməlidir
+                              bool hideBall = false;
+                              double topPos =
+                                  20 +
+                                  basketWidth; // səbət yuxarıda olanda topun mövqeyi
+                              if (phase == BasketGamePhase.basketsDrop &&
+                                  basketsDropHandled) {
+                                hideBall = true;
+                              } else if (phase == BasketGamePhase.showBall) {
+                                hideBall = false;
+                                topPos =
+                                    20 +
+                                    basketWidth; // səbət yuxarıda olanda topun mövqeyi
+                              } else {
+                                topPos = 60; // default mövqe
+                              }
+                              ballWidget = Positioned(
+                                top: topPos,
+                                left: constraints.maxWidth / 2 - 24,
+                                child: Opacity(
+                                  opacity:
+                                      (hideBallDuringShuffle || hideBall)
+                                          ? 0.0
+                                          : 1.0,
+                                  child: buildBall(widget.letter),
+                                ),
+                              );
+                            }
+                          } else if (phase == BasketGamePhase.result &&
+                              selectedBasket != null) {
+                            // Seçimdən sonra yalnız seçilmiş səbətin altında top
+                            int realIdx = ballIndex;
+                            int pos = shuffleOrder.indexOf(realIdx);
+                            if (selectedBasket == pos) {
+                              double left =
+                                  spacing + pos * (basketWidth + spacing);
+                              ballWidget = Positioned(
+                                top: 50 + basketWidth,
+                                left: left + basketWidth / 2 - 24,
+                                child: SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: Image.asset(
+                                    ballImageUrl,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              );
+                            }
+                          } else {
+                            // Shuffle və ya oyun zamanı topu gizlət
+                            bool hideBall = false;
+                            if (phase == BasketGamePhase.basketsDrop &&
+                                basketsDropHandled) {
+                              hideBall = true;
+                            }
+                            ballWidget = Positioned(
+                              top: 60,
+                              left: constraints.maxWidth / 2 - 24,
+                              child: Opacity(
+                                opacity:
+                                    (hideBallDuringShuffle ||
+                                            hideBall ||
+                                            (gameStarted &&
+                                                selectedBasketIdx == null))
+                                        ? 0.0
+                                        : 1.0,
+                                child: SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: Image.asset(
+                                    ballImageUrl,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              if (gameStarted && selectedBasketIdx == null)
-                                SizedBox(
-                                  width: 72,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        selectedBasketIdx = pos;
-                                        isCorrect =
-                                            (pos ==
-                                                shuffleOrder.indexOf(
-                                                  ballIndex,
-                                                ));
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.deepPurple.shade50,
-                                      foregroundColor: Colors.deepPurple,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                            );
+                          }
+                          return Stack(
+                            children: [
+                              // Əvvəlcə top (aşağı layer)
+                              ballWidget,
+                              // Səbətlər (yuxarı layer)
+                              ...List.generate(3, (realIdx) {
+                                int pos = shuffleOrder.indexOf(realIdx);
+                                double left =
+                                    spacing + pos * (basketWidth + spacing);
+                                Widget basketImg = Image.asset(
+                                  basketImageUrl,
+                                  width: basketWidth,
+                                  height: basketWidth,
+                                  fit: BoxFit.contain,
+                                );
+                                // Səbətlərin yuxarıdan aşağı düşməsi animasiyası
+                                double basketDropTop = 50;
+                                if (realIdx == 1) {
+                                  if (phase == BasketGamePhase.showBall) {
+                                    basketDropTop = 20;
+                                  } else if (phase ==
+                                      BasketGamePhase.basketsDrop) {
+                                    basketDropTop = 50;
+                                  }
+                                } else {
+                                  basketDropTop = 50;
+                                }
+                                // Səbət seçimi üçün rəng
+                                ColorFilter filter = const ColorFilter.mode(
+                                  Colors.transparent,
+                                  BlendMode.dst,
+                                );
+                                if (selectedBasketIdx != null &&
+                                    selectedBasketIdx == pos) {
+                                  filter = ColorFilter.mode(
+                                    isCorrect == true
+                                        ? Colors.green.withOpacity(0.3)
+                                        : Colors.red.withOpacity(0.3),
+                                    BlendMode.srcATop,
+                                  );
+                                }
+                                return AnimatedPositioned(
+                                  key: ValueKey(realIdx),
+                                  duration: const Duration(milliseconds: 700),
+                                  curve: Curves.easeInOut,
+                                  left: left,
+                                  top: basketDropTop,
+                                  width: basketWidth,
+                                  onEnd:
+                                      realIdx == 1
+                                          ? () {
+                                            if (phase ==
+                                                    BasketGamePhase
+                                                        .basketsDrop &&
+                                                !basketsDropHandled) {
+                                              setState(() {
+                                                basketsDropHandled = true;
+                                              });
+                                            }
+                                          }
+                                          : null,
+                                  child: Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap:
+                                            (gameStarted &&
+                                                    selectedBasketIdx == null)
+                                                ? () {
+                                                  setState(() {
+                                                    selectedBasketIdx = pos;
+                                                    isCorrect =
+                                                        (pos ==
+                                                            shuffleOrder
+                                                                .indexOf(
+                                                                  ballIndex,
+                                                                ));
+                                                    win = isCorrect == true;
+                                                    phase =
+                                                        BasketGamePhase.result;
+                                                  });
+                                                }
+                                                : null,
+                                        child: Transform.scale(
+                                          scale: 1.2,
+                                          child: Transform.rotate(
+                                            angle: math.pi,
+                                            child: ColorFiltered(
+                                              colorFilter: filter,
+                                              child: basketImg,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      minimumSize: Size(72, 36),
-                                    ),
-                                    child: const Text('Seç'),
+                                      const SizedBox(height: 8),
+                                    ],
                                   ),
-                                ),
-                              if (selectedBasketIdx != null &&
-                                  selectedBasketIdx == pos)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    isCorrect == true ? 'Doğru!' : 'Səhv',
-                                    style: TextStyle(
-                                      color:
-                                          isCorrect == true
-                                              ? Colors.green
-                                              : Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    if (phase == BasketGamePhase.result)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width - 48,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                win ? Colors.green.shade50 : Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (win ? Colors.green : Colors.red)
+                                    .withOpacity(0.12),
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
                             ],
                           ),
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (phase == BasketGamePhase.result)
-              Column(
-                children: [
-                  const SizedBox(height: 16),
-                  Icon(
-                    win ? Icons.emoji_events : Icons.sentiment_dissatisfied,
-                    color: win ? Colors.green : Colors.red,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    win
-                        ? 'Təbriklər, doğru səbəti tapdın!'
-                        : 'Təəssüf, səhv səbət seçdin.',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: win ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Yenidən oynat'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Icon(
+                                win
+                                    ? Icons.emoji_events
+                                    : Icons.sentiment_dissatisfied,
+                                color: win ? Colors.green : Colors.red,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  win
+                                      ? 'Təbriklər, doğru səbəti tapdın!'
+                                      : 'Təəssüf, səhv səbət seçdin.',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: win ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 12,
+                    if (!gameStarted)
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        child: ElevatedButton(
+                          key: const ValueKey('startBtn'),
+                          onPressed: () async {
+                            await resetGame();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 18,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          child: const Text('Oyunu başlat'),
+                        ),
                       ),
-                    ),
-                    onPressed: resetGame,
-                  ),
-                ],
-              ),
-            // Aşağıda "Oyunu başlat" düyməsi
-            if (!gameStarted)
-              Padding(
-                padding: const EdgeInsets.only(top: 24.0),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    selectedBasketIdx = null;
-                    isCorrect = null;
-                    await animateShuffle();
-                    setState(() {
-                      gameStarted = true;
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 18,
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  child: const Text('Oyunu başlat'),
+                  ],
                 ),
               ),
-            // Səbət seçilib nəticə göründükdən sonra 'Yenidən başlat' düyməsi
-            if (gameStarted && selectedBasketIdx != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 24.0),
+            ),
+            if (phase == BasketGamePhase.result)
+              SafeArea(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Yenidən başlat'),
+                  label: const Text('Yenidən oynat'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      horizontal: 22,
+                      vertical: 12,
                     ),
                   ),
-                  onPressed: () async {
-                    setState(() {
-                      gameStarted = false;
-                      selectedBasketIdx = null;
-                      isCorrect = null;
-                    });
-                  },
+                  onPressed: resetGame,
                 ),
               ),
           ],

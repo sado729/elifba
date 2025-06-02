@@ -7,9 +7,10 @@ class YoutubeVideoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WebView(
-      initialUrl: embedUrl,
-      javascriptMode: JavascriptMode.unrestricted,
+    return WebViewWidget(
+      controller: WebViewController()
+        ..loadRequest(Uri.parse(embedUrl))
+        ..setJavaScriptMode(JavaScriptMode.unrestricted),
     );
   }
 }
