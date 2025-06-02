@@ -10,7 +10,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'dart:ui' as ui;
-import 'dart:html' as html;
 import '../widgets/youtube_video_widget.dart';
 import 'basket_game_widget.dart';
 
@@ -1326,6 +1325,7 @@ class _ActionButtonData {
   final VoidCallback onTap;
   final bool visible;
   final Future<bool>? visibleFuture;
+
   _ActionButtonData({
     required this.tooltip,
     required this.icon,
