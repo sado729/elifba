@@ -177,7 +177,18 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Image.asset(ballImageUrl, width: 48, height: 48, fit: BoxFit.contain),
+          Image.asset(
+            ballImageUrl,
+            width: 48,
+            height: 48,
+            fit: BoxFit.contain,
+            errorBuilder:
+                (context, error, stackTrace) => const Icon(
+                  Icons.sports_basketball,
+                  size: 32,
+                  color: Colors.orange,
+                ),
+          ),
           Positioned(
             bottom: 2,
             child: Text(
@@ -274,6 +285,13 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
                                   child: Image.asset(
                                     ballImageUrl,
                                     fit: BoxFit.contain,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                              Icons.sports_basketball,
+                                              size: 32,
+                                              color: Colors.orange,
+                                            ),
                                   ),
                                 ),
                               );
@@ -302,6 +320,13 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
                                   child: Image.asset(
                                     ballImageUrl,
                                     fit: BoxFit.contain,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                              Icons.sports_basketball,
+                                              size: 32,
+                                              color: Colors.orange,
+                                            ),
                                   ),
                                 ),
                               ),
@@ -321,6 +346,13 @@ class _BasketGameWidgetState extends State<BasketGameWidget>
                                   width: basketWidth,
                                   height: basketWidth,
                                   fit: BoxFit.contain,
+                                  errorBuilder:
+                                      (context, error, stackTrace) =>
+                                          const Icon(
+                                            Icons.shopping_basket,
+                                            size: 32,
+                                            color: Colors.brown,
+                                          ),
                                 );
                                 // Səbətlərin yuxarıdan aşağı düşməsi animasiyası
                                 double basketDropTop = 50;

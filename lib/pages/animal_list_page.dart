@@ -2,56 +2,20 @@ import 'package:flutter/material.dart';
 import 'animal_detail_page.dart';
 import '../core/utils.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import '../core/config.dart';
 
 class AnimalListPage extends StatelessWidget {
   final String letter;
-  final List<String> animals;
-  const AnimalListPage({
-    super.key,
-    required this.letter,
-    required this.animals,
-  });
-
-  static const Map<String, String> letterInfo = {
-    'A':
-        'A yaxud a — çağdaş Azərbaycan əlifbası kimi Yer üzündəki bir çox dildə işlədilən latın əlifbasının ilk hərfi.Azərbaycan dilində hərfə a adı verilib.Hərfin böyük versiyasının görünüşü ortasından üfüqi xətt keçən bir nöqtədən çəkilmiş iki əyri xətt kimidir. Kiçik a hərfi isə iki cür yazılır: ikiqatlı a və birqatlı ɑ. Birinci görünüş, əsasən, çap yazısında, ikincisi isə, əsasən, əl yazısında və əl yazısı əsaslı şriftlərdə istifadə olunmaqdadır.',
-    'B': 'B hərfi əlifbanın ikinci hərfidir.',
-    'C': 'C hərfi əlifbanın üçüncü hərfidir.',
-    'Ç': 'Ç hərfi əlifbanın dördüncü hərfidir.',
-    'D': 'D hərfi əlifbanın beşinci hərfidir.',
-    'E': 'E hərfi əlifbanın altıncı hərfidir.',
-    'Ə': 'Ə hərfi əlifbanın yeddinci hərfidir.',
-    'F': 'F hərfi əlifbanın səkkizinci hərfidir.',
-    'G': 'G hərfi əlifbanın doqquzuncu hərfidir.',
-    'Ğ': 'Ğ hərfi əlifbanın onuncu hərfidir.',
-    'H': 'H hərfi əlifbanın on birinci hərfidir.',
-    'X': 'X hərfi əlifbanın on ikinci hərfidir.',
-    'I': 'I hərfi əlifbanın on üçüncü hərfidir.',
-    'İ': 'İ hərfi əlifbanın on dördüncü hərfidir.',
-    'J': 'J hərfi əlifbanın on beşinci hərfidir.',
-    'K': 'K hərfi əlifbanın on altıncı hərfidir.',
-    'Q': 'Q hərfi əlifbanın on yeddinci hərfidir.',
-    'L': 'L hərfi əlifbanın on səkkizinci hərfidir.',
-    'M': 'M hərfi əlifbanın on doqquzuncu hərfidir.',
-    'N': 'N hərfi əlifbanın iyirminci hərfidir.',
-    'O': 'O hərfi əlifbanın iyirmi birinci hərfidir.',
-    'Ö': 'Ö hərfi əlifbanın iyirmi ikinci hərfidir.',
-    'P': 'P hərfi əlifbanın iyirmi üçüncü hərfidir.',
-    'R': 'R hərfi əlifbanın iyirmi dördüncü hərfidir.',
-    'S': 'S hərfi əlifbanın iyirmi beşinci hərfidir.',
-    'Ş': 'Ş hərfi əlifbanın iyirmi altıncı hərfidir.',
-    'T': 'T hərfi əlifbanın iyirmi yeddinci hərfidir.',
-    'U': 'U hərfi əlifbanın iyirmi səkkizinci hərfidir.',
-    'Ü': 'Ü hərfi əlifbanın iyirmi doqquzuncu hərfidir.',
-    'V': 'V hərfi əlifbanın otuzuncu hərfidir.',
-    'Y': 'Y hərfi əlifbanın otuz birinci hərfidir.',
-    'Z': 'Z hərfi əlifbanın otuz ikinci hərfidir.',
-  };
+  const AnimalListPage({super.key, required this.letter});
 
   @override
   Widget build(BuildContext context) {
-    final info = letterInfo[letter] ?? '$letter hərfi haqqında məlumat yoxdur.';
+    final info =
+        AppConfig.findLetter(letter)?.description ??
+        '$letter hərfi haqqında məlumat yoxdur.';
     final tts = FlutterTts();
+    final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
+    final animals = animalObjects.map((a) => a.name).toList();
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -198,9 +162,11 @@ class AnimalListPage extends StatelessWidget {
                           itemBuilder: (context, index) {
                             final animal = animals[index];
                             final animalLetter = getFirstLetter(animal);
-                            final animalName = normalizeFileName(animal);
-                            final imageAsset =
-                                'animals/$animalLetter/$animalName.png';
+                            final animalInfo = AppConfig.findAnimal(
+                              letter,
+                              animal,
+                            );
+                            final imageAsset = animalInfo?.imagePath ?? '';
                             return _ModernAnimalCard(
                               animal: animal,
                               imageAsset: imageAsset,

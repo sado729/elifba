@@ -2,84 +2,18 @@ import 'package:flutter/material.dart';
 import 'animal_list_page.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import '../core/config.dart';
 
 class AlphabetPage extends StatelessWidget {
   const AlphabetPage({super.key});
 
-  static const List<String> alphabet = [
-    'A',
-    'B',
-    'C',
-    'Ç',
-    'D',
-    'E',
-    'Ə',
-    'F',
-    'G',
-    'Ğ',
-    'H',
-    'X',
-    'I',
-    'İ',
-    'J',
-    'K',
-    'Q',
-    'L',
-    'M',
-    'N',
-    'O',
-    'Ö',
-    'P',
-    'R',
-    'S',
-    'Ş',
-    'T',
-    'U',
-    'Ü',
-    'V',
-    'Y',
-    'Z',
-  ];
-
-  static const Map<String, List<String>> animalsByLetter = {
-    'A': ['At', 'Ayı', 'Ağcaqanad', 'Alpaka'],
-    'B': ['Balıq', 'Bayquş', 'Buqələmun', 'Bizon', 'Begemot', 'Baltadimdik'],
-    'C': ['Camış', 'Cücə', 'Ceyran'],
-    'Ç': ['Çalağan', 'Çita'],
-    'D': ['Dənizatı', 'Donuz', 'Dovşan'],
-    'E': ['Eşşək', 'Eland', 'Echidna'],
-    'Ə': ['Ərincək', 'Əqrəb'],
-    'F': ['Folivora', 'Fil', 'Flamingo'],
-    'G': ['Gürzə', 'Gəlincik'],
-    'H': ['Hamster'],
-    'X': ['Xərçəng'],
-    'İ': ['İlan'],
-    'J': ['Jaquar'],
-    'K': ['Kəpənək', 'Kirpi', 'Kərtənkələ', 'Kəklik'],
-    'Q': ['Qaranquş', 'Qartal', 'Qaz', 'Qoyun', 'Qurd'],
-    'L': ['Lama', 'Leopard', 'Leylek'],
-    'M': ['Mamont', 'Meymun'],
-    'N': ['Nərə'],
-    'O': ['Orka'],
-    'Ö': ['Ördək'],
-    'P': ['Pələng', 'Pinqvin'],
-    'R': ['Rakun'],
-    'S': ['Siçan', 'Sincab', 'Sərçə'],
-    'Ş': ['Şahin', 'Şir'],
-    'T': ['Tısbağa', 'Tülkü'],
-    'U': ['Ulaq'],
-    'V': ['Vaşaq'],
-    'Y': ['Yarasa'],
-    'Z': ['Zürafə', 'Zebra'],
-  };
+  static const List<String> alphabet = AppConfig.alphabet;
+  static const Map<String, List<String>> animalsByLetter = {};
 
   void _openAnimalList(BuildContext context, String letter) {
-    final animals = animalsByLetter[letter] ?? [];
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AnimalListPage(letter: letter, animals: animals),
-      ),
+      MaterialPageRoute(builder: (context) => AnimalListPage(letter: letter)),
     );
   }
 
@@ -191,8 +125,8 @@ class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
   }
 
   Future<void> _checkAsset() async {
-    final letterLower = widget.letter.toLowerCase();
-    final assetPath = 'assets/animals/$letterLower/$letterLower.png';
+    final letterConfig = AppConfig.findLetter(widget.letter);
+    final assetPath = letterConfig?.imagePath ?? '';
     final exists = await AssetChecker.hasAsset(assetPath);
     if (mounted) {
       setState(() {
@@ -203,8 +137,8 @@ class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
 
   @override
   Widget build(BuildContext context) {
-    final letterLower = widget.letter.toLowerCase();
-    final assetPath = 'assets/animals/$letterLower/$letterLower.png';
+    final letterConfig = AppConfig.findLetter(widget.letter);
+    final assetPath = letterConfig?.imagePath ?? '';
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),

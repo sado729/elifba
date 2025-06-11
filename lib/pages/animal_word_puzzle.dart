@@ -3,7 +3,8 @@ import 'package:confetti/confetti.dart';
 
 class AnimalWordPuzzle extends StatefulWidget {
   final String word;
-  const AnimalWordPuzzle({required this.word, super.key});
+  final VoidCallback? onWin;
+  const AnimalWordPuzzle({required this.word, this.onWin, super.key});
 
   @override
   State<AnimalWordPuzzle> createState() => _AnimalWordPuzzleState();
@@ -44,25 +45,9 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
         isCompleted = true;
       });
       _confettiController.play();
-      // Əlavə olaraq istəsəniz, dialog da göstərə bilərsiniz
-      /*
       Future.delayed(const Duration(milliseconds: 800), () {
-        showDialog(
-          context: context,
-          builder:
-              (_) => AlertDialog(
-                title: const Text('Təbriklər!'),
-                content: const Text('Bütün hərfləri düzgün yerləşdirdin!'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Bağla'),
-                  ),
-                ],
-              ),
-        );
+        widget.onWin?.call();
       });
-      */
     }
   }
 
