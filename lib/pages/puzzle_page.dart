@@ -4,6 +4,7 @@ import '../core/utils.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'dart:math';
+import '../core/config.dart';
 
 class PuzzlePage extends StatefulWidget {
   final String animal;
@@ -71,8 +72,9 @@ class _PuzzlePageState extends State<PuzzlePage> {
   Widget build(BuildContext context) {
     final animal = widget.animal;
     final animalLetter = getFirstLetter(animal);
-    final animalName = normalizeFileName(animal);
-    final imageAsset = 'animals/$animalLetter/${animalName}_puzzle.jpg';
+    final animalData = AppConfig.findAnimal(animalLetter, animal);
+    final imageAsset =
+        animalData?.imagePath.replaceFirst('.png', '_puzzle.jpg') ?? '';
     return Stack(
       children: [
         Column(
