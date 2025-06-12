@@ -933,10 +933,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       ),
     );
   }
-
-  void _setupPuzzle() {
-    // Implementation of _setupPuzzle method
-  }
 }
 
 class _ActionButtonData {
@@ -1025,10 +1021,12 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   }
 
   void _setupPuzzle() {
-    letters = widget.word.split('');
-    shuffledLetters = List.from(letters)..shuffle();
-    currentWord = List.filled(letters.length, null);
-    correct = List.filled(letters.length, false);
+    setState(() {
+      letters = widget.word.split('');
+      shuffledLetters = List.from(letters)..shuffle();
+      currentWord = List.filled(letters.length, null);
+      correct = List.filled(letters.length, false);
+    });
   }
 
   void _checkWin() {
@@ -1093,11 +1091,12 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                   children: List.generate(
                     currentWord.length,
                     (index) => DragTarget<String>(
-                      onWillAccept: (data) => currentWord[index] == null,
-                      onAccept: (data) {
-                        final fromIndex = shuffledLetters.indexOf(data);
+                      onWillAcceptWithDetails:
+                          (data) => currentWord[index] == null,
+                      onAcceptWithDetails: (details) {
+                        final fromIndex = shuffledLetters.indexOf(details.data);
                         if (fromIndex != -1) {
-                          _addLetter(data, fromIndex, index);
+                          _addLetter(details.data, fromIndex, index);
                         }
                       },
                       builder: (context, candidateData, rejectedData) {
@@ -1228,12 +1227,16 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
 
 class YoutubeVideoWidget extends StatelessWidget {
   final String embedUrl;
-
   const YoutubeVideoWidget({super.key, required this.embedUrl});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Youtube video burada göstəriləcək'));
+    return WebViewWidget(
+      controller:
+          WebViewController()
+            ..loadRequest(Uri.parse(embedUrl))
+            ..setJavaScriptMode(JavaScriptMode.unrestricted),
+    );
   }
 }
 

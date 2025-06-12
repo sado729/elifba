@@ -443,22 +443,6 @@ class _PuzzlePageState extends State<PuzzlePage> {
             gravity: 0.3,
           ),
         ),
-        if (completed)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withAlpha(80),
-              child: const Center(
-                child: Text(
-                  'Uğur!',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }

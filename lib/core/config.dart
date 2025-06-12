@@ -576,8 +576,9 @@ class AppConfig {
     final letterKey = letter.toUpperCase();
     // Hər dəfə map-lardan yeni obyekt yaradılır
     final letterLower = letter.toLowerCase();
-    final imagePath = 'assets/images/${letterLower}/${letterLower}.png';
-    final audioPath = 'assets/audios/${letterLower}/${letterLower}.mp3';
+    final imagePath = 'assets/images/$letterLower/$letterLower.png';
+    final audioPath =
+        'assets/audios/$letterLower/${letterLower}_info_sound.mp3';
     final description = letterDescriptions[letterKey] ?? '';
     final animalNames = animalsByLetter[letterKey] ?? [];
     final animals = <AnimalInfo>[];
@@ -585,7 +586,7 @@ class AppConfig {
       final animalLetter = letterKey;
       final normalizedName = normalizeFileName(animalName);
       final animalImagePath =
-          'assets/images/${animalLetter.toLowerCase()}/${normalizedName}.png';
+          'assets/images/${animalLetter.toLowerCase()}/$normalizedName.png';
       final animalAudioPath =
           'assets/audios/${animalLetter.toLowerCase()}/${normalizedName}_info_sound.mp3';
       animals.add(
@@ -624,9 +625,9 @@ class AppConfig {
     // Əgər heyvan hələ konfiqurasiyada yoxdursa, yaradaq
     final animalLetter = letter.toLowerCase();
     final normalizedName = normalizeFileName(animalName);
-    final imagePath = 'assets/images/${animalLetter}/${normalizedName}.png';
+    final imagePath = 'assets/images/$animalLetter/$normalizedName.png';
     final audioPath =
-        'assets/audios/${animalLetter}/${normalizedName}_info_sound.mp3';
+        'assets/audios/$animalLetter/${normalizedName}_info_sound.mp3';
 
     final newAnimalInfo = AnimalInfo(
       name: animalName,
