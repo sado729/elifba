@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import '../core/config.dart';
 import 'puzzle_page.dart';
-import 'package:flutter/services.dart';
-import 'animal_word_puzzle.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform;
-import 'dart:ui' as ui;
-import '../widgets/youtube_video_widget.dart';
-import 'basket_game_widget.dart';
 import 'dart:math';
 
 class AnimalDetailPage extends StatefulWidget {
@@ -33,7 +25,6 @@ class AnimalDetailPage extends StatefulWidget {
 
 class _AnimalDetailPageState extends State<AnimalDetailPage>
     with TickerProviderStateMixin {
-  final FlutterTts flutterTts = FlutterTts();
   final AudioPlayer audioPlayer = AudioPlayer();
   bool isPlayingInfo = false;
   bool showInfo = true;
@@ -69,25 +60,14 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
   @override
   void dispose() {
-    flutterTts.stop();
     audioPlayer.dispose();
     _confettiController.dispose();
     super.dispose();
   }
 
-  void _playAnimalSound(String animal) async {
-    final animalLetter = getFirstLetter(animal);
-    final animalInfo = AppConfig.findAnimal(animalLetter, animal);
-    if (animalInfo == null) return;
-
-    final audioAsset = animalInfo.audioPath.replaceFirst(
-      '_info_sound.mp3',
-      '_sound.mp3',
-    );
-    try {
-      await audioPlayer.stop();
-      await audioPlayer.play(AssetSource(audioAsset));
-    } catch (e) {}
+  Future<void> _playSound(String audioAsset) async {
+    await audioPlayer.setAsset(audioAsset);
+    await audioPlayer.play();
   }
 
   void _toggleAnimalInfo(String animal) async {
@@ -104,22 +84,12 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       await audioPlayer.stop();
       try {
         // Əvvəlcə səs faylını oxut
-        await audioPlayer.play(AssetSource(audioAsset));
+        await _playSound(audioAsset);
         setState(() {
           isPlayingInfo = true;
-        });
-        audioPlayer.onPlayerComplete.listen((event) {
-          setState(() {
-            isPlayingInfo = false;
-          });
         });
       } catch (e) {
-        // Əgər səs faylı tapılmadısa, TTS ilə oxu
-        await flutterTts.setLanguage('az-AZ');
-        await flutterTts.speak(animalInfo.description);
-        setState(() {
-          isPlayingInfo = true;
-        });
+        // Səs faylı tapılmadısa heç nə etmə
       }
     }
   }
@@ -392,7 +362,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               IconButton(
                 icon: const Icon(Icons.volume_up),
                 onPressed: () {
-                  _playAnimalSound(widget.animal);
+                  _playSound(animalSoundAsset);
                 },
                 tooltip: 'Heyvanın səsi',
               ),

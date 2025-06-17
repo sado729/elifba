@@ -3,18 +3,74 @@ import 'animal_list_page.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import '../core/config.dart';
+import 'package:just_audio/just_audio.dart';
 
-class AlphabetPage extends StatelessWidget {
+class AlphabetPage extends StatefulWidget {
   const AlphabetPage({super.key});
 
+  @override
+  State<AlphabetPage> createState() => _AlphabetPageState();
+}
+
+class _AlphabetPageState extends State<AlphabetPage> {
   static const List<String> alphabet = AppConfig.alphabet;
-  static const Map<String, List<String>> animalsByLetter = {};
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _playPageFlipSound() async {
+    await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+    await _audioPlayer.play();
+  }
 
   void _openAnimalList(BuildContext context, String letter) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AnimalListPage(letter: letter)),
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) =>
+                AnimalListPage(letter: letter),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOutCubic;
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
     );
+  }
+
+  void _nextPage() {
+    if (_currentPage < (alphabet.length / 2).ceil() - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+      );
+      _playPageFlipSound();
+    }
+  }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
+      );
+      _playPageFlipSound();
+    }
   }
 
   @override
@@ -23,13 +79,7 @@ class AlphabetPage extends StatelessWidget {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF2E2B5F), Color(0xFF1B1A3A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        decoration: BoxDecoration(color: Colors.deepPurple.shade700),
         child: SafeArea(
           child: Column(
             children: [
@@ -39,44 +89,64 @@ class AlphabetPage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 38,
                   fontWeight: FontWeight.bold,
-                  color: Colors.yellowAccent,
+                  color: Colors.white,
                   letterSpacing: 2,
                   shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
                 ),
               ),
               const SizedBox(height: 24),
               Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                child: Center(
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      children: [
+                        for (int i = 0; i < (alphabet.length / 2).ceil(); i++)
+                          _BookPage(
+                            firstLetter: alphabet[i * 2],
+                            secondLetter:
+                                i * 2 + 1 < alphabet.length
+                                    ? alphabet[i * 2 + 1]
+                                    : null,
+                            pageNumber: i + 1,
+                            onTap: (letter) => _openAnimalList(context, letter),
+                          ),
+                      ],
+                    ),
                   ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    mainAxisSpacing: 18,
-                    crossAxisSpacing: 18,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: alphabet.length,
-                  itemBuilder: (context, index) {
-                    final letter = alphabet[index];
-                    return _AnimatedLetterCard(letter: letter);
-                  },
                 ),
               ),
-              // Dekorativ ulduzlar və planetlər üçün placeholder
               Padding(
                 padding: const EdgeInsets.only(bottom: 16, top: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.star, color: Colors.yellow.shade200, size: 32),
-                    const SizedBox(width: 12),
-                    Icon(Icons.circle, color: Colors.blue.shade200, size: 22),
-                    const SizedBox(width: 12),
-                    Icon(Icons.star, color: Colors.pink.shade100, size: 28),
-                    const SizedBox(width: 12),
-                    Icon(Icons.circle, color: Colors.green.shade200, size: 18),
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      onPressed: _previousPage,
+                    ),
+                    Icon(
+                      Icons.menu_book,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 28,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      onPressed: _nextPage,
+                    ),
                   ],
                 ),
               ),
@@ -105,105 +175,66 @@ class AssetChecker {
   }
 }
 
-class _AnimatedLetterCard extends StatefulWidget {
-  final String letter;
-  const _AnimatedLetterCard({required this.letter});
+class _BookPage extends StatelessWidget {
+  final String firstLetter;
+  final String? secondLetter;
+  final int pageNumber;
+  final Function(String) onTap;
 
-  @override
-  State<_AnimatedLetterCard> createState() => _AnimatedLetterCardState();
-}
-
-class _AnimatedLetterCardState extends State<_AnimatedLetterCard>
-    with SingleTickerProviderStateMixin {
-  bool _pressed = false;
-  bool? _hasImage;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAsset();
-  }
-
-  Future<void> _checkAsset() async {
-    final letterConfig = AppConfig.findLetter(widget.letter);
-    final assetPath = letterConfig?.imagePath ?? '';
-    final exists = await AssetChecker.hasAsset(assetPath);
-    if (mounted) {
-      setState(() {
-        _hasImage = exists;
-      });
-    }
-  }
+  const _BookPage({
+    required this.firstLetter,
+    this.secondLetter,
+    required this.pageNumber,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final letterConfig = AppConfig.findLetter(widget.letter);
-    final assetPath = letterConfig?.imagePath ?? '';
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {
-        final parent = context.findAncestorWidgetOfExactType<AlphabetPage>();
-        if (parent != null) {
-          parent._openAnimalList(context, widget.letter);
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: _pressed ? Colors.deepPurple.shade100 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.deepPurple.withAlpha(26),
-              blurRadius: _pressed ? 18 : 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-          border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        image: const DecorationImage(
+          image: AssetImage('assets/images/book_cover.png'),
+          fit: BoxFit.cover,
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (_hasImage == null)
-              const CircularProgressIndicator(strokeWidth: 2)
-            else if (_hasImage == true)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.asset(
-                  assetPath,
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder:
-                      (context, error, stackTrace) => Text(
-                        widget.letter,
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple.shade800,
-                          letterSpacing: 1.5,
-                          shadows: [
-                            Shadow(color: Colors.black12, blurRadius: 4),
-                          ],
-                        ),
-                      ),
-                ),
-              )
-            else
-              Text(
-                widget.letter,
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple.shade800,
-                  letterSpacing: 1.5,
-                  shadows: [Shadow(color: Colors.black12, blurRadius: 4)],
-                ),
-              ),
-          ],
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildLetter(firstLetter)),
+          if (secondLetter != null)
+            Expanded(child: _buildLetter(secondLetter!)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLetter(String letter) {
+    return GestureDetector(
+      onTap: () => onTap(letter),
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            letter,
+            style: const TextStyle(
+              fontSize: 72,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              fontFamily: 'Baloo 2',
+            ),
+          ),
         ),
       ),
     );

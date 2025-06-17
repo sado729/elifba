@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'animal_detail_page.dart';
 import '../core/utils.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import '../core/config.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 
 class AnimalListPage extends StatelessWidget {
   final String letter;
@@ -13,7 +15,6 @@ class AnimalListPage extends StatelessWidget {
     final info =
         AppConfig.findLetter(letter)?.description ??
         '$letter hərfi haqqında məlumat yoxdur.';
-    final tts = FlutterTts();
     final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
     return Scaffold(
@@ -97,7 +98,7 @@ class AnimalListPage extends StatelessWidget {
                   Positioned(
                     top: -16,
                     left: -16,
-                    child: _SoundButton(info: info, tts: tts),
+                    child: _SoundButton(info: info, letter: letter),
                   ),
                 ],
               ),
@@ -309,8 +310,8 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
 // Səsləndirmə düyməsi üçün xüsusi widget
 class _SoundButton extends StatefulWidget {
   final String info;
-  final FlutterTts tts;
-  const _SoundButton({required this.info, required this.tts});
+  final String letter;
+  const _SoundButton({required this.info, required this.letter});
 
   @override
   State<_SoundButton> createState() => _SoundButtonState();
@@ -319,45 +320,17 @@ class _SoundButton extends StatefulWidget {
 class _SoundButtonState extends State<_SoundButton> {
   bool _hovered = false;
   bool _isPlaying = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
-  void initState() {
-    super.initState();
-    widget.tts.setCompletionHandler(() {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
-    widget.tts.setCancelHandler(() {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
-    widget.tts.setErrorHandler((msg) {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
-    widget.tts.setPauseHandler(() {
-      setState(() {
-        _isPlaying = false;
-      });
-    });
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
-  Future<void> _handleTap() async {
-    if (_isPlaying) {
-      await widget.tts.stop();
-      setState(() {
-        _isPlaying = false;
-      });
-    } else {
-      await widget.tts.setLanguage('az-AZ');
-      await widget.tts.speak(widget.info);
-      setState(() {
-        _isPlaying = true;
-      });
-    }
+  Future<void> _playSound(String audioPath) async {
+    await _audioPlayer.setAsset(audioPath);
+    await _audioPlayer.play();
   }
 
   @override
@@ -406,11 +379,43 @@ class _SoundButtonState extends State<_SoundButton> {
                       size: 22,
                     ),
           ),
-          onPressed: _handleTap,
+          onPressed: () async {
+            if (_isPlaying) {
+              await _audioPlayer.stop();
+              setState(() {
+                _isPlaying = false;
+              });
+            } else {
+              final letter = widget.letter.toLowerCase();
+              final audioPath =
+                  'assets/audios/$letter/${letter}_info_sound.mp3';
+              await _playSound(audioPath);
+              setState(() {
+                _isPlaying = true;
+              });
+            }
+          },
           splashRadius: 20,
           tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
         ),
       ),
     );
+  }
+}
+
+// Asset manifesti oxuyub cache-ləyən util sinfi
+class AssetChecker {
+  static Set<String>? _assets;
+
+  static Future<void> _loadAssets() async {
+    if (_assets != null) return;
+    final manifestContent = await rootBundle.loadString('AssetManifest.json');
+    final Map<String, dynamic> manifestMap = jsonDecode(manifestContent);
+    _assets = manifestMap.keys.toSet();
+  }
+
+  static Future<bool> hasAsset(String assetPath) async {
+    await _loadAssets();
+    return _assets!.contains(assetPath);
   }
 }
