@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:just_audio/just_audio.dart';
+import 'dart:developer' as developer;
 
 class AnimalWordPuzzle extends StatefulWidget {
   final String word;
@@ -17,6 +19,8 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   bool isCompleted = false;
   late ConfettiController _confettiController;
   bool showCorrect = false;
+  late AudioPlayer _clickPlayer;
+  late AudioPlayer _winPlayer;
 
   @override
   void initState() {
@@ -28,11 +32,39 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
+    _initAudio();
+  }
+
+  Future<void> _initAudio() async {
+    _clickPlayer = AudioPlayer();
+    _winPlayer = AudioPlayer();
+    await _clickPlayer.setAsset('assets/audios/click.mp3');
+    await _winPlayer.setAsset('assets/audios/win.mp3');
+  }
+
+  Future<void> _playClickSound() async {
+    try {
+      await _clickPlayer.seek(Duration.zero);
+      await _clickPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
+  }
+
+  Future<void> _playWinSound() async {
+    try {
+      await _winPlayer.seek(Duration.zero);
+      await _winPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _clickPlayer.dispose();
+    _winPlayer.dispose();
     super.dispose();
   }
 
@@ -45,6 +77,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
         isCompleted = true;
       });
       _confettiController.play();
+      _playWinSound();
       Future.delayed(const Duration(milliseconds: 800), () {
         widget.onWin?.call();
       });
@@ -210,6 +243,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                               setState(() {
                                 placedLetters[i] = data.data;
                               });
+                              _playClickSound();
                               checkCompleted();
                             },
                           ),
@@ -275,6 +309,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                             height: boxHeight,
                           ),
                         ),
+                        onDragStarted: _playClickSound,
                         child: _buildLetter(
                           letter,
                           width: boxWidth,
