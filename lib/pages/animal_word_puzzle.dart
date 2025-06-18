@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:just_audio/just_audio.dart';
-import 'dart:developer' as developer;
 
 class AnimalWordPuzzle extends StatefulWidget {
   final String word;
