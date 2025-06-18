@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'dart:math';
 import '../core/config.dart';
+import 'package:just_audio/just_audio.dart';
+import 'dart:async';
 
 class PuzzlePage extends StatefulWidget {
   final String animal;
@@ -14,10 +16,10 @@ class PuzzlePage extends StatefulWidget {
   State<PuzzlePage> createState() => _PuzzlePageState();
 }
 
-class _PuzzlePageState extends State<PuzzlePage> {
-  static const int gridSize = 3;
+class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   static const double fullSize = 240;
-  static const double tileSize = fullSize / gridSize;
+  int gridSize = 3;
+  double get tileSize => fullSize / gridSize;
   late List<int?> slots; // griddəki yerlər (null və ya parça indeksi)
   late List<int> pieces; // aşağıda qarışıq parçalar
   bool completed = false;
@@ -26,6 +28,17 @@ class _PuzzlePageState extends State<PuzzlePage> {
   late List<String> letters;
   late List<String?> placedLetters;
   late List<Offset> randomOffsets;
+  late AudioPlayer _audioPlayer;
+  late AudioPlayer _winPlayer;
+  bool showHint = false;
+  Timer? _hintTimer;
+
+  // Doğru və ya səhv qoyulmuş parçaları izləmək üçün map
+  Map<int, bool> slotCorrectMap = {};
+
+  // Hint rejimində saxlanılacaq orijinal vəziyyətlər
+  List<int?> _originalSlots = [];
+  List<int> _originalPieces = [];
 
   @override
   void initState() {
@@ -36,6 +49,7 @@ class _PuzzlePageState extends State<PuzzlePage> {
     _resetPuzzle();
     letters = widget.animal.split('');
     placedLetters = List.filled(letters.length, null);
+    _initAudio();
 
     // Random yerlər üçün offset-lər
     final rand = Random();
@@ -45,19 +59,82 @@ class _PuzzlePageState extends State<PuzzlePage> {
     );
   }
 
+  Future<void> _initAudio() async {
+    _audioPlayer = AudioPlayer();
+    _winPlayer = AudioPlayer();
+    await _audioPlayer.setAsset('assets/audios/click.mp3');
+    await _winPlayer.setAsset('assets/audios/win.mp3');
+  }
+
+  void _changeGridSize(int size) {
+    setState(() {
+      gridSize = size;
+      _resetPuzzle();
+    });
+  }
+
   void _resetPuzzle() {
     slots = List<int?>.filled(gridSize * gridSize, null);
     pieces = List.generate(gridSize * gridSize, (i) => i);
     pieces.shuffle();
+    slotCorrectMap = {};
     setState(() {
       completed = false;
+      showHint = false;
+    });
+  }
+
+  void _showHint() {
+    // Cari vəziyyəti saxla
+    _originalSlots = List.from(slots);
+    _originalPieces = List.from(pieces);
+
+    // Düzgün vəziyyət göstər
+    setState(() {
+      showHint = true;
+      slots = List.generate(gridSize * gridSize, (i) => i);
+      pieces = [];
+    });
+
+    // Timer
+    _hintTimer?.cancel();
+    _hintTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          showHint = false;
+          // Əvvəlki vəziyyətə qayıt
+          slots = _originalSlots;
+          pieces = _originalPieces;
+        });
+      }
     });
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _audioPlayer.dispose();
+    _winPlayer.dispose();
+    _hintTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _playClickSound() async {
+    try {
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
+  }
+
+  Future<void> _playWinSound() async {
+    try {
+      await _winPlayer.seek(Duration.zero);
+      await _winPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
   }
 
   bool _isCompleted() {
@@ -82,67 +159,85 @@ class _PuzzlePageState extends State<PuzzlePage> {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 16, bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
                 children: [
-                  GestureDetector(
-                    onTapDown:
-                        (_) => _showFullImageOverlay(context, imageAsset),
-                    onTapUp: (_) => _removeFullImageOverlay(),
-                    onTapCancel: () => _removeFullImageOverlay(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.shade50,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.deepPurple.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepPurple.withAlpha(
-                              (255 * 0.08).round(),
-                            ),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.visibility,
-                            color: Colors.deepPurple,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Şəkli göstər',
-                            style: TextStyle(
-                              color: Colors.deepPurple.shade700,
-                              fontWeight: FontWeight.w600,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTapDown:
+                            (_) => _showFullImageOverlay(context, imageAsset),
+                        onTapUp: (_) => _removeFullImageOverlay(),
+                        onTapCancel: () => _removeFullImageOverlay(),
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.shade50,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.deepPurple.shade200,
+                              width: 2,
                             ),
                           ),
-                        ],
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              imageAsset,
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (context, error, stackTrace) => const Icon(
+                                    Icons.image,
+                                    size: 32,
+                                    color: Colors.deepPurple,
+                                  ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        onPressed: _resetPuzzle,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Yenidən başla'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        onPressed: _showHint,
+                        icon: const Icon(Icons.lightbulb_outline),
+                        label: const Text('Hint'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          backgroundColor: Colors.amber,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 18),
-                  ElevatedButton.icon(
-                    onPressed: _resetPuzzle,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Yenidən başla'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildLevelButton(3, 'Asan'),
+                      const SizedBox(width: 8),
+                      _buildLevelButton(4, 'Orta'),
+                      const SizedBox(width: 8),
+                      _buildLevelButton(5, 'Çətin'),
+                    ],
                   ),
                 ],
               ),
@@ -155,228 +250,243 @@ class _PuzzlePageState extends State<PuzzlePage> {
                 border: Border.all(color: Colors.deepPurple, width: 2),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: gridSize,
-                  mainAxisSpacing: 2,
-                  crossAxisSpacing: 2,
-                ),
-                itemCount: gridSize * gridSize,
-                itemBuilder: (context, i) {
-                  int? pieceIndex = slots[i];
-                  return SizedBox(
-                    width: tileSize,
-                    height: tileSize,
-                    child: DragTarget<int>(
-                      builder: (context, candidateData, rejectedData) {
-                        if (pieceIndex != null) {
-                          return Draggable<int>(
-                            data: i, // slot index
-                            feedback: Material(
-                              color: Colors.transparent,
-                              child: SizedBox(
-                                width: tileSize,
-                                height: tileSize,
-                                child: _buildPuzzlePiece(
-                                  imageAsset,
-                                  pieceIndex,
-                                  gridSize,
-                                  shadow: true,
-                                  slotIndex: i,
-                                ),
-                              ),
-                            ),
-                            childWhenDragging: Opacity(
-                              opacity: 0.3,
-                              child: _buildPuzzlePiece(
-                                imageAsset,
-                                pieceIndex,
-                                gridSize,
-                                slotIndex: i,
-                              ),
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  if (slots[i] != null) {
-                                    pieces.add(slots[i]!);
-                                    slots[i] = null;
-                                  }
-                                  if (!completed && _isCompleted()) {
-                                    completed = true;
-                                    _confettiController.play();
-                                    Future.delayed(
-                                      const Duration(milliseconds: 1500),
-                                      () {
-                                        if (mounted && completed) {
-                                          showDialog(
-                                            context: context,
-                                            builder:
-                                                (context) => AlertDialog(
-                                                  title: const Text(
-                                                    'Təbriklər!',
-                                                  ),
-                                                  content: const Text(
-                                                    'Puzzle tamamlandı!',
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () {
-                                                        Navigator.of(
-                                                          context,
-                                                        ).pop();
-                                                        _resetPuzzle();
-                                                      },
-                                                      child: const Text(
-                                                        'Yenidən',
-                                                      ),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed:
-                                                          () =>
-                                                              Navigator.of(
-                                                                context,
-                                                              ).pop(),
-                                                      child: const Text(
-                                                        'Bağla',
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                          );
-                                        }
-                                      },
-                                    );
-                                  }
-                                });
-                              },
-                              child: _buildPuzzlePiece(
-                                imageAsset,
-                                pieceIndex,
-                                gridSize,
-                                slotIndex: i,
-                              ),
-                            ),
-                          );
-                        } else if (candidateData.isNotEmpty) {
-                          BorderRadius borderRadius = BorderRadius.zero;
-                          if (i == 0) {
-                            borderRadius = const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                            );
-                          } else if (i == gridSize - 1) {
-                            borderRadius = const BorderRadius.only(
-                              topRight: Radius.circular(16),
-                            );
-                          } else if (i == gridSize * (gridSize - 1)) {
-                            borderRadius = const BorderRadius.only(
-                              bottomLeft: Radius.circular(16),
-                            );
-                          } else if (i == gridSize * gridSize - 1) {
-                            borderRadius = const BorderRadius.only(
-                              bottomRight: Radius.circular(16),
-                            );
-                          }
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.shade100,
-                              borderRadius: borderRadius,
-                              border: Border.all(
-                                color: Colors.deepPurple.shade200,
-                                width: 2,
-                              ),
-                            ),
-                          );
-                        } else {
-                          BorderRadius borderRadius = BorderRadius.zero;
-                          if (i == 0) {
-                            borderRadius = const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                            );
-                          } else if (i == gridSize - 1) {
-                            borderRadius = const BorderRadius.only(
-                              topRight: Radius.circular(16),
-                            );
-                          } else if (i == gridSize * (gridSize - 1)) {
-                            borderRadius = const BorderRadius.only(
-                              bottomLeft: Radius.circular(16),
-                            );
-                          } else if (i == gridSize * gridSize - 1) {
-                            borderRadius = const BorderRadius.only(
-                              bottomRight: Radius.circular(16),
-                            );
-                          }
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.shade50,
-                              borderRadius: borderRadius,
-                              border: Border.all(
-                                color: Colors.deepPurple.shade200,
-                                width: 2,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      onWillAcceptWithDetails: (data) => true,
-                      onAcceptWithDetails: (fromIndex) {
-                        setState(() {
-                          if (pieceIndex == null &&
-                              fromIndex.data < slots.length &&
-                              slots[fromIndex.data] != null) {
-                            slots[i] = slots[fromIndex.data];
-                            slots[fromIndex.data] = null;
-                          } else if (pieceIndex == null &&
-                              fromIndex.data >= slots.length) {
-                            int pieceIdx =
-                                pieces[fromIndex.data - slots.length];
-                            slots[i] = pieceIdx;
-                            pieces.removeAt(fromIndex.data - slots.length);
-                          }
-                          if (!completed && _isCompleted()) {
-                            completed = true;
-                            _confettiController.play();
-                            Future.delayed(
-                              const Duration(milliseconds: 1500),
-                              () {
-                                if (mounted && completed) {
-                                  showDialog(
-                                    context: context,
-                                    builder:
-                                        (context) => AlertDialog(
-                                          title: const Text('Təbriklər!'),
-                                          content: const Text(
-                                            'Puzzle tamamlandı!',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                                _resetPuzzle();
-                                              },
-                                              child: const Text('Yenidən'),
-                                            ),
-                                            TextButton(
-                                              onPressed:
-                                                  () =>
-                                                      Navigator.of(
-                                                        context,
-                                                      ).pop(),
-                                              child: const Text('Bağla'),
-                                            ),
-                                          ],
-                                        ),
-                                  );
-                                }
-                              },
-                            );
-                          }
-                        });
-                      },
+              child: Stack(
+                children: [
+                  if (showHint)
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.asset(
+                          imageAsset,
+                          fit: BoxFit.cover,
+                          opacity: const AlwaysStoppedAnimation(0.3),
+                        ),
+                      ),
                     ),
-                  );
-                },
+                  GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: gridSize,
+                      mainAxisSpacing: 2,
+                      crossAxisSpacing: 2,
+                    ),
+                    itemCount: gridSize * gridSize,
+                    itemBuilder: (context, i) {
+                      int? pieceIndex = slots[i];
+                      return SizedBox(
+                        width: tileSize,
+                        height: tileSize,
+                        child: DragTarget<int>(
+                          builder: (context, candidateData, rejectedData) {
+                            if (pieceIndex != null) {
+                              return Draggable<int>(
+                                data: i, // slot index
+                                feedback: Material(
+                                  color: Colors.transparent,
+                                  child: SizedBox(
+                                    width: tileSize,
+                                    height: tileSize,
+                                    child: _buildPuzzlePiece(
+                                      imageAsset,
+                                      pieceIndex,
+                                      gridSize,
+                                      shadow: true,
+                                      slotIndex: i,
+                                    ),
+                                  ),
+                                ),
+                                childWhenDragging: Opacity(
+                                  opacity: 0.3,
+                                  child: _buildPuzzlePiece(
+                                    imageAsset,
+                                    pieceIndex,
+                                    gridSize,
+                                    slotIndex: i,
+                                  ),
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      if (slots[i] != null) {
+                                        pieces.add(slots[i]!);
+                                        slots[i] = null;
+                                      }
+                                      if (!completed && _isCompleted()) {
+                                        completed = true;
+                                        _confettiController.play();
+                                        _playWinSound();
+                                        Future.delayed(
+                                          const Duration(milliseconds: 1500),
+                                          () {
+                                            if (mounted && completed) {
+                                              showDialog(
+                                                context: context,
+                                                builder:
+                                                    (context) => AlertDialog(
+                                                      title: const Text(
+                                                        'Təbriklər!',
+                                                      ),
+                                                      content: const Text(
+                                                        'Puzzle tamamlandı!',
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop();
+                                                            _resetPuzzle();
+                                                          },
+                                                          child: const Text(
+                                                            'Yenidən',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      }
+                                    });
+                                  },
+                                  child: _buildPuzzlePiece(
+                                    imageAsset,
+                                    pieceIndex,
+                                    gridSize,
+                                    slotIndex: i,
+                                  ),
+                                ),
+                              );
+                            } else if (candidateData.isNotEmpty) {
+                              BorderRadius borderRadius = BorderRadius.zero;
+                              if (i == 0) {
+                                borderRadius = const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                );
+                              } else if (i == gridSize - 1) {
+                                borderRadius = const BorderRadius.only(
+                                  topRight: Radius.circular(16),
+                                );
+                              } else if (i == gridSize * (gridSize - 1)) {
+                                borderRadius = const BorderRadius.only(
+                                  bottomLeft: Radius.circular(16),
+                                );
+                              } else if (i == gridSize * gridSize - 1) {
+                                borderRadius = const BorderRadius.only(
+                                  bottomRight: Radius.circular(16),
+                                );
+                              }
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple.shade100,
+                                  borderRadius: borderRadius,
+                                  border: Border.all(
+                                    color: Colors.deepPurple.shade200,
+                                    width: 2,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              BorderRadius borderRadius = BorderRadius.zero;
+                              if (i == 0) {
+                                borderRadius = const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                );
+                              } else if (i == gridSize - 1) {
+                                borderRadius = const BorderRadius.only(
+                                  topRight: Radius.circular(16),
+                                );
+                              } else if (i == gridSize * (gridSize - 1)) {
+                                borderRadius = const BorderRadius.only(
+                                  bottomLeft: Radius.circular(16),
+                                );
+                              } else if (i == gridSize * gridSize - 1) {
+                                borderRadius = const BorderRadius.only(
+                                  bottomRight: Radius.circular(16),
+                                );
+                              }
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple.shade50,
+                                  borderRadius: borderRadius,
+                                  border: Border.all(
+                                    color: Colors.deepPurple.shade200,
+                                    width: 2,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          onWillAcceptWithDetails: (data) => true,
+                          onAcceptWithDetails: (fromIndex) {
+                            setState(() {
+                              if (pieceIndex == null &&
+                                  fromIndex.data < slots.length &&
+                                  slots[fromIndex.data] != null) {
+                                slots[i] = slots[fromIndex.data];
+                                slots[fromIndex.data] = null;
+
+                                // Doğru yerə qoyulubsa
+                                if (slots[i] == i) {
+                                  _playClickSound();
+                                  slotCorrectMap[i] = true;
+                                } else {
+                                  slotCorrectMap[i] = false;
+                                }
+                              } else if (pieceIndex == null &&
+                                  fromIndex.data >= slots.length) {
+                                int pieceIdx =
+                                    pieces[fromIndex.data - slots.length];
+                                slots[i] = pieceIdx;
+                                pieces.removeAt(fromIndex.data - slots.length);
+
+                                // Doğru yerə qoyulubsa
+                                if (slots[i] == i) {
+                                  _playClickSound();
+                                  slotCorrectMap[i] = true;
+                                } else {
+                                  slotCorrectMap[i] = false;
+                                }
+                              }
+                              if (!completed && _isCompleted()) {
+                                completed = true;
+                                _confettiController.play();
+                                _playWinSound();
+                                Future.delayed(
+                                  const Duration(milliseconds: 1500),
+                                  () {
+                                    if (mounted && completed) {
+                                      showDialog(
+                                        context: context,
+                                        builder:
+                                            (context) => AlertDialog(
+                                              title: const Text('Təbriklər!'),
+                                              content: const Text(
+                                                'Puzzle tamamlandı!',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                    _resetPuzzle();
+                                                  },
+                                                  child: const Text('Yenidən'),
+                                                ),
+                                              ],
+                                            ),
+                                      );
+                                    }
+                                  },
+                                );
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -414,6 +524,7 @@ class _PuzzlePageState extends State<PuzzlePage> {
                         ),
                       ),
                     ),
+                    onDragStarted: _playClickSound,
                     child: SizedBox(
                       width: tileSize,
                       height: tileSize,
@@ -470,6 +581,15 @@ class _PuzzlePageState extends State<PuzzlePage> {
         );
       }
     }
+
+    // Border rəngini təyin et
+    Color borderColor = Colors.deepPurple.shade200;
+    if (slotIndex != null) {
+      if (slotCorrectMap.containsKey(slotIndex)) {
+        borderColor = slotCorrectMap[slotIndex]! ? Colors.green : Colors.red;
+      }
+    }
+
     return FutureBuilder<ui.Image>(
       future: _loadImage(imageAsset),
       builder: (context, snapshot) {
@@ -481,17 +601,18 @@ class _PuzzlePageState extends State<PuzzlePage> {
             child: const Icon(Icons.image, size: 40),
           );
         }
-        return Container(
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           width: tileSize,
           height: tileSize,
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+            border: Border.all(color: borderColor, width: 2),
             borderRadius: borderRadius,
             boxShadow:
                 shadow
                     ? [
-                      BoxShadow(
+                      const BoxShadow(
                         color: Colors.black26,
                         blurRadius: 8,
                         offset: Offset(2, 2),
@@ -557,6 +678,20 @@ class _PuzzlePageState extends State<PuzzlePage> {
   void _removeFullImageOverlay() {
     _imageOverlayEntry?.remove();
     _imageOverlayEntry = null;
+  }
+
+  Widget _buildLevelButton(int size, String label) {
+    final isSelected = size == gridSize;
+    return ElevatedButton(
+      onPressed: () => _changeGridSize(size),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: isSelected ? Colors.deepPurple : Colors.grey.shade200,
+        foregroundColor: isSelected ? Colors.white : Colors.black87,
+      ),
+      child: Text(label),
+    );
   }
 }
 

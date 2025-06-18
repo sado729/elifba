@@ -6,6 +6,8 @@ import '../core/config.dart';
 import 'puzzle_page.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:math';
+import '../widgets/youtube_video_widget.dart';
+import 'animal_word_puzzle.dart';
 
 class AnimalDetailPage extends StatefulWidget {
   final String animal;
@@ -56,6 +58,32 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 1),
     );
+
+    // Səs bitdikdə isPlayingInfo-nu false et
+    audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        if (mounted) {
+          setState(() {
+            isPlayingInfo = false;
+          });
+        }
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final animalLetter = getFirstLetter(widget.animal);
+      final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
+      final imageAsset = animalData?.imagePath ?? '';
+      if (imageAsset.isNotEmpty) {
+        precacheImage(AssetImage(imageAsset), context);
+      }
+      final foods = animalData?.foods ?? [];
+      for (final food in foods) {
+        final foodImagePath =
+            'assets/foods/${AppConfig.normalizeFileName(food)}.png';
+        precacheImage(AssetImage(foodImagePath), context);
+      }
+    });
   }
 
   @override
@@ -75,22 +103,25 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final animalInfo = AppConfig.findAnimal(animalLetter, animal);
     if (animalInfo == null) return;
     final audioAsset = animalInfo.audioPath;
+
+    setState(() {
+      isPlayingInfo = !isPlayingInfo;
+    });
+
     if (isPlayingInfo) {
-      await audioPlayer.stop();
-      setState(() {
-        isPlayingInfo = false;
-      });
-    } else {
       await audioPlayer.stop();
       try {
         // Əvvəlcə səs faylını oxut
         await _playSound(audioAsset);
-        setState(() {
-          isPlayingInfo = true;
-        });
       } catch (e) {
-        // Səs faylı tapılmadısa heç nə etmə
+        // Səs faylı tapılmadısa isPlayingInfo-nu false et
+        setState(() {
+          isPlayingInfo = false;
+        });
+        debugPrint('Səs faylı oxunma xətası: $e');
       }
+    } else {
+      await audioPlayer.stop();
     }
   }
 
@@ -194,6 +225,19 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                   foodImagePath,
                   width: 40,
                   height: 40,
+                  frameBuilder: (
+                    context,
+                    child,
+                    frame,
+                    wasSynchronouslyLoaded,
+                  ) {
+                    if (wasSynchronouslyLoaded) return child;
+                    return AnimatedOpacity(
+                      opacity: frame == null ? 0 : 1,
+                      duration: const Duration(milliseconds: 400),
+                      child: child,
+                    );
+                  },
                   errorBuilder:
                       (context, error, stackTrace) => const Icon(
                         Icons.fastfood,
@@ -232,7 +276,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
     final animalsList = widget.animals;
     final currentIndex = widget.currentIndex;
-    final animalSoundAsset = 'animals/$animalLetter/${widget.animal}_sound.mp3';
+    final normalizedAnimalName = AppConfig.normalizeFileName(widget.animal);
+    final animalSoundAsset =
+        'assets/audios/${animalLetter.toLowerCase()}/${normalizedAnimalName}_sound.mp3';
 
     final List<_ActionButtonData> actions = [
       _ActionButtonData(
@@ -301,35 +347,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
         ),
       );
     }
-    // Səbət oyunu
-    actions.add(
-      _ActionButtonData(
-        tooltip: 'Səbət oyunu',
-        icon: Icons.shopping_basket,
-        selected: false,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => Scaffold(
-                    appBar: AppBar(
-                      title: const Text('Səbət Oyunu'),
-                      centerTitle: true,
-                    ),
-                    body: Center(
-                      child: SizedBox(
-                        height: 480,
-                        child: BasketGameWidget(letter: widget.animal[0]),
-                      ),
-                    ),
-                  ),
-            ),
-          );
-        },
-        visible: true,
-      ),
-    );
     // Youtube video iconu yalnız map-da varsa əlavə et
     if (youtubeEmbed != null && youtubeEmbed.isNotEmpty) {
       actions.add(
@@ -362,6 +379,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               IconButton(
                 icon: const Icon(Icons.volume_up),
                 onPressed: () {
+                  debugPrint('Heyvan səsi çalınır: $animalSoundAsset');
                   _playSound(animalSoundAsset);
                 },
                 tooltip: 'Heyvanın səsi',
@@ -472,6 +490,19 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                           imageAsset,
                           key: _animalImageKey,
                           fit: BoxFit.cover,
+                          frameBuilder: (
+                            context,
+                            child,
+                            frame,
+                            wasSynchronouslyLoaded,
+                          ) {
+                            if (wasSynchronouslyLoaded) return child;
+                            return AnimatedOpacity(
+                              opacity: frame == null ? 0 : 1,
+                              duration: const Duration(milliseconds: 400),
+                              child: child,
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
                               color: Colors.grey[300],
@@ -540,6 +571,19 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                             _foodEffectImage!,
                             width: 64,
                             height: 64,
+                            frameBuilder: (
+                              context,
+                              child,
+                              frame,
+                              wasSynchronouslyLoaded,
+                            ) {
+                              if (wasSynchronouslyLoaded) return child;
+                              return AnimatedOpacity(
+                                opacity: frame == null ? 0 : 1,
+                                duration: const Duration(milliseconds: 400),
+                                child: child,
+                              );
+                            },
                             errorBuilder:
                                 (context, error, stackTrace) => const Icon(
                                   Icons.fastfood,
@@ -737,6 +781,23 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                                 foodImagePath,
                                                 width: 32,
                                                 height: 32,
+                                                frameBuilder: (
+                                                  context,
+                                                  child,
+                                                  frame,
+                                                  wasSynchronouslyLoaded,
+                                                ) {
+                                                  if (wasSynchronouslyLoaded)
+                                                    return child;
+                                                  return AnimatedOpacity(
+                                                    opacity:
+                                                        frame == null ? 0 : 1,
+                                                    duration: const Duration(
+                                                      milliseconds: 400,
+                                                    ),
+                                                    child: child,
+                                                  );
+                                                },
                                                 errorBuilder:
                                                     (
                                                       context,
@@ -974,6 +1035,8 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   late List<String?> currentWord;
   late List<bool> correct;
   late ConfettiController _confettiController;
+  late AudioPlayer _clickPlayer;
+  late AudioPlayer _winPlayer;
 
   @override
   void initState() {
@@ -982,11 +1045,39 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
+    _initAudio();
+  }
+
+  Future<void> _initAudio() async {
+    _clickPlayer = AudioPlayer();
+    _winPlayer = AudioPlayer();
+    await _clickPlayer.setAsset('assets/audios/click.mp3');
+    await _winPlayer.setAsset('assets/audios/win.mp3');
+  }
+
+  Future<void> _playClickSound() async {
+    try {
+      await _clickPlayer.seek(Duration.zero);
+      await _clickPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
+  }
+
+  Future<void> _playWinSound() async {
+    try {
+      await _winPlayer.seek(Duration.zero);
+      await _winPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _clickPlayer.dispose();
+    _winPlayer.dispose();
     super.dispose();
   }
 
@@ -1009,6 +1100,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
     }
     if (allCorrect && !currentWord.contains(null)) {
       _confettiController.play();
+      _playWinSound();
       widget.onWin();
     }
   }
@@ -1019,6 +1111,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
       shuffledLetters[fromIndex] = '';
       correct[toIndex] = (letter == letters[toIndex]);
     });
+    _playClickSound();
     _checkWin();
   }
 
@@ -1035,6 +1128,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
         currentWord[index] = null;
         correct[index] = false;
       });
+      _playClickSound();
     }
   }
 
@@ -1162,6 +1256,7 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                             width: 40,
                             height: 50,
                           ),
+                          onDragStarted: _playClickSound,
                           child: Container(
                             width: 40,
                             height: 50,
@@ -1184,7 +1279,10 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: _setupPuzzle,
+              onPressed: () {
+                _setupPuzzle();
+                _playClickSound();
+              },
               icon: const Icon(Icons.refresh),
               label: const Text('Yenidən başla'),
             ),
@@ -1206,19 +1304,6 @@ class YoutubeVideoWidget extends StatelessWidget {
           WebViewController()
             ..loadRequest(Uri.parse(embedUrl))
             ..setJavaScriptMode(JavaScriptMode.unrestricted),
-    );
-  }
-}
-
-class BasketGameWidget extends StatelessWidget {
-  final String letter;
-
-  const BasketGameWidget({super.key, required this.letter});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Səbət oyunu: $letter hərfi ilə başlayan sözlər'),
     );
   }
 }

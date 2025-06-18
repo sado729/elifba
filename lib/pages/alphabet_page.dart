@@ -19,14 +19,28 @@ class _AlphabetPageState extends State<AlphabetPage> {
   int _currentPage = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _preloadFlipSound();
+    // Şəkil faylını öncədən yüklə
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      precacheImage(const AssetImage('assets/images/book_cover.png'), context);
+    });
+  }
+
+  Future<void> _preloadFlipSound() async {
+    await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+  }
+
+  @override
   void dispose() {
     _audioPlayer.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
-  void _playPageFlipSound() async {
-    await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+  Future<void> _playPageFlipSound() async {
+    await _audioPlayer.seek(Duration.zero);
     await _audioPlayer.play();
   }
 
@@ -100,25 +114,25 @@ class _AlphabetPageState extends State<AlphabetPage> {
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width * 0.9,
                     height: MediaQuery.of(context).size.height * 0.5,
-                    child: PageView(
+                    child: PageView.builder(
                       controller: _pageController,
                       onPageChanged: (index) {
                         setState(() {
                           _currentPage = index;
                         });
                       },
-                      children: [
-                        for (int i = 0; i < (alphabet.length / 2).ceil(); i++)
-                          _BookPage(
-                            firstLetter: alphabet[i * 2],
-                            secondLetter:
-                                i * 2 + 1 < alphabet.length
-                                    ? alphabet[i * 2 + 1]
-                                    : null,
-                            pageNumber: i + 1,
-                            onTap: (letter) => _openAnimalList(context, letter),
-                          ),
-                      ],
+                      itemCount: (alphabet.length / 2).ceil(),
+                      itemBuilder: (context, i) {
+                        return _BookPage(
+                          firstLetter: alphabet[i * 2],
+                          secondLetter:
+                              i * 2 + 1 < alphabet.length
+                                  ? alphabet[i * 2 + 1]
+                                  : null,
+                          pageNumber: i + 1,
+                          onTap: (letter) => _openAnimalList(context, letter),
+                        );
+                      },
                     ),
                   ),
                 ),

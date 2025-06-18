@@ -17,6 +17,15 @@ class AnimalListPage extends StatelessWidget {
         '$letter hərfi haqqında məlumat yoxdur.';
     final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final animal in animals) {
+        final animalInfo = AppConfig.findAnimal(letter, animal);
+        final imageAsset = animalInfo?.imagePath ?? '';
+        if (imageAsset.isNotEmpty) {
+          precacheImage(AssetImage(imageAsset), context);
+        }
+      }
+    });
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -255,6 +264,19 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
+                    frameBuilder: (
+                      context,
+                      child,
+                      frame,
+                      wasSynchronouslyLoaded,
+                    ) {
+                      if (wasSynchronouslyLoaded) return child;
+                      return AnimatedOpacity(
+                        opacity: frame == null ? 0 : 1,
+                        duration: const Duration(milliseconds: 400),
+                        child: child,
+                      );
+                    },
                     errorBuilder:
                         (context, error, stackTrace) => Container(
                           width: double.infinity,
@@ -323,6 +345,22 @@ class _SoundButtonState extends State<_SoundButton> {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
+  void initState() {
+    super.initState();
+
+    // Səs bitdikdə _isPlaying-i false et
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        if (mounted) {
+          setState(() {
+            _isPlaying = false;
+          });
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _audioPlayer.dispose();
     super.dispose();
@@ -386,13 +424,13 @@ class _SoundButtonState extends State<_SoundButton> {
                 _isPlaying = false;
               });
             } else {
+              setState(() {
+                _isPlaying = true;
+              });
               final letter = widget.letter.toLowerCase();
               final audioPath =
                   'assets/audios/$letter/${letter}_info_sound.mp3';
               await _playSound(audioPath);
-              setState(() {
-                _isPlaying = true;
-              });
             }
           },
           splashRadius: 20,
