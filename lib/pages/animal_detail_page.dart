@@ -489,7 +489,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                         child: Image.asset(
                           imageAsset,
                           key: _animalImageKey,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           frameBuilder: (
                             context,
                             child,

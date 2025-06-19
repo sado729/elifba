@@ -39,6 +39,16 @@ class AnimalListPage extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          _LetterArrowAppBarButton(
+            direction: ArrowDirection.left,
+            currentLetter: letter,
+          ),
+          _LetterArrowAppBarButton(
+            direction: ArrowDirection.right,
+            currentLetter: letter,
+          ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -263,7 +273,7 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
                     widget.imageAsset,
                     width: double.infinity,
                     height: double.infinity,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     frameBuilder: (
                       context,
                       child,
@@ -455,5 +465,70 @@ class AssetChecker {
   static Future<bool> hasAsset(String assetPath) async {
     await _loadAssets();
     return _assets!.contains(assetPath);
+  }
+}
+
+// Ox düymələri üçün əlavə widget və enum
+
+enum ArrowDirection { left, right }
+
+class _LetterArrowAppBarButton extends StatelessWidget {
+  final ArrowDirection direction;
+  final String currentLetter;
+  const _LetterArrowAppBarButton({
+    required this.direction,
+    required this.currentLetter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final alphabet = AppConfig.alphabet;
+    final currentIndex = alphabet.indexOf(currentLetter);
+    final isLeft = direction == ArrowDirection.left;
+    final isDisabled =
+        isLeft ? currentIndex == 0 : currentIndex == alphabet.length - 1;
+    final nextIndex = isLeft ? currentIndex - 1 : currentIndex + 1;
+    return IconButton(
+      icon: Icon(
+        isLeft ? Icons.navigate_before : Icons.navigate_next,
+        color: isDisabled ? Colors.white24 : Colors.white,
+        size: 22,
+      ),
+      tooltip: isLeft ? 'Əvvəlki hərf' : 'Növbəti hərf',
+      onPressed:
+          isDisabled
+              ? null
+              : () {
+                final nextLetter = alphabet[nextIndex];
+                Navigator.pushReplacement(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder:
+                        (context, animation, secondaryAnimation) =>
+                            AnimalListPage(letter: nextLetter),
+                    transitionsBuilder: (
+                      context,
+                      animation,
+                      secondaryAnimation,
+                      child,
+                    ) {
+                      const begin = Offset(1.0, 0.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOutCubic;
+                      var tween = Tween(
+                        begin: isLeft ? const Offset(-1.0, 0.0) : begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
+                      return SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 500),
+                  ),
+                );
+              },
+    );
   }
 }
