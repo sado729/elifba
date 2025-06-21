@@ -6,8 +6,6 @@ import '../core/config.dart';
 import 'puzzle_page.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:math';
-import '../widgets/youtube_video_widget.dart';
-import 'animal_word_puzzle.dart';
 
 class AnimalDetailPage extends StatefulWidget {
   final String animal;
