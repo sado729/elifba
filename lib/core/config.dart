@@ -152,7 +152,7 @@ class AppConfig {
       'Baltadimdik',
     ],
     'C': ['Camış', 'Cücə', 'Ceyran'],
-    'Ç': ['Çalağan', 'Çaqqal', 'Çita'],
+    'Ç': ['Çalağan', 'Çaqqal', 'Çita', 'Çəyirtkə'],
     'D': ['Dənizatı', 'Donuz', 'Dovşan', 'Dovdaq', 'Dələ', 'Dəvə'],
     'E': ['Eşşək', 'Eland', 'Echidna'],
     'Ə': ['Ərincək', 'Əqrəb'],
@@ -238,6 +238,8 @@ class AppConfig {
         'Çitalar dünyanın ən sürətli quru heyvanlarıdır! Onlar qısa məsafələrdə saatda 110 kilometrə qədər sürətlə qaça bilirlər.\nÇitaların bədəni qaçmaq üçün mükəmməl uyğunlaşıb – uzun və elastik bədən, güclü ayaqlar və balans saxlamaq üçün uzun quyruq.\nOnların bədənində qara nöqtələr var və bu nöqtələr hər çitada fərqlidir – elə bil barmaq izi kimidir!\nÇitalar əsasən Afrika çöllərində yaşayır və ceyran, antilop kimi sürətli heyvanları ovlayırlar.\nOnlar çox sürətli olsalar da, uzun müddət qaça bilmirlər – adətən 20-30 saniyə qaçdıqdan sonra yorulur və dincəlməlidirlər.',
     'Çaqqal':
         'Çaqqallar orta ölçülü yırtıcı heyvanlardır və sürü ilə yaşayırlar.\nOnlar çox ağıllı və çevikdirlər, ovlarını birlikdə tuturlar.\nÇaqqallar gecə və gündüz ovlana bilirlər.\nOnlar müxtəlif heyvanlarla, hətta bitkilərlə də qidalanırlar.\nÇaqqallar meşələrdə, çöllərdə və bəzən insanlara yaxın yerlərdə yaşayırlar.',
+    'Çəyirtkə':
+        'Çəyirtkələr kiçik, yaşıl və çox uzağa tullana bilən həşəratlardır.\nOnların arxa ayaqları çox güclüdür və tullanmaq üçün istifadə olunur.\nÇəyirtkələr əsasən ot və yarpaqlarla qidalanırlar.\nOnlar "çırçır" səsi çıxararaq bir-biri ilə əlaqə qururlar.\nÇəyirtkələr isti havada daha fəal olurlar və günəşli yerləri sevirlər.',
     'Dənizatı':
         'Dənizatları çox qəribə və maraqlı dəniz canlılarıdır. Onların başı at başına bənzəyir, buna görə də belə adlanırlar!\nDənizatları üzgəcləri ilə çox yavaş hərəkət edirlər və adətən dəniz otlarına quyruqları ilə dolanaraq dayanırlar.\nƏn maraqlısı odur ki, dənizatlarında balalar ata tərəfindən dünyaya gətirilir! Dişi dənizatı yumurtaları erkəyin xüsusi cibinə qoyur və balalar orada inkişaf edir.\nOnlar çox kiçik dəniz canlıları ilə qidalanır və gündə minlərlə kiçik orqanizm yeyə bilirlər.\nDənizatları rənglərini dəyişə bilir və bununla ətraf mühitdə gizlənə bilirlər.',
     'Donuz':
@@ -389,15 +391,16 @@ class AppConfig {
     'Balıq': ['Plankton', 'Kiçik balıqlar'],
     'Bayquş': ['Siçan', 'Cücə', 'Böcək'],
     'Buqələmun': ['Böcək', 'Milçək'],
-    'Bizon': ['Ot', 'Oturmuş otlar'],
+    'Bizon': ['Ot'],
     'Begemot': ['Ot', 'Su yosunu'],
     'Baltadimdik': ['Balıq', 'Qurbağa', 'Körpə timsah'],
     'Camış': ['Ot', 'Su yosunu'],
     'Cücə': ['Dən', 'Toxum', 'Böcək'],
-    'Ceyran': ['Ot', 'Yarpaqlar', 'Gənc budaqlar'],
+    'Ceyran': ['Ot', 'Yarpaqlar'],
     'Çaqqal': ['Kiçik məməlilər', 'Quş', 'Meyvə', 'Cəsəd'],
     'Çalağan': ['Siçan', 'Sərçə', 'Kərtənkələ'],
     'Çita': ['Ceyran', 'Antilop', 'Dovşan'],
+    'Çəyirtkə': ['Ot', 'Yarpaqlar', 'Buğda', 'Qarğıdalı'],
     'Dənizatı': ['Balıq sürfəsi', 'Plankton'],
     'Donuz': ['Alma', 'Kök', 'Kartof', 'Fındıq'],
     'Dovşan': ['Ot', 'Kök', 'Yerkökü', 'Yarpaqlar'],
