@@ -206,7 +206,9 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                               } else if (placedLetters[i] == letters[i]) {
                                 bgColor = Colors.greenAccent;
                               } else {
-                                bgColor = Colors.redAccent.withOpacity(0.7);
+                                bgColor = Colors.redAccent.withAlpha(
+                                  (0.7 * 255).toInt(),
+                                );
                               }
                               return Container(
                                 width: boxWidth,
