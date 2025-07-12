@@ -159,7 +159,7 @@ class AnimalListPage extends StatelessWidget {
               Expanded(
                 child:
                     animals.isEmpty
-                        ? Center(
+                        ? const Center(
                           child: Text(
                             'Bu hərflə başlayan heyvan yoxdur.',
                             style: TextStyle(
@@ -181,7 +181,7 @@ class AnimalListPage extends StatelessWidget {
                           itemCount: animals.length,
                           itemBuilder: (context, index) {
                             final animal = animals[index];
-                            final animalLetter = getFirstLetter(animal);
+                            getFirstLetter(animal);
                             final animalInfo = AppConfig.findAnimal(
                               letter,
                               animal,
@@ -400,7 +400,7 @@ class _SoundButtonState extends State<_SoundButton> {
           boxShadow: [
             BoxShadow(
               color: (_hovered ? Colors.deepPurple : Colors.yellowAccent)
-                  .withOpacity(0.25),
+                  .withAlpha((0.25 * 255).toInt()),
               blurRadius: 12,
               offset: const Offset(0, 1),
             ),
@@ -454,7 +454,6 @@ class _SoundButtonState extends State<_SoundButton> {
 // Asset manifesti oxuyub cache-ləyən util sinfi
 class AssetChecker {
   static Set<String>? _assets;
-
   static Future<void> _loadAssets() async {
     if (_assets != null) return;
     final manifestContent = await rootBundle.loadString('AssetManifest.json');
@@ -463,7 +462,9 @@ class AssetChecker {
   }
 
   static Future<bool> hasAsset(String assetPath) async {
-    await _loadAssets();
+    if (_assets == null) {
+      await _loadAssets();
+    }
     return _assets!.contains(assetPath);
   }
 }
