@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
 import 'animal_detail_page.dart';
-import '../core/utils.dart';
 import '../core/config.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 
-class AnimalListPage extends StatelessWidget {
+class AnimalListPage extends StatefulWidget {
   final String letter;
   const AnimalListPage({super.key, required this.letter});
 
   @override
+  State<AnimalListPage> createState() => _AnimalListPageState();
+}
+
+class _AnimalListPageState extends State<AnimalListPage> {
+  bool isInfoExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final info =
-        AppConfig.findLetter(letter)?.description ??
-        '$letter hərfi haqqında məlumat yoxdur.';
-    final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
+        AppConfig.findLetter(widget.letter)?.description ??
+        '${widget.letter} hərfi haqqında məlumat yoxdur.';
+    final animalObjects = AppConfig.findLetter(widget.letter)?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final animal in animals) {
-        final animalInfo = AppConfig.findAnimal(letter, animal);
+        final animalInfo = AppConfig.findAnimal(widget.letter, animal);
         final imageAsset = animalInfo?.imagePath ?? '';
         if (imageAsset.isNotEmpty) {
           precacheImage(AssetImage(imageAsset), context);
@@ -29,7 +35,7 @@ class AnimalListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '$letter hərfi',
+          '${widget.letter} hərfi',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -42,11 +48,11 @@ class AnimalListPage extends StatelessWidget {
         actions: [
           _LetterArrowAppBarButton(
             direction: ArrowDirection.left,
-            currentLetter: letter,
+            currentLetter: widget.letter,
           ),
           _LetterArrowAppBarButton(
             direction: ArrowDirection.right,
-            currentLetter: letter,
+            currentLetter: widget.letter,
           ),
         ],
       ),
@@ -93,31 +99,68 @@ class AnimalListPage extends StatelessWidget {
                         width: 1.5,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      top: 14,
+                      bottom: 20,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            info,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      info,
+                      maxLines: isInfoExpanded ? null : 2,
+                      overflow:
+                          isInfoExpanded
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isInfoExpanded ? 21 : 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                   Positioned(
                     top: -16,
                     left: -16,
-                    child: _SoundButton(info: info, letter: letter),
+                    child: _SoundButton(info: info, letter: widget.letter),
+                  ),
+                  Positioned(
+                    bottom: -12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            isInfoExpanded = !isInfoExpanded;
+                          });
+                        },
+                        child: AnimatedRotation(
+                          turns: isInfoExpanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.yellowAccent.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.deepPurple.shade700,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -181,9 +224,8 @@ class AnimalListPage extends StatelessWidget {
                           itemCount: animals.length,
                           itemBuilder: (context, index) {
                             final animal = animals[index];
-                            final animalLetter = getFirstLetter(animal);
                             final animalInfo = AppConfig.findAnimal(
-                              letter,
+                              widget.letter,
                               animal,
                             );
                             final imageAsset = animalInfo?.imagePath ?? '';
@@ -408,6 +450,9 @@ class _SoundButtonState extends State<_SoundButton> {
         ),
         padding: const EdgeInsets.all(1),
         child: IconButton(
+          iconSize: 10,
+          padding: const EdgeInsets.all(1),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           icon: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             transitionBuilder:
@@ -443,7 +488,7 @@ class _SoundButtonState extends State<_SoundButton> {
               await _playSound(audioPath);
             }
           },
-          splashRadius: 20,
+          splashRadius: 12,
           tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
         ),
       ),
