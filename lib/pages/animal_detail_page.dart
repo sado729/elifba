@@ -1149,57 +1149,104 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
             Stack(
               alignment: Alignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    currentWord.length,
-                    (index) => DragTarget<String>(
-                      onWillAcceptWithDetails:
-                          (data) => currentWord[index] == null,
-                      onAcceptWithDetails: (details) {
-                        final fromIndex = shuffledLetters.indexOf(details.data);
-                        if (fromIndex != -1) {
-                          _addLetter(details.data, fromIndex, index);
-                        }
-                      },
-                      builder: (context, candidateData, rejectedData) {
-                        Color borderColor = Colors.grey;
-                        Color fillColor = Colors.white;
-                        if (currentWord[index] != null) {
-                          if (correct[index]) {
-                            borderColor = Colors.green;
-                            fillColor = Colors.green.shade100;
-                          } else {
-                            borderColor = Colors.red;
-                            fillColor = Colors.red.shade100;
-                          }
-                        }
-                        return GestureDetector(
-                          onTap: () => _removeLetter(index),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 40,
-                            height: 50,
-                            margin: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: borderColor, width: 2),
-                              borderRadius: BorderRadius.circular(8),
-                              color: fillColor,
-                            ),
-                            child: Center(
-                              child: Text(
-                                currentWord[index] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxWidth = constraints.maxWidth;
+                    final letterCount = currentWord.length;
+
+                    // Adaptiv ölçü hesablaması
+                    double boxWidth = 40;
+                    double boxHeight = 50;
+                    double minBoxWidth = 18;
+                    double minBoxHeight = 26;
+                    double spacing = 4;
+                    double minSpacing = letterCount > 8 ? 1 : 2;
+
+                    double totalWidth =
+                        letterCount * boxWidth +
+                        (letterCount - 1) * spacing * 2;
+
+                    if (totalWidth > maxWidth) {
+                      // Əvvəl məsafəni azalt
+                      spacing = spacing.clamp(minSpacing, spacing);
+
+                      totalWidth =
+                          letterCount * boxWidth +
+                          (letterCount - 1) * spacing * 2;
+                      if (totalWidth > maxWidth) {
+                        // Ölçünü azalt
+                        boxWidth = ((maxWidth -
+                                    (letterCount - 1) * spacing * 2) /
+                                letterCount)
+                            .clamp(minBoxWidth, boxWidth);
+                        boxHeight = (boxHeight * boxWidth / 40).clamp(
+                          minBoxHeight,
+                          boxHeight,
                         );
-                      },
-                    ),
-                  ),
+                      }
+                    }
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          currentWord.length,
+                          (index) => DragTarget<String>(
+                            onWillAcceptWithDetails:
+                                (data) => currentWord[index] == null,
+                            onAcceptWithDetails: (details) {
+                              final fromIndex = shuffledLetters.indexOf(
+                                details.data,
+                              );
+                              if (fromIndex != -1) {
+                                _addLetter(details.data, fromIndex, index);
+                              }
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              Color borderColor = Colors.grey;
+                              Color fillColor = Colors.white;
+                              if (currentWord[index] != null) {
+                                if (correct[index]) {
+                                  borderColor = Colors.green;
+                                  fillColor = Colors.green.shade100;
+                                } else {
+                                  borderColor = Colors.red;
+                                  fillColor = Colors.red.shade100;
+                                }
+                              }
+                              return GestureDetector(
+                                onTap: () => _removeLetter(index),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: boxWidth,
+                                  height: boxHeight,
+                                  margin: EdgeInsets.all(spacing),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: borderColor,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: fillColor,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      currentWord[index] ?? '',
+                                      style: TextStyle(
+                                        fontSize: boxWidth * 0.6,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 ConfettiWidget(
                   confettiController: _confettiController,
@@ -1213,68 +1260,112 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
               ],
             ),
             const SizedBox(height: 24),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: List.generate(
-                shuffledLetters.length,
-                (index) =>
-                    shuffledLetters[index].isEmpty
-                        ? const SizedBox(width: 40, height: 50)
-                        : Draggable<String>(
-                          data: shuffledLetters[index],
-                          feedback: Material(
-                            color: Colors.transparent,
-                            child: Container(
-                              width: 40,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade200,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 8,
-                                    offset: Offset(2, 2),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth;
+                final letterCount =
+                    shuffledLetters.where((l) => l.isNotEmpty).length;
+
+                // Adaptiv ölçü hesablaması
+                double boxWidth = 40;
+                double boxHeight = 50;
+                double minBoxWidth = 18;
+                double minBoxHeight = 26;
+                double spacing = 8;
+                double runSpacing = 8;
+
+                // Hərf sayına görə məsafəni azalt
+                if (letterCount > 8) {
+                  spacing = 4;
+                  runSpacing = 6;
+
+                  // Çox hərf olduqda ölçünü azalt
+                  if (letterCount > 12) {
+                    boxWidth = boxWidth.clamp(minBoxWidth, 32);
+                    boxHeight = boxHeight.clamp(minBoxHeight, 40);
+                  }
+                } else if (letterCount > 6) {
+                  spacing = 6;
+                  runSpacing = 7;
+                }
+
+                // Ekran enindən çox hərf varsa ölçünü azalt
+                double totalWidthNeeded =
+                    letterCount * boxWidth + (letterCount - 1) * spacing;
+                if (totalWidthNeeded > maxWidth * 0.9) {
+                  boxWidth = ((maxWidth * 0.9 - (letterCount - 1) * spacing) /
+                          letterCount)
+                      .clamp(minBoxWidth, boxWidth);
+                  boxHeight = (boxHeight * boxWidth / 40).clamp(
+                    minBoxHeight,
+                    boxHeight,
+                  );
+                }
+
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: spacing,
+                  runSpacing: runSpacing,
+                  children: List.generate(
+                    shuffledLetters.length,
+                    (index) =>
+                        shuffledLetters[index].isEmpty
+                            ? SizedBox(width: boxWidth, height: boxHeight)
+                            : Draggable<String>(
+                              data: shuffledLetters[index],
+                              feedback: Material(
+                                color: Colors.transparent,
+                                child: Container(
+                                  width: boxWidth,
+                                  height: boxHeight,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 8,
+                                        offset: Offset(2, 2),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                  child: Center(
+                                    child: Text(
+                                      shuffledLetters[index],
+                                      style: TextStyle(
+                                        fontSize: boxWidth * 0.6,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                              child: Center(
-                                child: Text(
-                                  shuffledLetters[index],
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
+                              childWhenDragging: SizedBox(
+                                width: boxWidth,
+                                height: boxHeight,
+                              ),
+                              onDragStarted: _playClickSound,
+                              child: Container(
+                                width: boxWidth,
+                                height: boxHeight,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    shuffledLetters[index],
+                                    style: TextStyle(
+                                      fontSize: boxWidth * 0.6,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          childWhenDragging: const SizedBox(
-                            width: 40,
-                            height: 50,
-                          ),
-                          onDragStarted: _playClickSound,
-                          child: Container(
-                            width: 40,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                shuffledLetters[index],
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-              ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
