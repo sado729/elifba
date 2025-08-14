@@ -122,7 +122,7 @@ class _AnimalListPageState extends State<AnimalListPage> {
                   ),
                   Positioned(
                     top: -16,
-                    left: -16,
+                    left: -10,
                     child: _SoundButton(info: info, letter: widget.letter),
                   ),
                   Positioned(
@@ -140,7 +140,7 @@ class _AnimalListPageState extends State<AnimalListPage> {
                           turns: isInfoExpanded ? 0.5 : 0,
                           duration: const Duration(milliseconds: 200),
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: Colors.yellowAccent.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(20),
@@ -449,47 +449,52 @@ class _SoundButtonState extends State<_SoundButton> {
           ],
         ),
         padding: const EdgeInsets.all(1),
-        child: IconButton(
-          iconSize: 10,
-          padding: const EdgeInsets.all(1),
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          icon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder:
-                (child, anim) => ScaleTransition(scale: anim, child: child),
-            child:
-                _isPlaying
-                    ? Icon(
-                      Icons.stop,
-                      key: const ValueKey('stop'),
-                      color: Colors.deepPurple,
-                      size: 22,
-                    )
-                    : Icon(
-                      Icons.volume_up,
-                      key: const ValueKey('play'),
-                      color: Colors.deepPurple,
-                      size: 22,
-                    ),
+        child: Container(
+          width: 35,
+          height: 35,
+          alignment: Alignment.center,
+          child: IconButton(
+            iconSize: 22,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder:
+                  (child, anim) => ScaleTransition(scale: anim, child: child),
+              child:
+                  _isPlaying
+                      ? Icon(
+                        Icons.stop,
+                        key: const ValueKey('stop'),
+                        color: Colors.deepPurple,
+                        size: 22,
+                      )
+                      : Icon(
+                        Icons.volume_up,
+                        key: const ValueKey('play'),
+                        color: Colors.deepPurple,
+                        size: 22,
+                      ),
+            ),
+            onPressed: () async {
+              if (_isPlaying) {
+                await _audioPlayer.stop();
+                setState(() {
+                  _isPlaying = false;
+                });
+              } else {
+                setState(() {
+                  _isPlaying = true;
+                });
+                final letter = widget.letter.toLowerCase();
+                final audioPath =
+                    'assets/audios/$letter/${letter}_info_sound.mp3';
+                await _playSound(audioPath);
+              }
+            },
+            splashRadius: 12,
+            tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
           ),
-          onPressed: () async {
-            if (_isPlaying) {
-              await _audioPlayer.stop();
-              setState(() {
-                _isPlaying = false;
-              });
-            } else {
-              setState(() {
-                _isPlaying = true;
-              });
-              final letter = widget.letter.toLowerCase();
-              final audioPath =
-                  'assets/audios/$letter/${letter}_info_sound.mp3';
-              await _playSound(audioPath);
-            }
-          },
-          splashRadius: 12,
-          tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
         ),
       ),
     );
