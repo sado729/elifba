@@ -39,11 +39,10 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   final GlobalKey _animalImageKey = GlobalKey();
   OverlayEntry? _foodOverlayEntry;
   bool _foodEffectActive = false;
-  bool _showHeart = false;
-  double _heartScale = 0.0;
+  final bool _showHeart = false;
+  final double _heartScale = 0.0;
   bool _showFoodEffect = false;
   double _foodEffectScale = 0.0;
-  double _foodEffectRotation = 0.0;
   double _foodEffectOpacity = 0.0;
   String? _foodEffectImage;
   bool _showHalo = false;
@@ -123,38 +122,10 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     }
   }
 
-  void _showHeartEffect() async {
-    setState(() {
-      _showHeart = true;
-      _heartScale = 0.2;
-    });
-    await Future.delayed(const Duration(milliseconds: 10));
-    setState(() {
-      _heartScale = 1.2;
-    });
-    await Future.delayed(const Duration(milliseconds: 220));
-    setState(() {
-      _heartScale = 1.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 200));
-    setState(() {
-      _heartScale = 0.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 180));
-    setState(() {
-      _heartScale = 0.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 180));
-    setState(() {
-      _showHeart = false;
-    });
-  }
-
   Future<void> _showFoodArrivalEffect(String foodImagePath) async {
     setState(() {
       _showFoodEffect = true;
       _foodEffectScale = 0.2;
-      _foodEffectRotation = 0.0;
       _foodEffectOpacity = 1.0;
       _foodEffectImage = foodImagePath;
       _showHalo = true;
@@ -192,7 +163,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final foodPos = foodBox.localToGlobal(Offset.zero);
     final animalPos = animalBox.localToGlobal(Offset.zero);
     final overlay = Overlay.of(context);
-    final foodSize = foodBox.size;
     final animalSize = animalBox.size;
     final start = foodPos;
     final end =
@@ -465,7 +435,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.12),
+                      color: Colors.deepPurple.withAlpha((0.12 * 255).toInt()),
                       blurRadius: 32,
                       offset: const Offset(0, 12),
                     ),
@@ -549,7 +519,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
-                                Colors.yellow.withOpacity(0.5),
+                                Colors.yellow.withAlpha((0.5 * 255).toInt()),
                                 Colors.transparent,
                               ],
                               stops: const [0.5, 1.0],
@@ -663,7 +633,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                       children: [
                         if (showInfo)
                           Card(
-                            color: Colors.white.withOpacity(0.95),
+                            color: Colors.white.withAlpha((0.95 * 255).toInt()),
                             elevation: 4,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -735,7 +705,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                           ),
                         if (showFoods && foods.isNotEmpty)
                           Card(
-                            color: Colors.white.withOpacity(0.95),
+                            color: Colors.white.withAlpha((0.95 * 255).toInt()),
                             elevation: 4,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -843,7 +813,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                 child: PuzzlePage(animal: widget.animal),
                               )
                               : Card(
-                                color: Colors.white.withOpacity(0.95),
+                                color: Colors.white.withAlpha(
+                                  (0.95 * 255).toInt(),
+                                ),
                                 elevation: 4,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -901,7 +873,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                         showCongrats = false;
                       });
                     },
-                    child: Container(color: Colors.black.withOpacity(0.45)),
+                    child: Container(
+                      color: Colors.black.withAlpha((0.45 * 255).toInt()),
+                    ),
                   ),
                   Align(
                     alignment: Alignment.topCenter,
@@ -923,11 +897,13 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                       ),
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.white.withAlpha((0.95 * 255).toInt()),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.deepPurple.withOpacity(0.18),
+                            color: Colors.deepPurple.withAlpha(
+                              (0.18 * 255).toInt(),
+                            ),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -979,43 +955,6 @@ class _ActionButtonData {
     required this.onTap,
     required this.visible,
   });
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.tooltip,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: selected ? Theme.of(context).primaryColor : Colors.transparent,
-        borderRadius: BorderRadius.circular(30),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            child: Icon(
-              icon,
-              color:
-                  selected ? Colors.white : Theme.of(context).iconTheme.color,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class AnimalWordPuzzle extends StatefulWidget {
