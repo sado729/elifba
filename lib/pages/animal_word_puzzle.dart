@@ -166,21 +166,29 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                   // Minimum və maksimum ölçü limitləri
                   double boxWidth = 48;
                   double boxHeight = 60;
-                  double minBoxWidth = 28;
-                  double minBoxHeight = 38;
-                  double spacing = 8;
+                  double minBoxWidth = 20;
+                  double minBoxHeight = 28;
+                  double spacing = 6;
                   // Hesablanmış ölçü
                   double totalWidth =
                       letterCount * boxWidth + (letterCount - 1) * spacing;
                   if (totalWidth > maxWidth) {
-                    // Sığmırsa, ölçünü kiçilt
-                    boxWidth = ((maxWidth - (letterCount - 1) * spacing) /
-                            letterCount)
-                        .clamp(minBoxWidth, boxWidth);
-                    boxHeight = (boxHeight * boxWidth / 48).clamp(
-                      minBoxHeight,
-                      boxHeight,
-                    );
+                    // Əvvəlcə məsafəni azalt
+                    double minSpacing = letterCount > 8 ? 2 : 3;
+                    spacing = spacing.clamp(minSpacing, spacing);
+
+                    totalWidth =
+                        letterCount * boxWidth + (letterCount - 1) * spacing;
+                    if (totalWidth > maxWidth) {
+                      // Hələ də sığmırsa, ölçünü kiçilt
+                      boxWidth = ((maxWidth - (letterCount - 1) * spacing) /
+                              letterCount)
+                          .clamp(minBoxWidth, boxWidth);
+                      boxHeight = (boxHeight * boxWidth / 48).clamp(
+                        minBoxHeight,
+                        boxHeight,
+                      );
+                    }
                   }
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -262,19 +270,28 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
                   final letterCount = shuffledLetters.length;
                   double boxWidth = 48;
                   double boxHeight = 60;
-                  double minBoxWidth = 28;
-                  double minBoxHeight = 38;
-                  double spacing = 8;
+                  double minBoxWidth = 20;
+                  double minBoxHeight = 28;
+                  double spacing = 6;
                   double totalWidth =
                       letterCount * boxWidth + (letterCount - 1) * spacing;
                   if (totalWidth > maxWidth) {
-                    boxWidth = ((maxWidth - (letterCount - 1) * spacing) /
-                            letterCount)
-                        .clamp(minBoxWidth, boxWidth);
-                    boxHeight = (boxHeight * boxWidth / 48).clamp(
-                      minBoxHeight,
-                      boxHeight,
-                    );
+                    // Əvvəlcə məsafəni azalt
+                    double minSpacing = letterCount > 8 ? 2 : 3;
+                    spacing = spacing.clamp(minSpacing, spacing);
+
+                    totalWidth =
+                        letterCount * boxWidth + (letterCount - 1) * spacing;
+                    if (totalWidth > maxWidth) {
+                      // Hələ də sığmırsa, ölçünü kiçilt
+                      boxWidth = ((maxWidth - (letterCount - 1) * spacing) /
+                              letterCount)
+                          .clamp(minBoxWidth, boxWidth);
+                      boxHeight = (boxHeight * boxWidth / 48).clamp(
+                        minBoxHeight,
+                        boxHeight,
+                      );
+                    }
                   }
                   return Wrap(
                     alignment: WrapAlignment.center,

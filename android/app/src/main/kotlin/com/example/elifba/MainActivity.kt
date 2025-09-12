@@ -1,4 +1,4 @@
-package com.example.elifba
+package com.mrsadiq.elifba
 
 import io.flutter.embedding.android.FlutterActivity
 
