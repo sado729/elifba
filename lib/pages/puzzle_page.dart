@@ -315,12 +315,13 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                         completed = true;
                                         _confettiController.play();
                                         _playWinSound();
+                                        final dialogContext = context;
                                         Future.delayed(
                                           const Duration(milliseconds: 1500),
                                           () {
                                             if (mounted && completed) {
                                               showDialog(
-                                                context: context,
+                                                context: dialogContext,
                                                 builder:
                                                     (context) => AlertDialog(
                                                       title: const Text(
@@ -333,7 +334,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                                         TextButton(
                                                           onPressed: () {
                                                             Navigator.of(
-                                                              context,
+                                                              dialogContext,
                                                             ).pop();
                                                             _resetPuzzle();
                                                           },
@@ -453,12 +454,13 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                 completed = true;
                                 _confettiController.play();
                                 _playWinSound();
+                                final dialogContext = context;
                                 Future.delayed(
                                   const Duration(milliseconds: 1500),
                                   () {
                                     if (mounted && completed) {
                                       showDialog(
-                                        context: context,
+                                        context: dialogContext,
                                         builder:
                                             (context) => AlertDialog(
                                               title: const Text('Təbriklər!'),
@@ -468,7 +470,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                               actions: [
                                                 TextButton(
                                                   onPressed: () {
-                                                    Navigator.of(context).pop();
+                                                    Navigator.of(
+                                                      dialogContext,
+                                                    ).pop();
                                                     _resetPuzzle();
                                                   },
                                                   child: const Text('Yenidən'),
