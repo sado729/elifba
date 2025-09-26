@@ -11,10 +11,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("E:\\Projects\\key storages\\elifba.jks")
-            storePassword = "sadokolik1!Q"
+            storeFile = file("../../key/elifba.jks")
+            storePassword = System.getenv("STORE_PASSWORD") ?: "sadokolik1!Q"
             keyAlias = "mrsadiq"
-            keyPassword = "sadokolik1!Q"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "sadokolik1!Q"
         }
     }
 

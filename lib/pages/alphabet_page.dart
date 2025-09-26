@@ -145,19 +145,19 @@ class _AlphabetPageState extends State<AlphabetPage> {
                     IconButton(
                       icon: Icon(
                         Icons.arrow_back_ios,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                       onPressed: _previousPage,
                     ),
                     Icon(
                       Icons.menu_book,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       size: 28,
                     ),
                     IconButton(
                       icon: Icon(
                         Icons.arrow_forward_ios,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                       onPressed: _nextPage,
                     ),
@@ -214,7 +214,7 @@ class _BookPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -236,7 +236,7 @@ class _BookPage extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(

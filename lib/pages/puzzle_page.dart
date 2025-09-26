@@ -318,7 +318,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                         Future.delayed(
                                           const Duration(milliseconds: 1500),
                                           () {
-                                            if (mounted && completed) {
+                                            if (mounted &&
+                                                completed &&
+                                                context.mounted) {
                                               showDialog(
                                                 context: context,
                                                 builder:
@@ -456,7 +458,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                 Future.delayed(
                                   const Duration(milliseconds: 1500),
                                   () {
-                                    if (mounted && completed) {
+                                    if (mounted &&
+                                        completed &&
+                                        context.mounted) {
                                       showDialog(
                                         context: context,
                                         builder:
@@ -646,7 +650,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
       builder:
           (context) => Positioned.fill(
             child: Container(
-              color: Colors.black.withAlpha((255 * 0.45).round()),
+              color: Colors.black.withValues(alpha: 0.45),
               child: Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(18),

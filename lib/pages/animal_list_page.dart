@@ -142,11 +142,11 @@ class _AnimalListPageState extends State<AnimalListPage> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.yellowAccent.withOpacity(0.9),
+                              color: Colors.yellowAccent.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -442,7 +442,7 @@ class _SoundButtonState extends State<_SoundButton> {
           boxShadow: [
             BoxShadow(
               color: (_hovered ? Colors.deepPurple : Colors.yellowAccent)
-                  .withOpacity(0.25),
+                  .withValues(alpha: 0.25),
               blurRadius: 12,
               offset: const Offset(0, 1),
             ),

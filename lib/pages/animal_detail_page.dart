@@ -43,7 +43,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   double _heartScale = 0.0;
   bool _showFoodEffect = false;
   double _foodEffectScale = 0.0;
-  double _foodEffectRotation = 0.0;
   double _foodEffectOpacity = 0.0;
   String? _foodEffectImage;
   bool _showHalo = false;
@@ -154,7 +153,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     setState(() {
       _showFoodEffect = true;
       _foodEffectScale = 0.2;
-      _foodEffectRotation = 0.0;
       _foodEffectOpacity = 1.0;
       _foodEffectImage = foodImagePath;
       _showHalo = true;
@@ -192,7 +190,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final foodPos = foodBox.localToGlobal(Offset.zero);
     final animalPos = animalBox.localToGlobal(Offset.zero);
     final overlay = Overlay.of(context);
-    final foodSize = foodBox.size;
     final animalSize = animalBox.size;
     final start = foodPos;
     final end =
@@ -256,6 +253,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     controller.dispose();
     // Sonda heyvan şəklinin üzərində qida və halo effekti
     await _showFoodArrivalEffect(foodImagePath);
+    // Ürək effektini də göstər
+    _showHeartEffect();
     _foodEffectActive = false;
   }
 
@@ -465,7 +464,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.12),
+                      color: Colors.deepPurple.withValues(alpha: 0.12),
                       blurRadius: 32,
                       offset: const Offset(0, 12),
                     ),
@@ -549,7 +548,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
-                                Colors.yellow.withOpacity(0.5),
+                                Colors.yellow.withValues(alpha: 0.5),
                                 Colors.transparent,
                               ],
                               stops: const [0.5, 1.0],
@@ -663,7 +662,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                       children: [
                         if (showInfo)
                           Card(
-                            color: Colors.white.withOpacity(0.95),
+                            color: Colors.white.withValues(alpha: 0.95),
                             elevation: 4,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -735,7 +734,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                           ),
                         if (showFoods && foods.isNotEmpty)
                           Card(
-                            color: Colors.white.withOpacity(0.95),
+                            color: Colors.white.withValues(alpha: 0.95),
                             elevation: 4,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -843,7 +842,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                 child: PuzzlePage(animal: widget.animal),
                               )
                               : Card(
-                                color: Colors.white.withOpacity(0.95),
+                                color: Colors.white.withValues(alpha: 0.95),
                                 elevation: 4,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -901,7 +900,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                         showCongrats = false;
                       });
                     },
-                    child: Container(color: Colors.black.withOpacity(0.45)),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.45),
+                    ),
                   ),
                   Align(
                     alignment: Alignment.topCenter,
@@ -927,7 +928,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.deepPurple.withOpacity(0.18),
+                            color: Colors.deepPurple.withValues(alpha: 0.18),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -979,43 +980,6 @@ class _ActionButtonData {
     required this.onTap,
     required this.visible,
   });
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.tooltip,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: selected ? Theme.of(context).primaryColor : Colors.transparent,
-        borderRadius: BorderRadius.circular(30),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            child: Icon(
-              icon,
-              color:
-                  selected ? Colors.white : Theme.of(context).iconTheme.color,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class AnimalWordPuzzle extends StatefulWidget {
