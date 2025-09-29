@@ -100,7 +100,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
               const SizedBox(height: 32),
               Text(
                 'Əlifba',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 38,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -145,19 +145,19 @@ class _AlphabetPageState extends State<AlphabetPage> {
                     IconButton(
                       icon: Icon(
                         Icons.arrow_back_ios,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Colors.white.withAlpha((0.8 * 255).toInt()),
                       ),
                       onPressed: _previousPage,
                     ),
                     Icon(
                       Icons.menu_book,
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withAlpha((0.8 * 255).toInt()),
                       size: 28,
                     ),
                     IconButton(
                       icon: Icon(
                         Icons.arrow_forward_ios,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Colors.white.withAlpha((0.8 * 255).toInt()),
                       ),
                       onPressed: _nextPage,
                     ),
@@ -214,7 +214,7 @@ class _BookPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withAlpha((0.2 * 255).toInt()),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -236,7 +236,7 @@ class _BookPage extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: Colors.white.withAlpha((0.1 * 255).toInt()),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(

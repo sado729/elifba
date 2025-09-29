@@ -1,31 +1,25 @@
 import 'package:flutter/material.dart';
 import 'animal_detail_page.dart';
+import '../core/utils.dart';
 import '../core/config.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 
-class AnimalListPage extends StatefulWidget {
+class AnimalListPage extends StatelessWidget {
   final String letter;
   const AnimalListPage({super.key, required this.letter});
 
   @override
-  State<AnimalListPage> createState() => _AnimalListPageState();
-}
-
-class _AnimalListPageState extends State<AnimalListPage> {
-  bool isInfoExpanded = false;
-
-  @override
   Widget build(BuildContext context) {
     final info =
-        AppConfig.findLetter(widget.letter)?.description ??
-        '${widget.letter} hərfi haqqında məlumat yoxdur.';
-    final animalObjects = AppConfig.findLetter(widget.letter)?.animals ?? [];
+        AppConfig.findLetter(letter)?.description ??
+        '$letter hərfi haqqında məlumat yoxdur.';
+    final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final animal in animals) {
-        final animalInfo = AppConfig.findAnimal(widget.letter, animal);
+        final animalInfo = AppConfig.findAnimal(letter, animal);
         final imageAsset = animalInfo?.imagePath ?? '';
         if (imageAsset.isNotEmpty) {
           precacheImage(AssetImage(imageAsset), context);
@@ -35,7 +29,7 @@ class _AnimalListPageState extends State<AnimalListPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${widget.letter} hərfi',
+          '$letter hərfi',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -48,11 +42,11 @@ class _AnimalListPageState extends State<AnimalListPage> {
         actions: [
           _LetterArrowAppBarButton(
             direction: ArrowDirection.left,
-            currentLetter: widget.letter,
+            currentLetter: letter,
           ),
           _LetterArrowAppBarButton(
             direction: ArrowDirection.right,
-            currentLetter: widget.letter,
+            currentLetter: letter,
           ),
         ],
       ),
@@ -99,68 +93,31 @@ class _AnimalListPageState extends State<AnimalListPage> {
                         width: 1.5,
                       ),
                     ),
-                    padding: const EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      top: 14,
-                      bottom: 20,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    child: Text(
-                      info,
-                      maxLines: isInfoExpanded ? null : 2,
-                      overflow:
-                          isInfoExpanded
-                              ? TextOverflow.visible
-                              : TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isInfoExpanded ? 21 : 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
-                      ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            info,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Positioned(
                     top: -16,
-                    left: -10,
-                    child: _SoundButton(info: info, letter: widget.letter),
-                  ),
-                  Positioned(
-                    bottom: -12,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isInfoExpanded = !isInfoExpanded;
-                          });
-                        },
-                        child: AnimatedRotation(
-                          turns: isInfoExpanded ? 0.5 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.yellowAccent.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.deepPurple.shade700,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    left: -16,
+                    child: _SoundButton(info: info, letter: letter),
                   ),
                 ],
               ),
@@ -202,7 +159,7 @@ class _AnimalListPageState extends State<AnimalListPage> {
               Expanded(
                 child:
                     animals.isEmpty
-                        ? Center(
+                        ? const Center(
                           child: Text(
                             'Bu hərflə başlayan heyvan yoxdur.',
                             style: TextStyle(
@@ -224,8 +181,9 @@ class _AnimalListPageState extends State<AnimalListPage> {
                           itemCount: animals.length,
                           itemBuilder: (context, index) {
                             final animal = animals[index];
+                            getFirstLetter(animal);
                             final animalInfo = AppConfig.findAnimal(
-                              widget.letter,
+                              letter,
                               animal,
                             );
                             final imageAsset = animalInfo?.imagePath ?? '';
@@ -442,59 +400,51 @@ class _SoundButtonState extends State<_SoundButton> {
           boxShadow: [
             BoxShadow(
               color: (_hovered ? Colors.deepPurple : Colors.yellowAccent)
-                  .withValues(alpha: 0.25),
+                  .withAlpha((0.25 * 255).toInt()),
               blurRadius: 12,
               offset: const Offset(0, 1),
             ),
           ],
         ),
         padding: const EdgeInsets.all(1),
-        child: Container(
-          width: 35,
-          height: 35,
-          alignment: Alignment.center,
-          child: IconButton(
-            iconSize: 22,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder:
-                  (child, anim) => ScaleTransition(scale: anim, child: child),
-              child:
-                  _isPlaying
-                      ? Icon(
-                        Icons.stop,
-                        key: const ValueKey('stop'),
-                        color: Colors.deepPurple,
-                        size: 22,
-                      )
-                      : Icon(
-                        Icons.volume_up,
-                        key: const ValueKey('play'),
-                        color: Colors.deepPurple,
-                        size: 22,
-                      ),
-            ),
-            onPressed: () async {
-              if (_isPlaying) {
-                await _audioPlayer.stop();
-                setState(() {
-                  _isPlaying = false;
-                });
-              } else {
-                setState(() {
-                  _isPlaying = true;
-                });
-                final letter = widget.letter.toLowerCase();
-                final audioPath =
-                    'assets/audios/$letter/${letter}_info_sound.mp3';
-                await _playSound(audioPath);
-              }
-            },
-            splashRadius: 12,
-            tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
+        child: IconButton(
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder:
+                (child, anim) => ScaleTransition(scale: anim, child: child),
+            child:
+                _isPlaying
+                    ? Icon(
+                      Icons.stop,
+                      key: const ValueKey('stop'),
+                      color: Colors.deepPurple,
+                      size: 22,
+                    )
+                    : Icon(
+                      Icons.volume_up,
+                      key: const ValueKey('play'),
+                      color: Colors.deepPurple,
+                      size: 22,
+                    ),
           ),
+          onPressed: () async {
+            if (_isPlaying) {
+              await _audioPlayer.stop();
+              setState(() {
+                _isPlaying = false;
+              });
+            } else {
+              setState(() {
+                _isPlaying = true;
+              });
+              final letter = widget.letter.toLowerCase();
+              final audioPath =
+                  'assets/audios/$letter/${letter}_info_sound.mp3';
+              await _playSound(audioPath);
+            }
+          },
+          splashRadius: 20,
+          tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
         ),
       ),
     );
@@ -504,7 +454,6 @@ class _SoundButtonState extends State<_SoundButton> {
 // Asset manifesti oxuyub cache-ləyən util sinfi
 class AssetChecker {
   static Set<String>? _assets;
-
   static Future<void> _loadAssets() async {
     if (_assets != null) return;
     final manifestContent = await rootBundle.loadString('AssetManifest.json');
@@ -513,7 +462,9 @@ class AssetChecker {
   }
 
   static Future<bool> hasAsset(String assetPath) async {
-    await _loadAssets();
+    if (_assets == null) {
+      await _loadAssets();
+    }
     return _assets!.contains(assetPath);
   }
 }

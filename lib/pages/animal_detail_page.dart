@@ -39,8 +39,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   final GlobalKey _animalImageKey = GlobalKey();
   OverlayEntry? _foodOverlayEntry;
   bool _foodEffectActive = false;
-  bool _showHeart = false;
-  double _heartScale = 0.0;
+  final bool _showHeart = false;
+  final double _heartScale = 0.0;
   bool _showFoodEffect = false;
   double _foodEffectScale = 0.0;
   double _foodEffectOpacity = 0.0;
@@ -120,33 +120,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     } else {
       await audioPlayer.stop();
     }
-  }
-
-  void _showHeartEffect() async {
-    setState(() {
-      _showHeart = true;
-      _heartScale = 0.2;
-    });
-    await Future.delayed(const Duration(milliseconds: 10));
-    setState(() {
-      _heartScale = 1.2;
-    });
-    await Future.delayed(const Duration(milliseconds: 220));
-    setState(() {
-      _heartScale = 1.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 200));
-    setState(() {
-      _heartScale = 0.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 180));
-    setState(() {
-      _heartScale = 0.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 180));
-    setState(() {
-      _showHeart = false;
-    });
   }
 
   Future<void> _showFoodArrivalEffect(String foodImagePath) async {
@@ -253,8 +226,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     controller.dispose();
     // Sonda heyvan şəklinin üzərində qida və halo effekti
     await _showFoodArrivalEffect(foodImagePath);
-    // Ürək effektini də göstər
-    _showHeartEffect();
     _foodEffectActive = false;
   }
 
@@ -464,7 +435,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.deepPurple.withValues(alpha: 0.12),
+                      color: Colors.deepPurple.withAlpha((0.12 * 255).toInt()),
                       blurRadius: 32,
                       offset: const Offset(0, 12),
                     ),
@@ -548,7 +519,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
-                                Colors.yellow.withValues(alpha: 0.5),
+                                Colors.yellow.withAlpha((0.5 * 255).toInt()),
                                 Colors.transparent,
                               ],
                               stops: const [0.5, 1.0],
@@ -662,7 +633,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                       children: [
                         if (showInfo)
                           Card(
-                            color: Colors.white.withValues(alpha: 0.95),
+                            color: Colors.white.withAlpha((0.95 * 255).toInt()),
                             elevation: 4,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -734,7 +705,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                           ),
                         if (showFoods && foods.isNotEmpty)
                           Card(
-                            color: Colors.white.withValues(alpha: 0.95),
+                            color: Colors.white.withAlpha((0.95 * 255).toInt()),
                             elevation: 4,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -842,7 +813,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                 child: PuzzlePage(animal: widget.animal),
                               )
                               : Card(
-                                color: Colors.white.withValues(alpha: 0.95),
+                                color: Colors.white.withAlpha(
+                                  (0.95 * 255).toInt(),
+                                ),
                                 elevation: 4,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -901,7 +874,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                       });
                     },
                     child: Container(
-                      color: Colors.black.withValues(alpha: 0.45),
+                      color: Colors.black.withAlpha((0.45 * 255).toInt()),
                     ),
                   ),
                   Align(
@@ -924,11 +897,13 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                       ),
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Colors.white.withAlpha((0.95 * 255).toInt()),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.deepPurple.withValues(alpha: 0.18),
+                            color: Colors.deepPurple.withAlpha(
+                              (0.18 * 255).toInt(),
+                            ),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
