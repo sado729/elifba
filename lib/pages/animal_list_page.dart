@@ -19,10 +19,14 @@ class AnimalListPage extends StatelessWidget {
     final animals = animalObjects.map((a) => a.name).toList();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final animal in animals) {
-        final animalInfo = AppConfig.findAnimal(letter, animal);
-        final imageAsset = animalInfo?.imagePath ?? '';
-        if (imageAsset.isNotEmpty) {
-          precacheImage(AssetImage(imageAsset), context);
+        try {
+          final animalInfo = AppConfig.findAnimal(letter, animal);
+          final imageAsset = animalInfo?.imagePath ?? '';
+          if (imageAsset.isNotEmpty) {
+            precacheImage(AssetImage(imageAsset), context);
+          }
+        } catch (e) {
+          debugPrint('Şəkil yükləmə xətası: $e');
         }
       }
     });
@@ -339,7 +343,7 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
   }
 }
 
-// Səsləndirmə düyməsi üçün xüsusi widget
+// Səsləndirmə düyməsini üçün xüsusi widget
 class _SoundButton extends StatefulWidget {
   final String info;
   final String letter;
@@ -377,8 +381,18 @@ class _SoundButtonState extends State<_SoundButton> {
   }
 
   Future<void> _playSound(String audioPath) async {
-    await _audioPlayer.setAsset(audioPath);
-    await _audioPlayer.play();
+    try {
+      await _audioPlayer.setAsset(audioPath);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Səs faylı oxunma xətası: $e');
+      // Səs faylı yoxdursa isPlaying-i false et
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    }
   }
 
   @override
@@ -430,13 +444,17 @@ class _SoundButtonState extends State<_SoundButton> {
           onPressed: () async {
             if (_isPlaying) {
               await _audioPlayer.stop();
-              setState(() {
-                _isPlaying = false;
-              });
+              if (mounted) {
+                setState(() {
+                  _isPlaying = false;
+                });
+              }
             } else {
-              setState(() {
-                _isPlaying = true;
-              });
+              if (mounted) {
+                setState(() {
+                  _isPlaying = true;
+                });
+              }
               final letter = widget.letter.toLowerCase();
               final audioPath =
                   'assets/audios/$letter/${letter}_info_sound.mp3';

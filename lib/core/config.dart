@@ -705,6 +705,12 @@ class AppConfig {
 
   static LetterConfig? findLetter(String letter) {
     final letterKey = letter.toUpperCase();
+
+    // Cache-də varsa qaytaraq
+    if (letterConfigs.containsKey(letterKey)) {
+      return letterConfigs[letterKey];
+    }
+
     // Hər dəfə map-lardan yeni obyekt yaradılır
     final letterLower = letter.toLowerCase();
     final imagePath = 'assets/images/$letterLower/$letterLower.png';
@@ -733,13 +739,18 @@ class AppConfig {
         ),
       );
     }
-    return LetterConfig(
+
+    final letterConfig = LetterConfig(
       letter: letterKey,
       imagePath: imagePath,
       audioPath: audioPath,
       description: description,
       animals: animals,
     );
+
+    // Cache-ə əlavə et
+    letterConfigs[letterKey] = letterConfig;
+    return letterConfig;
   }
 
   static AnimalInfo? findAnimal(String letter, String animalName) {
@@ -771,8 +782,7 @@ class AppConfig {
       youtubeEmbed: animalYoutubeEmbeds[animalName],
     );
 
-    // Yeni yaradılmış heyvanı əlavə edək
-    letterConfig.animals.add(newAnimalInfo);
+    // Yeni yaradılmış heyvanı qaytaraq (əlavə etmirik)
     return newAnimalInfo;
   }
 

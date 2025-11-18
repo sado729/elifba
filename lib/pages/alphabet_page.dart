@@ -24,12 +24,23 @@ class _AlphabetPageState extends State<AlphabetPage> {
     _preloadFlipSound();
     // Şəkil faylını öncədən yüklə
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      precacheImage(const AssetImage('assets/images/book_cover.png'), context);
+      try {
+        precacheImage(
+          const AssetImage('assets/images/book_cover.png'),
+          context,
+        );
+      } catch (e) {
+        debugPrint('Şəkil yükləmə xətası: $e');
+      }
     });
   }
 
   Future<void> _preloadFlipSound() async {
-    await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+    try {
+      await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+    } catch (e) {
+      debugPrint('Səs faylı yükləmə xətası: $e');
+    }
   }
 
   @override
@@ -40,8 +51,12 @@ class _AlphabetPageState extends State<AlphabetPage> {
   }
 
   Future<void> _playPageFlipSound() async {
-    await _audioPlayer.seek(Duration.zero);
-    await _audioPlayer.play();
+    try {
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Səs oynatma xətası: $e');
+    }
   }
 
   void _openAnimalList(BuildContext context, String letter) {

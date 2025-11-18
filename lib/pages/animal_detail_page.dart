@@ -68,17 +68,25 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final animalLetter = getFirstLetter(widget.animal);
-      final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
-      final imageAsset = animalData?.imagePath ?? '';
-      if (imageAsset.isNotEmpty) {
-        precacheImage(AssetImage(imageAsset), context);
-      }
-      final foods = animalData?.foods ?? [];
-      for (final food in foods) {
-        final foodImagePath =
-            'assets/foods/${AppConfig.normalizeFileName(food)}.png';
-        precacheImage(AssetImage(foodImagePath), context);
+      try {
+        final animalLetter = getFirstLetter(widget.animal);
+        final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
+        final imageAsset = animalData?.imagePath ?? '';
+        if (imageAsset.isNotEmpty) {
+          precacheImage(AssetImage(imageAsset), context);
+        }
+        final foods = animalData?.foods ?? [];
+        for (final food in foods) {
+          try {
+            final foodImagePath =
+                'assets/foods/${AppConfig.normalizeFileName(food)}.png';
+            precacheImage(AssetImage(foodImagePath), context);
+          } catch (e) {
+            debugPrint('Qida şəkli yükləmə xətası: $e');
+          }
+        }
+      } catch (e) {
+        debugPrint('Şəkil yükləmə xətası: $e');
       }
     });
   }
@@ -91,8 +99,18 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   }
 
   Future<void> _playSound(String audioAsset) async {
-    await audioPlayer.setAsset(audioAsset);
-    await audioPlayer.play();
+    try {
+      await audioPlayer.setAsset(audioAsset);
+      await audioPlayer.play();
+    } catch (e) {
+      debugPrint('Səs faylı oxunma xətası: $e');
+      // Səs faylı yoxdursa isPlayingInfo-nu false et
+      if (mounted) {
+        setState(() {
+          isPlayingInfo = false;
+        });
+      }
+    }
   }
 
   void _toggleAnimalInfo(String animal) async {
@@ -112,9 +130,11 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
         await _playSound(audioAsset);
       } catch (e) {
         // Səs faylı tapılmadısa isPlayingInfo-nu false et
-        setState(() {
-          isPlayingInfo = false;
-        });
+        if (mounted) {
+          setState(() {
+            isPlayingInfo = false;
+          });
+        }
         debugPrint('Səs faylı oxunma xətası: $e');
       }
     } else {
@@ -123,6 +143,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   }
 
   Future<void> _showFoodArrivalEffect(String foodImagePath) async {
+    if (!mounted) return;
+
     setState(() {
       _showFoodEffect = true;
       _foodEffectScale = 0.2;
@@ -132,18 +154,21 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       _haloOpacity = 0.0;
     });
     await Future.delayed(const Duration(milliseconds: 10));
+    if (!mounted) return;
     setState(() {
       _foodEffectScale = 1.3;
       _foodEffectOpacity = 1.0;
       _haloOpacity = 0.7;
     });
     await Future.delayed(const Duration(milliseconds: 320));
+    if (!mounted) return;
     setState(() {
       _foodEffectScale = 1.0;
       _foodEffectOpacity = 0.0;
       _haloOpacity = 0.0;
     });
     await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
     setState(() {
       _showFoodEffect = false;
       _showHalo = false;
@@ -160,6 +185,10 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final animalBox =
         animalKey.currentContext?.findRenderObject() as RenderBox?;
     if (foodBox == null || animalBox == null) return;
+
+    // Context null yoxlaması
+    if (!mounted) return;
+
     final foodPos = foodBox.localToGlobal(Offset.zero);
     final animalPos = animalBox.localToGlobal(Offset.zero);
     final overlay = Overlay.of(context);
@@ -346,9 +375,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.volume_up),
-                onPressed: () {
-                  debugPrint('Heyvan səsi çalınır: $animalSoundAsset');
-                  _playSound(animalSoundAsset);
+                onPressed: () async {
+                  await _playSound(animalSoundAsset);
                 },
                 tooltip: 'Heyvanın səsi',
               ),
