@@ -21,18 +21,24 @@ class _AlphabetPageState extends State<AlphabetPage> {
   @override
   void initState() {
     super.initState();
-    _preloadFlipSound();
-    // Şəkil faylını öncədən yüklə
+    // Audio və asset yükləməni asinxron edirik ki, crash olmasın
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        precacheImage(
-          const AssetImage('assets/images/book_cover.png'),
-          context,
-        );
-      } catch (e) {
-        debugPrint('Şəkil yükləmə xətası: $e');
-      }
+      _preloadFlipSound();
+      // Şəkil faylını öncədən yüklə
+      _preloadImage();
     });
+  }
+
+  Future<void> _preloadImage() async {
+    try {
+      await precacheImage(
+        const AssetImage('assets/images/book_cover.png'),
+        context,
+      );
+    } catch (e) {
+      debugPrint('Şəkil yükləmə xətası: $e');
+      // Xəta olsa belə tətbiq işləməyə davam edir
+    }
   }
 
   Future<void> _preloadFlipSound() async {
@@ -40,6 +46,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
       await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
     } catch (e) {
       debugPrint('Səs faylı yükləmə xətası: $e');
+      // Xəta olsa belə tətbiq işləməyə davam edir
     }
   }
 
@@ -261,7 +268,7 @@ class _BookPage extends StatelessWidget {
               fontSize: 72,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
-              fontFamily: 'Baloo 2',
+              fontFamily: 'Baloo2',
             ),
           ),
         ),
