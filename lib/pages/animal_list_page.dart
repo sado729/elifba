@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'animal_detail_page.dart';
-import '../core/utils.dart';
 import '../core/config.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
 
 class AnimalListPage extends StatelessWidget {
   final String letter;
@@ -185,7 +182,7 @@ class AnimalListPage extends StatelessWidget {
                           itemCount: animals.length,
                           itemBuilder: (context, index) {
                             final animal = animals[index];
-                            getFirstLetter(animal);
+
                             final animalInfo = AppConfig.findAnimal(
                               letter,
                               animal,
@@ -466,24 +463,6 @@ class _SoundButtonState extends State<_SoundButton> {
         ),
       ),
     );
-  }
-}
-
-// Asset manifesti oxuyub cache-ləyən util sinfi
-class AssetChecker {
-  static Set<String>? _assets;
-  static Future<void> _loadAssets() async {
-    if (_assets != null) return;
-    final manifestContent = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = jsonDecode(manifestContent);
-    _assets = manifestMap.keys.toSet();
-  }
-
-  static Future<bool> hasAsset(String assetPath) async {
-    if (_assets == null) {
-      await _loadAssets();
-    }
-    return _assets!.contains(assetPath);
   }
 }
 

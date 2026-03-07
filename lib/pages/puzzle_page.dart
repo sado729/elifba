@@ -319,7 +319,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                         Future.delayed(
                                           const Duration(milliseconds: 1500),
                                           () {
-                                            if (mounted && completed) {
+                                            if (mounted &&
+                                                completed &&
+                                                dialogContext.mounted) {
                                               showDialog(
                                                 context: dialogContext,
                                                 builder:
@@ -458,7 +460,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                 Future.delayed(
                                   const Duration(milliseconds: 1500),
                                   () {
-                                    if (mounted && completed) {
+                                    if (mounted &&
+                                        completed &&
+                                        dialogContext.mounted) {
                                       showDialog(
                                         context: dialogContext,
                                         builder:

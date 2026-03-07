@@ -25,8 +25,8 @@ android {
         applicationId = "com.mrsadiq.elifba"
         minSdk = 21
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 8
+        versionName = "1.0.8"
         
         // Build optimizasiyası
         multiDexEnabled = true
@@ -37,6 +37,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

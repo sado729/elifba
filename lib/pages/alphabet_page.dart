@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'animal_list_page.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
 import '../core/config.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -191,23 +189,6 @@ class _AlphabetPageState extends State<AlphabetPage> {
         ),
       ),
     );
-  }
-}
-
-// Asset manifesti oxuyub cache-ləyən util sinfi
-class AssetChecker {
-  static Set<String>? _assets;
-
-  static Future<void> _loadAssets() async {
-    if (_assets != null) return;
-    final manifestContent = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = jsonDecode(manifestContent);
-    _assets = manifestMap.keys.toSet();
-  }
-
-  static Future<bool> hasAsset(String assetPath) async {
-    await _loadAssets();
-    return _assets!.contains(assetPath);
   }
 }
 
