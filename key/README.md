@@ -10,5 +10,5 @@ Bu qovluqda Android app-in imzalanması üçün keystore faylı saxlanmalıdır.
 
 ## Əgər keystore yoxdursa:
 ```bash
-keytool -genkey -v -keystore elifba.jks -keyalg RSA -keysize 2048 -validity 10000 -alias mrsadiq
+keytool -genkey -v -keystore elifba.jks -keyalg RSA -keysize 2048 -validity 10000 -alias vebstudio
 ```
