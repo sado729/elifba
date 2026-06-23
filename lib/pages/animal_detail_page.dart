@@ -4,7 +4,7 @@ import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import '../core/config.dart';
 import 'puzzle_page.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import '../widgets/youtube_video_widget.dart';
 import 'dart:math';
 
 class AnimalDetailPage extends StatefulWidget {
@@ -973,8 +973,8 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   late List<String?> currentWord;
   late List<bool> correct;
   late ConfettiController _confettiController;
-  late AudioPlayer _clickPlayer;
-  late AudioPlayer _winPlayer;
+  final AudioPlayer _clickPlayer = AudioPlayer();
+  final AudioPlayer _winPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -987,10 +987,12 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   }
 
   Future<void> _initAudio() async {
-    _clickPlayer = AudioPlayer();
-    _winPlayer = AudioPlayer();
-    await _clickPlayer.setAsset('assets/audios/click.mp3');
-    await _winPlayer.setAsset('assets/audios/win.mp3');
+    try {
+      await _clickPlayer.setAsset('assets/audios/click.mp3');
+      await _winPlayer.setAsset('assets/audios/win.mp3');
+    } catch (e) {
+      debugPrint('Səs yüklənmə xətası: $e');
+    }
   }
 
   Future<void> _playClickSound() async {
@@ -1318,21 +1320,6 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
           ],
         ),
       ],
-    );
-  }
-}
-
-class YoutubeVideoWidget extends StatelessWidget {
-  final String embedUrl;
-  const YoutubeVideoWidget({super.key, required this.embedUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return WebViewWidget(
-      controller:
-          WebViewController()
-            ..loadRequest(Uri.parse(embedUrl))
-            ..setJavaScriptMode(JavaScriptMode.unrestricted),
     );
   }
 }

@@ -701,8 +701,6 @@ class AppConfig {
     'Zebra': '',
   };
 
-  static final Map<String, LetterConfig> letterConfigs = {};
-
   static LetterConfig? findLetter(String letter) {
     final letterKey = letter.toUpperCase();
     // Hər dəfə map-lardan yeni obyekt yaradılır

@@ -28,8 +28,8 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   late List<String> letters;
   late List<String?> placedLetters;
   late List<Offset> randomOffsets;
-  late AudioPlayer _audioPlayer;
-  late AudioPlayer _winPlayer;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _winPlayer = AudioPlayer();
   bool showHint = false;
   Timer? _hintTimer;
 
@@ -60,10 +60,12 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   }
 
   Future<void> _initAudio() async {
-    _audioPlayer = AudioPlayer();
-    _winPlayer = AudioPlayer();
-    await _audioPlayer.setAsset('assets/audios/click.mp3');
-    await _winPlayer.setAsset('assets/audios/win.mp3');
+    try {
+      await _audioPlayer.setAsset('assets/audios/click.mp3');
+      await _winPlayer.setAsset('assets/audios/win.mp3');
+    } catch (e) {
+      debugPrint('Səs yüklənmə xətası: $e');
+    }
   }
 
   void _changeGridSize(int size) {
