@@ -2,7 +2,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     
     <application
-        android:name=".MainApplication"
         android:label="əlifba"
         android:icon="@mipmap/ic_launcher">
         <activity
