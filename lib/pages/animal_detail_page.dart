@@ -4,7 +4,6 @@ import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import '../core/config.dart';
 import 'puzzle_page.dart';
-import '../widgets/youtube_video_widget.dart';
 import 'dart:math';
 
 class AnimalDetailPage extends StatefulWidget {
@@ -240,7 +239,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final foods = animalData?.foods ?? [];
     final hasSound = animalData?.hasSound ?? false;
     final hasPuzzle = animalData?.hasPuzzle ?? false;
-    final youtubeEmbed = animalData?.youtubeEmbed;
 
     final animalsList = widget.animals;
     final currentIndex = widget.currentIndex;
@@ -309,26 +307,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               showFoods = false;
               showWordPuzzle = false;
               showYoutube = false;
-            });
-          },
-          visible: true,
-        ),
-      );
-    }
-    // Youtube video iconu yalnız map-da varsa əlavə et
-    if (youtubeEmbed != null && youtubeEmbed.isNotEmpty) {
-      actions.add(
-        _ActionButtonData(
-          tooltip: 'Youtube video',
-          icon: Icons.smart_display_rounded,
-          selected: showYoutube,
-          onTap: () {
-            setState(() {
-              showYoutube = !showYoutube;
-              showInfo = !showYoutube;
-              showFoods = false;
-              showPuzzle = false;
-              showWordPuzzle = false;
             });
           },
           visible: true,
@@ -794,16 +772,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                               });
                               _confettiController.play();
                             },
-                          ),
-                        ],
-                        if (showYoutube && youtubeEmbed != null) ...[
-                          const SizedBox(height: 16),
-                          AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: YoutubeVideoWidget(embedUrl: youtubeEmbed),
-                            ),
                           ),
                         ],
                         if (showPuzzle)
