@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.vebstudio.elifba"
-    compileSdk = flutter.compileSdkVersion
+    // Target Android 16 (API 36) to meet Google Play's target API level requirement.
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     signingConfigs {
@@ -24,7 +25,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
