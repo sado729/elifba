@@ -16,6 +16,9 @@ class PuzzlePage extends StatefulWidget {
   State<PuzzlePage> createState() => _PuzzlePageState();
 }
 
+/// 60x60 önizləmə üçün dekod eni (mənbə 600x600 = ~1.4 MB RAM).
+const int kPuzzleThumbDecodeWidth = 160;
+
 class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   static const double fullSize = 240;
   int gridSize = 3;
@@ -32,6 +35,14 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   final AudioPlayer _winPlayer = AudioPlayer();
   bool showHint = false;
   Timer? _hintTimer;
+
+  // Pazl şəkli bir dəfə dekod olunur və bütün xanalar onu paylaşır.
+  // Əvvəl hər xana build zamanı `_loadImage()` çağırırdı, yəni 3x3 grid üçün
+  // eyni 600x600 şəkil 9 dəfə (~12 MB) dekod olunur və hər setState-də
+  // yenidən dekod edilirdi.
+  String? _puzzleImageAsset;
+  Future<ui.Image>? _puzzleImageFuture;
+  ui.Image? _puzzleImage;
 
   // Doğru və ya səhv qoyulmuş parçaları izləmək üçün map
   Map<int, bool> slotCorrectMap = {};
@@ -118,6 +129,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     _audioPlayer.dispose();
     _winPlayer.dispose();
     _hintTimer?.cancel();
+    _puzzleImage?.dispose();
     super.dispose();
   }
 
@@ -187,6 +199,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                             child: Image.asset(
                               imageAsset,
                               fit: BoxFit.cover,
+                              cacheWidth: kPuzzleThumbDecodeWidth,
                               errorBuilder:
                                   (context, error, stackTrace) => const Icon(
                                     Icons.image,
@@ -601,7 +614,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     }
 
     return FutureBuilder<ui.Image>(
-      future: _loadImage(imageAsset),
+      future: _puzzleImageOf(imageAsset),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Container(
@@ -642,10 +655,20 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     );
   }
 
+  /// Şəkli yalnız bir dəfə dekod edir; sonrakı xanalar hazır Future-u alır.
+  Future<ui.Image> _puzzleImageOf(String asset) {
+    if (_puzzleImageFuture == null || _puzzleImageAsset != asset) {
+      _puzzleImageAsset = asset;
+      _puzzleImageFuture = _loadImage(asset);
+    }
+    return _puzzleImageFuture!;
+  }
+
   Future<ui.Image> _loadImage(String asset) async {
     final data = await rootBundle.load(asset);
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
+    _puzzleImage = frame.image;
     return frame.image;
   }
 

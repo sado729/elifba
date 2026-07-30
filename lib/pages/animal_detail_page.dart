@@ -6,6 +6,17 @@ import '../core/config.dart';
 import 'puzzle_page.dart';
 import 'dart:math';
 
+/// Şəkil dekod ölçüləri. Mənbə fayllar 400–2048 px arasındadır və tam ölçüdə
+/// dekod olunanda hər biri 0.6–16 MB RAM tutur. `cacheWidth` şəkli böyütmür,
+/// yalnız lazımsız böyükləri kiçildir.
+///
+/// Yem şəkilləri üç yerdə (chip 32 px, uçan animasiya 40 px, effekt 64 px)
+/// göstərilir — hamısı EYNİ ölçü ilə dekod olunur ki, image cache-də hər yem
+/// üçün bir dəfə saxlanılsın.
+const int kAnimalHeroDecodeWidth = 800;
+const int kFoodDecodeWidth = 160;
+const int kPuzzlePreviewDecodeWidth = 700;
+
 class AnimalDetailPage extends StatefulWidget {
   final String animal;
   final List<String> animals;
@@ -71,13 +82,19 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
       final imageAsset = animalData?.imagePath ?? '';
       if (imageAsset.isNotEmpty) {
-        precacheImage(AssetImage(imageAsset), context);
+        precacheImage(
+          ResizeImage(AssetImage(imageAsset), width: kAnimalHeroDecodeWidth),
+          context,
+        );
       }
       final foods = animalData?.foods ?? [];
       for (final food in foods) {
         final foodImagePath =
             'assets/foods/${AppConfig.normalizeFileName(food)}.png';
-        precacheImage(AssetImage(foodImagePath), context);
+        precacheImage(
+          ResizeImage(AssetImage(foodImagePath), width: kFoodDecodeWidth),
+          context,
+        );
       }
     });
   }
@@ -192,6 +209,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                   foodImagePath,
                   width: 40,
                   height: 40,
+                  cacheWidth: kFoodDecodeWidth,
                   frameBuilder: (
                     context,
                     child,
@@ -436,6 +454,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                           imageAsset,
                           key: _animalImageKey,
                           fit: BoxFit.contain,
+                          cacheWidth: kAnimalHeroDecodeWidth,
                           frameBuilder: (
                             context,
                             child,
@@ -517,6 +536,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                             _foodEffectImage!,
                             width: 64,
                             height: 64,
+                            cacheWidth: kFoodDecodeWidth,
                             frameBuilder: (
                               context,
                               child,
@@ -727,6 +747,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                                 foodImagePath,
                                                 width: 32,
                                                 height: 32,
+                                                cacheWidth: kFoodDecodeWidth,
                                                 frameBuilder: (
                                                   context,
                                                   child,
@@ -804,6 +825,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                       const SizedBox(height: 10),
                                       Image.asset(
                                         puzzleAsset,
+                                        cacheWidth: kPuzzlePreviewDecodeWidth,
                                         errorBuilder: (
                                           context,
                                           error,

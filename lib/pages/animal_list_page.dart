@@ -3,26 +3,50 @@ import 'animal_detail_page.dart';
 import '../core/config.dart';
 import 'package:just_audio/just_audio.dart';
 
-class AnimalListPage extends StatelessWidget {
+/// Qrid xanasındaki heyvan şəkli üçün dekod eni. Şəkillərin bir hissəsi
+/// 1024x1024, ikisi 2048x2048-dir; tam ölçüdə dekod hər şəkil üçün 4–16 MB RAM
+/// tutur, halbuki xana ~160 px göstərilir. `cacheWidth` şəkli böyütmür, ona görə
+/// artıq 400 px və daha kiçik olan şəkillər olduğu kimi qalır.
+const int kAnimalThumbDecodeWidth = 400;
+
+class AnimalListPage extends StatefulWidget {
   final String letter;
   const AnimalListPage({super.key, required this.letter});
 
   @override
+  State<AnimalListPage> createState() => _AnimalListPageState();
+}
+
+class _AnimalListPageState extends State<AnimalListPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Şəkilləri qabaqcadan yüklə. Ölçü qridd-dəki `cacheWidth` ilə eyni olmalıdır,
+    // əks halda image cache-də hər şəkil üçün ikinci nüsxə yaranır.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final animals = AppConfig.findLetter(widget.letter)?.animals ?? [];
+      for (final animal in animals) {
+        if (animal.imagePath.isEmpty) continue;
+        precacheImage(
+          ResizeImage(
+            AssetImage(animal.imagePath),
+            width: kAnimalThumbDecodeWidth,
+          ),
+          context,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final letter = widget.letter;
     final info =
         AppConfig.findLetter(letter)?.description ??
         '$letter hərfi haqqında məlumat yoxdur.';
     final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      for (final animal in animals) {
-        final animalInfo = AppConfig.findAnimal(letter, animal);
-        final imageAsset = animalInfo?.imagePath ?? '';
-        if (imageAsset.isNotEmpty) {
-          precacheImage(AssetImage(imageAsset), context);
-        }
-      }
-    });
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -270,6 +294,7 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.contain,
+                    cacheWidth: kAnimalThumbDecodeWidth,
                     frameBuilder: (
                       context,
                       child,
