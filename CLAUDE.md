@@ -116,8 +116,23 @@ See the analysis notes the team produced, but the key traps for an agent are:
    `_initAudio()` (that reintroduces a `LateInitializationError` race on early interaction
    or `dispose()`). Note: `pages/animal_word_puzzle.dart` is the unused duplicate and still
    has the old `late` pattern.
-6. **Asset bloat.** `assets/images/` ships non-image files (`tom-select.complete.js`,
-   `loading*.gif`, `feature.png`) because the whole folder is declared as an asset.
+6. **Asset bloat (cleaned up 2026-07-30).** `assets/images/` used to ship 66 duplicate
+   `*.mp3` files (10.8 MB — byte-identical copies of `assets/audios/`) plus web junk
+   (`tom-select*.js`, `loading*.gif`). All deleted. Store/branding art now lives **outside**
+   `assets/` so it isn't bundled: `docs/store/feature.png`, `branding/logo.png` (the latter is
+   `flutter_launcher_icons.image_path`). Keep it that way — the whole `assets/images/` folder
+   is declared as an asset, so anything dropped in there ships to every user.
+7. **Image decode widths.** Source art is 200–2048 px but is displayed much smaller, so every
+   `Image.asset` of animal/food/puzzle art passes `cacheWidth` (`kAnimalThumbDecodeWidth`,
+   `kAnimalHeroDecodeWidth`, `kFoodDecodeWidth`, `kPuzzlePreviewDecodeWidth`,
+   `kPuzzleThumbDecodeWidth`). `precacheImage` calls must wrap the provider in
+   `ResizeImage(..., width: <same constant>)` — a different width is a **different image-cache
+   key**, so a mismatch silently doubles memory. Food art is decoded at one shared width even
+   though it renders at 32/40/64 px, on purpose: one cache entry per food.
+8. **Puzzle image is decoded once.** `puzzle_page.dart` caches the `ui.Image` in
+   `_puzzleImageFuture`/`_puzzleImage` via `_puzzleImageOf()` and disposes it in `dispose()`.
+   Do not call `_loadImage()` from `build()` — that decoded the 600×600 image once **per tile**
+   (9–16×) and re-decoded on every `setState`.
 
 ## Security
 

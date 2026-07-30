@@ -166,7 +166,6 @@ flutter:
     
 
     - assets/foods/
-    - assets/images/logo.png
   fonts:
     - family: NotoSans
       fonts:
@@ -182,4 +181,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  # Launcher ikonu yalnız build zamanı istifadə olunur — assets/ altında deyil ki,
+  # tətbiq paketinə (bundle) düşməsin.
+  image_path: "branding/logo.png"
