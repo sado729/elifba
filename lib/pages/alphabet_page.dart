@@ -42,6 +42,50 @@ class _AlphabetPageState extends State<AlphabetPage> {
     await _audioPlayer.play();
   }
 
+  void _showSoundCredits() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Səs mənbələri'),
+            content: const SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Tətbiqdəki heyvan səsləri açıq lisenziyalı mənbələrdən '
+                    'istifadə olunub:',
+                  ),
+                  SizedBox(height: 12),
+                  Text('• bigsoundbank.com — CC0 (Public Domain)'),
+                  SizedBox(height: 6),
+                  Text('• soundbible.com — Public Domain və CC BY 3.0'),
+                  SizedBox(height: 6),
+                  Text('• fws.gov, nps.gov — Public Domain arxivləri'),
+                  SizedBox(height: 16),
+                  Text(
+                    'CC BY 3.0 müəllifləri:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Mike Koenig, Daniel Simon, J Dawg, Mark Mattingly, '
+                    'Cat Stevens',
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Bağla'),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _openAnimalList(BuildContext context, String letter) {
     Navigator.push(
       context,
@@ -96,14 +140,36 @@ class _AlphabetPageState extends State<AlphabetPage> {
           child: Column(
             children: [
               const SizedBox(height: 32),
-              Text(
-                'Əlifba',
-                style: const TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 2,
-                  shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Əlifba',
+                          style: TextStyle(
+                            fontSize: 38,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 2,
+                            shadows: [
+                              Shadow(color: Colors.black26, blurRadius: 8),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.info_outline,
+                        color: Colors.white.withAlpha((0.8 * 255).toInt()),
+                      ),
+                      tooltip: 'Səs mənbələri',
+                      onPressed: _showSoundCredits,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
