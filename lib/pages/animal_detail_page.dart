@@ -248,6 +248,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    // Android 16 (API 36) forces edge-to-edge, so the system bars overlay the
+    // body: inset the scrollable content by the window's view padding manually.
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     final animalLetter = getFirstLetter(widget.animal);
     final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
     final imageAsset = animalData?.imagePath ?? '';
@@ -622,9 +625,11 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                    padding: EdgeInsets.fromLTRB(
+                      16 + viewPadding.left,
+                      8,
+                      16 + viewPadding.right,
+                      8 + viewPadding.bottom,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

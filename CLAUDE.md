@@ -129,6 +129,15 @@ See the analysis notes the team produced, but the key traps for an agent are:
    `ResizeImage(..., width: <same constant>)` — a different width is a **different image-cache
    key**, so a mismatch silently doubles memory. Food art is decoded at one shared width even
    though it renders at 32/40/64 px, on purpose: one cache entry per food.
+9. **Edge-to-edge is manual.** The app targets API 36, where Android 16 forces
+   edge-to-edge with no opt-out, so system bars overlay the `Scaffold.body`. `main.dart`
+   turns on `SystemUiMode.edgeToEdge` for every Android version and pins light system-bar
+   icons (all pages sit on dark purple). Each page insets its own content: `alphabet_page`
+   uses `SafeArea`, `animal_list_page` / `animal_detail_page` add
+   `MediaQuery.viewPaddingOf(context)` to the padding of their bottom-most scrollable.
+   Keep the full-bleed gradient `Container` *outside* the inset so it still paints behind
+   the bars. **A new page must do one of these or its bottom content hides under the nav bar.**
+
 8. **Puzzle image is decoded once.** `puzzle_page.dart` caches the `ui.Image` in
    `_puzzleImageFuture`/`_puzzleImage` via `_puzzleImageOf()` and disposes it in `dispose()`.
    Do not call `_loadImage()` from `build()` — that decoded the 600×600 image once **per tile**

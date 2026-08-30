@@ -41,6 +41,9 @@ class _AnimalListPageState extends State<AnimalListPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Android 16 (API 36) forces edge-to-edge, so the system bars overlay the
+    // body: inset the content by the window's view padding manually.
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     final letter = widget.letter;
     final info =
         AppConfig.findLetter(letter)?.description ??
@@ -82,7 +85,12 @@ class _AnimalListPageState extends State<AnimalListPage> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          padding: EdgeInsets.fromLTRB(
+            16 + viewPadding.left,
+            18,
+            16 + viewPadding.right,
+            18 + viewPadding.bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
