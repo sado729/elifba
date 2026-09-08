@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'animal_list_page.dart';
+import 'settings_page.dart';
 import '../core/config.dart';
 import '../core/progress.dart';
+import '../core/sound.dart';
+import '../widgets/mute_button.dart';
+import '../widgets/parental_gate.dart';
 import '../widgets/star_row.dart';
-import 'package:just_audio/just_audio.dart';
 
 class AlphabetPage extends StatefulWidget {
   const AlphabetPage({super.key});
@@ -14,7 +17,7 @@ class AlphabetPage extends StatefulWidget {
 
 class _AlphabetPageState extends State<AlphabetPage> {
   static const List<String> alphabet = AppConfig.alphabet;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final GatedPlayer _audioPlayer = GatedPlayer(SoundChannel.effect);
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -52,100 +55,14 @@ class _AlphabetPageState extends State<AlphabetPage> {
     super.dispose();
   }
 
-  Future<void> _playPageFlipSound() async {
-    try {
-      await _audioPlayer.seek(Duration.zero);
-      await _audioPlayer.play();
-    } catch (e) {
-      debugPrint('Səhifə çevirmə səsi oxunmadı: $e');
-    }
-  }
+  Future<void> _playPageFlipSound() => _audioPlayer.replay();
 
-  void _showSoundCredits() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Səs mənbələri'),
-            content: const SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Tətbiqdəki heyvan səsləri açıq lisenziyalı mənbələrdən '
-                    'istifadə olunub:',
-                  ),
-                  SizedBox(height: 12),
-                  Text('• bigsoundbank.com — CC0 (Public Domain)'),
-                  SizedBox(height: 6),
-                  Text('• soundbible.com — Public Domain və CC BY 3.0'),
-                  SizedBox(height: 6),
-                  Text('• fws.gov, nps.gov — Public Domain arxivləri'),
-                  SizedBox(height: 16),
-                  Text(
-                    'CC BY 3.0 müəllifləri:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Mike Koenig, Daniel Simon, J Dawg, Mark Mattingly, '
-                    'Cat Stevens',
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              // Valideyn üçün: yığılmış ulduzları silir. Uşaq təsadüfən basa
-              // bilməsin deyə ikinci, açıq-aşkar təsdiq addımı var.
-              //
-              // Yeri müvəqqətidir: `docs/superpowers/specs/2026-09-08-ayarlar-
-              // valideyn-bolmesi-design.md` bu dialoqu valideyn qapısı arxasındaki
-              // ayarlar səhifəsinə köçürür — sıfırlama da onunla birlikdə gedəcək.
-              TextButton(
-                onPressed: () => _confirmResetProgress(context),
-                child: const Text('Progresi sıfırla'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Bağla'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  /// Sıfırlamanın ikinci addımı. `dialogContext` — səs mənbələri dialoqunun
-  /// konteksti; təsdiq gələndə onu da bağlayırıq ki, uşaq silinmiş sayğaca
-  /// baxarkən köhnə dialoq arxada qalmasın.
-  Future<void> _confirmResetProgress(BuildContext dialogContext) async {
-    final store = ProgressStore.instance;
-    final confirmed = await showDialog<bool>(
-      context: dialogContext,
-      builder:
-          (context) => AlertDialog(
-            icon: const Icon(Icons.warning_amber_rounded, size: 40),
-            title: const Text('Bütün ulduzlar silinsin?'),
-            content: Text(
-              'Yığılmış ${store.totalStars} ulduz və tamamlanmış bütün bölmələr '
-              'silinəcək. Bu addımı geri qaytarmaq mümkün deyil.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Ləğv et'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Bəli, sil'),
-              ),
-            ],
-          ),
-    );
-    if (confirmed != true) return;
-    await store.reset();
-    if (!dialogContext.mounted) return;
-    Navigator.of(dialogContext).pop();
+  Future<void> _openSettings() async {
+    if (!await showParentalGate(context)) return;
+    if (!mounted) return;
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
   }
 
   void _openAnimalList(BuildContext context, String letter) {
@@ -223,13 +140,18 @@ class _AlphabetPageState extends State<AlphabetPage> {
                         ),
                       ),
                     ),
+                    // Səsi susdurmaq qapısızdır — təcili ehtiyacdır.
+                    MuteButton(
+                      color: Colors.white.withAlpha((0.8 * 255).toInt()),
+                    ),
+                    // Ayarlar isə valideyn qapısının arxasındadır.
                     IconButton(
                       icon: Icon(
-                        Icons.info_outline,
+                        Icons.settings_outlined,
                         color: Colors.white.withAlpha((0.8 * 255).toInt()),
                       ),
-                      tooltip: 'Səs mənbələri',
-                      onPressed: _showSoundCredits,
+                      tooltip: 'Ayarlar',
+                      onPressed: _openSettings,
                     ),
                   ],
                 ),

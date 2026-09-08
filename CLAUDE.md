@@ -41,6 +41,8 @@ lib/
     config.dart              # ALL content + the data model. ~760 lines of const maps.
     utils.dart               # normalizeFileName / getFirstLetter helpers (delegate to config.dart)
     progress.dart            # ProgressStore: which sections are done, star maths, persistence
+    settings.dart            # AppSettings: sound channels, haptics, motion, puzzle size + persistence
+    sound.dart               # SoundChannel + GatedPlayer — the ONLY way to play audio
     letter_strokes.dart      # per-letter stroke geometry for the tracing game
     stroke_tracker.dart      # scores a traced stroke against its target path
   pages/
@@ -49,20 +51,27 @@ lib/
     animal_detail_page.dart  # detail screen + inline AnimalWordPuzzle
     puzzle_page.dart         # sliding image-tile puzzle (CustomPainter slices the image)
     letter_writing_page.dart # letter tracing game
+    settings_page.dart       # parent area: sound/haptics/motion/puzzle size, reset, credits, about
   widgets/
     star_row.dart            # the shared filled/empty star row (one look everywhere)
     tracing_canvas.dart      # the tracing game's draw surface
+    parental_gate.dart       # showParentalGate(): 3-second press-and-hold before the parent area
+    mute_button.dart         # the quick master-mute button in the book header
 test/
   widget_test.dart               # smoke tests for the alphabet book
   content_integrity_test.dart    # config maps vs. the files actually on disk
   normalize_file_name_test.dart  # normalizeFileName / getFirstLetter behaviour
   progress_test.dart             # star maths, task plan, persistence round-trip
   star_ui_test.dart              # stars on screen: book, letter progress, cards, reset
+  settings_test.dart             # AppSettings: isOn() logic, JSON round-trip, corrupt input
+  settings_page_test.dart        # parent area UI + the quick mute button
+  parental_gate_test.dart        # the hold gate: full hold, early release, no accumulation
 ```
 
 Dependencies are deliberately minimal, one per capability: **`just_audio`** (audio),
 **`confetti`** (celebration), **`shared_preferences`** (star progress) and
-**`path_drawing`** (letter tracing), plus `flutter_lints`. `flutter_tts`, `turn_page_transition`, `collection`, `cupertino_icons`
+**`path_drawing`** (letter tracing), plus `flutter_lints`. `shared_preferences` now
+backs two stores — star progress and user settings. `flutter_tts`, `turn_page_transition`, `collection`, `cupertino_icons`
 and `webview_flutter` were all declared but never used, and have been removed — do not
 re-add a package without a call site. Keep `uses-material-design: true`; the Material icon
 font is the one the app actually uses.
@@ -129,6 +138,33 @@ behind a second explicit confirmation so a child cannot wipe the stars with one 
 dialog is slated to move into the parent-gated settings page (see the spec under
 `docs/superpowers/specs/`); the reset moves with it.
 
+### Settings & the audio gate (`core/settings.dart`, `core/sound.dart`)
+
+`AppSettings` is a `ChangeNotifier` singleton that deliberately **mirrors `ProgressStore`
+exactly**: same singleton + `forTesting()` factory, same versioned JSON key
+(`settings_v1`), same 400 ms debounce, same `try/catch` in `load()`. `main()` awaits both
+`load()` calls before `runApp`. Do not invent a second persistence style.
+
+It holds: `masterSound`, `narrationSound`, `animalSound`, `effectSound`, `haptics`,
+`reduceMotion`, `puzzleGridSize`. Master overrides the three channels but **never erases
+their values** — turning master back on restores what the parent had chosen.
+
+**`GatedPlayer` (`core/sound.dart`) is the only sanctioned way to play audio.** It wraps
+`AudioPlayer`, checks `AppSettings.isOn(channel)` before playing, and stops itself the
+moment its channel is switched off. Channels: `narration` (`…_info_sound.mp3`), `animal`
+(`…_sound.mp3`), `effect` (`click`/`win`/`page_flip`). The gate lives *inside* the player
+on purpose — the previous code had 9 separate `AudioPlayer` fields across 5 widgets, and
+any new one would have silently bypassed a per-call-site check.
+
+UI binds to settings with `AnimatedBuilder` (the same choice `ProgressStore` made); audio
+code does **not** listen, it reads `isOn()` at play time.
+
+The parent area sits behind `showParentalGate()` — a 3-second press-and-hold. It is
+knowingly the weakest gate option (see the design doc), which is why the one destructive
+action behind it, `ProgressStore.reset()`, keeps its own separate confirm dialog.
+
+`kAppVersion` in `config.dart` must be kept in sync with `pubspec.yaml` by hand.
+
 ### Asset naming convention
 
 Images/audio live under `assets/images/<letter>/` and `assets/audios/<letter>/`.
@@ -151,8 +187,15 @@ diacritic letters. See Gotchas.
 ## Conventions
 
 - State management is plain `StatefulWidget` + `setState`. No Provider/Bloc/Riverpod.
-- Audio uses `just_audio`; confetti uses `confetti`; the word/image puzzles use Flutter's
-  built-in `Draggable`/`DragTarget`.
+- Audio goes through `GatedPlayer` (`core/sound.dart`), never a bare `just_audio`
+  `AudioPlayer`; confetti uses `confetti`; the word/image puzzles use Flutter's built-in
+  `Draggable`/`DragTarget`.
+- **Do not run `dart format` over `lib/` or `test/`.** The committed code is in the old
+  (short) formatter style, and Dart 3.8's formatter rewrites it to the tall style — a
+  one-line edit turns into a 500-line diff in files you never touched, which is unreviewable
+  and collides with anyone else working in the tree. Format only files you actually wrote,
+  or match the surrounding style by hand. `flutter analyze` does not check formatting, so
+  nothing forces the issue.
 - Colors use `Color.withAlpha((opacity * 255).toInt())` (post-`withOpacity` migration).
 - Fonts declared in `pubspec.yaml`: `NotoSans` (default) and `Baloo2`.
 - Lints: default `flutter_lints` via `analysis_options.yaml`.
@@ -180,7 +223,7 @@ diacritic letters. See Gotchas.
    at all** (INTERNET exists only in the stock debug/profile variant manifests, for the
    Dart VM service). Everything the app plays or shows is a bundled asset — keep it that
    way, a children app with no network permission is far easier to ship.
-5. **AudioPlayer init.** AudioPlayer fields are constructed synchronously at the field
+5. **AudioPlayer init.** `GatedPlayer` fields are constructed synchronously at the field
    declaration (`final ... = AudioPlayer()`), and `setAsset` calls live inside a
    try/catch. Keep this pattern — moving construction into an async `_initAudio()`
    reintroduces a `LateInitializationError` race on early interaction or `dispose()`.
@@ -189,6 +232,10 @@ diacritic letters. See Gotchas.
    `AppConfig.hasLetterAudio(letter)` is true, and every `setAsset` is wrapped in
    try/catch — without both, a missing file leaves the button stuck in its stop state and
    swallows the first tap. Apply the same rule to any new audio affordance.
+   The same rule now covers **muting**: when a channel is off, its button renders
+   greyed out with a `volume_off` icon and `onPressed: null`. Without that, the
+   button's `isPlaying` flag would latch forever — nothing plays, so the
+   `ProcessingState.completed` event that clears the flag never arrives.
 7. **Asset bloat.** The whole `assets/` tree is declared in `pubspec.yaml`, so anything
    dropped in there ships to every user. Store/branding art lives **outside** `assets/`
    on purpose: `docs/store/feature.png`, `branding/logo.png` (the latter is
@@ -267,6 +314,19 @@ diacritic letters. See Gotchas.
     `_isCompleted()` return `true`. Both completion checks are therefore guarded with
     `!showHint` before calling `widget.onCompleted` — without it a child could tap the hint
     and collect the star. No test catches this; it is a logic invariant.
+
+15. **Never construct a bare `AudioPlayer`.** Every sound must go through
+    `GatedPlayer(SoundChannel.x)` (`core/sound.dart`), which is what makes the parent's
+    mute switches actually work. A raw `AudioPlayer` plays straight through a muted app,
+    and nothing in the build catches it. This is not hypothetical: the tracing game was
+    added while the settings feature was being designed and brought two more players with
+    it, taking the count from 7 to 9. Pick the channel by the sound's **role**, not its
+    file name — `click.mp3` is an `effect` in both the puzzle and the tracing game.
+
+16. **`reduceMotion` gates confetti at the call site.** All six `ConfettiController.play()`
+    calls are wrapped in `if (!AppSettings.instance.reduceMotion)`. The `ConfettiWidget`
+    stays in the tree (it paints nothing when not playing) — do not make the widget itself
+    conditional.
 
 ## Known content gaps
 

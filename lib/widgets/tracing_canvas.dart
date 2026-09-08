@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/settings.dart';
+
 import '../core/stroke_tracker.dart';
 
 /// Cızma rejimləri — çətinlik pillə-pillə artır.
@@ -185,7 +187,8 @@ class _TracingCanvasState extends State<TracingCanvas>
     if (r.rejected && !_shake.isAnimating) {
       _shake.forward(from: 0);
     }
-    if (r.checkpoint || r.unitCompleted) {
+    // Titrəmə valideyn ayarından söndürülə bilər.
+    if ((r.checkpoint || r.unitCompleted) && AppSettings.instance.haptics) {
       HapticFeedback.selectionClick();
     }
     _repaint.value++;

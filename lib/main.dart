@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/progress.dart';
+import 'core/settings.dart';
 import 'pages/alphabet_page.dart';
 
 Future<void> main() async {
@@ -22,6 +23,10 @@ Future<void> main() async {
   // Saxlanmış progres ilk kadrdan ƏVVƏL oxunur: əks halda səhifələr 0 ulduzla
   // qurulur, yaddaş gələndə isə ulduzlar birdən "tullanır".
   await ProgressStore.instance.load();
+  // Ayarlar da ilk kadrdan əvvəl oxunur: əks halda səs söndürülmüş olsa belə
+  // açılışdakı ilk səs (səhifə çevirmə) ayar gəlməmişdən çalına bilər.
+  // Hər iki `load()` eyni `SharedPreferences` nüsxəsini alır, ikincisi ucuzdur.
+  await AppSettings.instance.load();
   runApp(const MyApp());
 }
 

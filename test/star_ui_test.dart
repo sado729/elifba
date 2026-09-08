@@ -19,6 +19,7 @@ import 'package:elifba/core/progress.dart';
 import 'package:elifba/pages/alphabet_page.dart';
 import 'package:elifba/pages/animal_detail_page.dart';
 import 'package:elifba/pages/animal_list_page.dart';
+import 'package:elifba/widgets/parental_gate.dart';
 import 'package:elifba/widgets/star_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -371,7 +372,7 @@ void main() {
   });
 
   group('progresin sıfırlanması', () {
-    testWidgets('ℹ️ dialoqundan iki addımla sıfırlanır və sayğac 0-a düşür', (
+    testWidgets('ayarlardan iki addımla sıfırlanır və sayğac 0-a düşür', (
       tester,
     ) async {
       _completeLetter(store, 'A');
@@ -380,8 +381,8 @@ void main() {
       await tester.pump();
       expect(find.text('3/96'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.info_outline));
-      await tester.pump();
+      await openSettingsThroughGate(tester);
+      await tester.scrollUntilVisible(find.text('Progresi sıfırla'), 200);
       await tester.tap(find.text('Progresi sıfırla'));
       await tester.pump();
 
@@ -395,14 +396,40 @@ void main() {
       expect(store.totalStars, 3);
 
       // İkinci cəhd, bu dəfə təsdiqlə.
+      await tester.scrollUntilVisible(find.text('Progresi sıfırla'), 200);
       await tester.tap(find.text('Progresi sıfırla'));
       await tester.pump();
       await tester.tap(find.text('Bəli, sil'));
       await tester.pumpAndSettle();
-
       expect(store.totalStars, 0);
+
+      // Kitaba qayıdanda sayğac yenilənmiş dəyəri göstərir.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       expect(find.text('0/96'), findsOneWidget);
+
+      // Sıfırlama SnackBar-ı öz taymeri ilə sönür; test bitməmişdən əvvəl onu
+      // gözləyirik ki, "pending timer" xətası qalmasın.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
   });
+}
+
+/// Valideyn qapısını keçib ayarlar səhifəsini açır.
+///
+/// Qapı 3 saniyəlik basıb-saxlamadır: barmaq qaldırılsa tərəqqi sıfırlanır,
+/// ona görə jest müddət bitənə qədər basılı saxlanılır.
+Future<void> openSettingsThroughGate(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.settings_outlined));
+  await tester.pumpAndSettle();
+
+  final gesture = await tester.startGesture(
+    tester.getCenter(find.byIcon(Icons.touch_app_outlined)),
+  );
+  await tester.pump(); // basma qeydə alınsın
+  await tester.pump(kParentalGateHold + const Duration(milliseconds: 100));
+  await gesture.up();
+  await tester.pumpAndSettle();
 }

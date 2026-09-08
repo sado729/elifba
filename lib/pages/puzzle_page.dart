@@ -5,8 +5,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'dart:math';
 import '../core/config.dart';
-import 'package:just_audio/just_audio.dart';
 import 'dart:async';
+import '../core/settings.dart';
+import '../core/sound.dart';
 
 class PuzzlePage extends StatefulWidget {
   final String animal;
@@ -31,7 +32,10 @@ const int kPuzzleThumbDecodeWidth = 192;
 
 class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   static const double fullSize = 240;
-  int gridSize = 3;
+  /// Pazl ölçüsü. Başlanğıc dəyər valideyn ayarlarından gəlir; səhifə
+  /// içindəki seçici onu dəyişəndə ayar da yenilənir — ölçü üçün iki fərqli
+  /// həqiqət mənbəyi olmasın.
+  int gridSize = AppSettings.instance.puzzleGridSize;
   double get tileSize => fullSize / gridSize;
   late List<int?> slots; // griddəki yerlər (null və ya parça indeksi)
   late List<int> pieces; // aşağıda qarışıq parçalar
@@ -41,8 +45,8 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   late List<String> letters;
   late List<String?> placedLetters;
   late List<Offset> randomOffsets;
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  final AudioPlayer _winPlayer = AudioPlayer();
+  final GatedPlayer _audioPlayer = GatedPlayer(SoundChannel.effect);
+  final GatedPlayer _winPlayer = GatedPlayer(SoundChannel.effect);
   bool showHint = false;
   Timer? _hintTimer;
 
@@ -90,6 +94,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   }
 
   void _changeGridSize(int size) {
+    AppSettings.instance.puzzleGridSize = size;
     setState(() {
       gridSize = size;
       _resetPuzzle();
@@ -143,23 +148,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> _playClickSound() async {
-    try {
-      await _audioPlayer.seek(Duration.zero);
-      await _audioPlayer.play();
-    } catch (e) {
-      debugPrint('Səs oynatma xətası: $e');
-    }
-  }
+  Future<void> _playClickSound() => _audioPlayer.replay();
 
-  Future<void> _playWinSound() async {
-    try {
-      await _winPlayer.seek(Duration.zero);
-      await _winPlayer.play();
-    } catch (e) {
-      debugPrint('Səs oynatma xətası: $e');
-    }
-  }
+  Future<void> _playWinSound() => _winPlayer.replay();
 
   bool _isCompleted() {
     for (int i = 0; i < slots.length; i++) {
@@ -338,7 +329,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                       }
                                       if (!completed && !showHint && _isCompleted()) {
                                         completed = true;
-                                        _confettiController.play();
+                                        if (!AppSettings.instance.reduceMotion) {
+                                          _confettiController.play();
+                                        }
                                         _playWinSound();
                                         widget.onCompleted?.call();
                                         final dialogContext = context;
@@ -480,7 +473,9 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                               }
                               if (!completed && !showHint && _isCompleted()) {
                                 completed = true;
-                                _confettiController.play();
+                                if (!AppSettings.instance.reduceMotion) {
+                                  _confettiController.play();
+                                }
                                 _playWinSound();
                                 widget.onCompleted?.call();
                                 final dialogContext = context;

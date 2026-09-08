@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import '../core/config.dart';
 import '../core/progress.dart';
+import '../core/settings.dart';
+import '../core/sound.dart';
 import '../widgets/star_row.dart';
 import 'puzzle_page.dart';
 import 'dart:math';
@@ -50,7 +51,11 @@ class AnimalDetailPage extends StatefulWidget {
 
 class _AnimalDetailPageState extends State<AnimalDetailPage>
     with TickerProviderStateMixin {
-  final AudioPlayer audioPlayer = AudioPlayer();
+  // İzah və heyvan səsi AYRI pleyerlərdədir. İki səbəb: fərqli səs kanallarına
+  // aiddirlər (biri "İzah", digəri "Heyvan səsləri" ayarı ilə söndürülür), və
+  // ayrı pleyer sayəsində heyvan səsinə basmaq artıq izahı yarıda kəsmir.
+  final GatedPlayer _infoPlayer = GatedPlayer(SoundChannel.narration);
+  final GatedPlayer _animalPlayer = GatedPlayer(SoundChannel.animal);
   bool isPlayingInfo = false;
   bool showInfo = true;
   bool showFoods = false;
@@ -104,7 +109,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       _congratsIsFullStar = true;
       showCongrats = true;
     });
-    _confettiController.play();
+    if (!AppSettings.instance.reduceMotion) {
+      _confettiController.play();
+    }
   }
 
   @override
@@ -122,14 +129,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     _fullStarShown = total > 0 && _store.animalDone(widget.animal) >= total;
 
     // Səs bitdikdə isPlayingInfo-nu false et
-    audioPlayer.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed) {
-        if (mounted) {
-          setState(() {
-            isPlayingInfo = false;
-          });
-        }
-      }
+    _infoPlayer.onCompleted.listen((_) {
+      if (mounted) setState(() => isPlayingInfo = false);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -165,14 +166,20 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
   @override
   void dispose() {
-    audioPlayer.dispose();
+    _infoPlayer.dispose();
+    _animalPlayer.dispose();
     _confettiController.dispose();
     super.dispose();
   }
 
-  Future<void> _playSound(String audioAsset) async {
-    await audioPlayer.setAsset(audioAsset);
-    await audioPlayer.play();
+  /// Heyvanın öz səsi — izahdan AYRI pleyerdə, ona görə izahı kəsmir.
+  Future<void> _playAnimalSound(String audioAsset) async {
+    try {
+      await _animalPlayer.setAsset(audioAsset);
+      await _animalPlayer.play();
+    } catch (e) {
+      debugPrint('Heyvan səsi oxunmadı ($audioAsset): $e');
+    }
   }
 
   void _toggleAnimalInfo(String animal) async {
@@ -181,24 +188,27 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     if (animalInfo == null) return;
     final audioAsset = animalInfo.audioPath;
 
-    setState(() {
-      isPlayingInfo = !isPlayingInfo;
-    });
-
     if (isPlayingInfo) {
-      await audioPlayer.stop();
-      try {
-        // Əvvəlcə səs faylını oxut
-        await _playSound(audioAsset);
-      } catch (e) {
-        // Səs faylı tapılmadısa isPlayingInfo-nu false et
-        setState(() {
-          isPlayingInfo = false;
-        });
-        debugPrint('Səs faylı oxunma xətası: $e');
-      }
-    } else {
-      await audioPlayer.stop();
+      setState(() => isPlayingInfo = false);
+      await _infoPlayer.stop();
+      return;
+    }
+
+    // Susdurulmuş kanalda bayrağı QALDIRMIRIQ: heç nə çalınmadığı üçün
+    // `completed` hadisəsi gəlməyəcək və düymə əbədi "Dayandır" qalardı.
+    // Düymə onsuz da sönük göstərilir, bura yalnız təhlükəsizlik qatıdır.
+    if (_infoPlayer.isMuted) return;
+
+    setState(() => isPlayingInfo = true);
+    await _infoPlayer.stop();
+    try {
+      await _infoPlayer.setAsset(audioAsset);
+      final started = await _infoPlayer.play();
+      if (!started && mounted) setState(() => isPlayingInfo = false);
+    } catch (e) {
+      // Səs faylı tapılmadısa isPlayingInfo-nu false et
+      if (mounted) setState(() => isPlayingInfo = false);
+      debugPrint('Səs faylı oxunma xətası: $e');
     }
   }
 
@@ -413,13 +423,20 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
             Text(widget.animal),
             if (hasSound) ...[
               const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.volume_up),
-                onPressed: () {
-                  debugPrint('Heyvan səsi çalınır: $animalSoundAsset');
-                  _playSound(animalSoundAsset);
+              // Heyvan səsi kanalı söndürülübsə düymə sönük olur — işləməyən
+              // parlaq düymə uşağı çaşdırar.
+              AnimatedBuilder(
+                animation: AppSettings.instance,
+                builder: (context, _) {
+                  final muted = _animalPlayer.isMuted;
+                  return IconButton(
+                    icon: Icon(muted ? Icons.volume_off : Icons.volume_up),
+                    onPressed:
+                        muted ? null : () => _playAnimalSound(animalSoundAsset),
+                    tooltip:
+                        muted ? 'Heyvan səsləri söndürülüb' : 'Heyvanın səsi',
+                  );
                 },
-                tooltip: 'Heyvanın səsi',
               ),
             ],
           ],
@@ -785,19 +802,29 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                         ),
                                       ),
                                       const Spacer(),
+                                      // İzah kanalı söndürülübsə düymə sönür
+                                      // və nə üçün işləmədiyini özü deyir.
                                       ElevatedButton.icon(
                                         icon: Icon(
-                                          isPlayingInfo
+                                          _infoPlayer.isMuted
+                                              ? Icons.volume_off
+                                              : isPlayingInfo
                                               ? Icons.stop
                                               : Icons.volume_up,
                                         ),
                                         label: Text(
-                                          isPlayingInfo ? 'Dayandır' : 'Dinlə',
+                                          _infoPlayer.isMuted
+                                              ? 'Səs söndürülüb'
+                                              : isPlayingInfo
+                                              ? 'Dayandır'
+                                              : 'Dinlə',
                                         ),
                                         onPressed:
-                                            () => _toggleAnimalInfo(
-                                              widget.animal,
-                                            ),
+                                            _infoPlayer.isMuted
+                                                ? null
+                                                : () => _toggleAnimalInfo(
+                                                  widget.animal,
+                                                ),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor:
                                               isPlayingInfo
@@ -962,7 +989,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                 _congratsIsFullStar = false;
                                 showCongrats = true;
                               });
-                              _confettiController.play();
+                              if (!AppSettings.instance.reduceMotion) {
+                                _confettiController.play();
+                              }
                               // Qeyd təbrikdən SONRA: bu heyvanın son bölməsi
                               // idisə `_mark` üstündən tam-ulduz təbriki
                               // göstərəcək və sadə "Təbriklər"-i əvəz edəcək.
@@ -1171,8 +1200,8 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   late List<String?> currentWord;
   late List<bool> correct;
   late ConfettiController _confettiController;
-  final AudioPlayer _clickPlayer = AudioPlayer();
-  final AudioPlayer _winPlayer = AudioPlayer();
+  final GatedPlayer _clickPlayer = GatedPlayer(SoundChannel.effect);
+  final GatedPlayer _winPlayer = GatedPlayer(SoundChannel.effect);
 
   @override
   void initState() {
@@ -1193,23 +1222,9 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
     }
   }
 
-  Future<void> _playClickSound() async {
-    try {
-      await _clickPlayer.seek(Duration.zero);
-      await _clickPlayer.play();
-    } catch (e) {
-      debugPrint('Səs oynatma xətası: $e');
-    }
-  }
+  Future<void> _playClickSound() => _clickPlayer.replay();
 
-  Future<void> _playWinSound() async {
-    try {
-      await _winPlayer.seek(Duration.zero);
-      await _winPlayer.play();
-    } catch (e) {
-      debugPrint('Səs oynatma xətası: $e');
-    }
-  }
+  Future<void> _playWinSound() => _winPlayer.replay();
 
   @override
   void dispose() {
@@ -1237,7 +1252,9 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
       }
     }
     if (allCorrect && !currentWord.contains(null)) {
-      _confettiController.play();
+      if (!AppSettings.instance.reduceMotion) {
+        _confettiController.play();
+      }
       _playWinSound();
       widget.onWin();
     }

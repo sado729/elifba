@@ -10,8 +10,9 @@ import 'letter_writing_page.dart';
 import '../core/config.dart';
 import '../core/letter_strokes.dart';
 import '../core/progress.dart';
+import '../core/settings.dart';
+import '../core/sound.dart';
 import '../widgets/star_row.dart';
-import 'package:just_audio/just_audio.dart';
 
 /// Qrid xanasındaki heyvan şəkli üçün dekod eni. Bütün heyvan şəkilləri
 /// 400x400 WebP-dir və xana ~160 px göstərilir; `cacheWidth` şəkli böyütmür,
@@ -798,21 +799,15 @@ class _SoundButton extends StatefulWidget {
 class _SoundButtonState extends State<_SoundButton> {
   bool _hovered = false;
   bool _isPlaying = false;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final GatedPlayer _audioPlayer = GatedPlayer(SoundChannel.narration);
 
   @override
   void initState() {
     super.initState();
 
     // Səs bitdikdə _isPlaying-i false et
-    _audioPlayer.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed) {
-        if (mounted) {
-          setState(() {
-            _isPlaying = false;
-          });
-        }
-      }
+    _audioPlayer.onCompleted.listen((_) {
+      if (mounted) setState(() => _isPlaying = false);
     });
   }
 
@@ -829,6 +824,10 @@ class _SoundButtonState extends State<_SoundButton> {
 
   Future<void> _playLetterSound() async {
     final audioPath = AppConfig.letterAudioPath(widget.letter);
+    // Susdurulmuş kanalda `play()` heç nə çalmır — bayrağı qaldırsaydıq
+    // `completed` hadisəsi gəlməyəcəyi üçün düymə əbədi "Dayandır" vəziyyətində
+    // ilişərdi. Düymə onsuz da sönük göstərilir, bura təhlükəsizlik qatıdır.
+    if (_audioPlayer.isMuted) return;
     setState(() {
       _isPlaying = true;
     });
@@ -847,64 +846,93 @@ class _SoundButtonState extends State<_SoundButton> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [Colors.yellowAccent, Colors.orangeAccent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: (_hovered ? Colors.deepPurple : Colors.yellowAccent)
-                  .withAlpha((0.25 * 255).toInt()),
-              blurRadius: 12,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(1),
-        child: IconButton(
-          icon: AnimatedSwitcher(
+    // Səs ayarı dəyişəndə düymə də dəyişməlidir: susdurulmuş kanalda işləməyən
+    // parlaq düymə uşağı çaşdırır — sönük göstərmək nə üçün səs gəlmədiyini
+    // izah edir (CLAUDE.md gotcha #6-nın mute-a genişləndirilməsi).
+    return AnimatedBuilder(
+      animation: AppSettings.instance,
+      builder: (context, _) {
+        final muted = _audioPlayer.isMuted;
+        return MouseRegion(
+          cursor: muted ? SystemMouseCursors.basic : SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            transitionBuilder:
-                (child, anim) => ScaleTransition(scale: anim, child: child),
-            child:
-                _isPlaying
-                    ? Icon(
-                      Icons.stop,
-                      key: const ValueKey('stop'),
-                      color: Colors.deepPurple,
-                      size: 22,
-                    )
-                    : Icon(
-                      Icons.volume_up,
-                      key: const ValueKey('play'),
-                      color: Colors.deepPurple,
-                      size: 22,
-                    ),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors:
+                    muted
+                        ? [Colors.grey.shade300, Colors.grey.shade400]
+                        : [Colors.yellowAccent, Colors.orangeAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (_hovered && !muted
+                          ? Colors.deepPurple
+                          : Colors.yellowAccent)
+                      .withAlpha((0.25 * 255).toInt()),
+                  blurRadius: 12,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(1),
+            child: IconButton(
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder:
+                    (child, anim) => ScaleTransition(scale: anim, child: child),
+                child:
+                    muted
+                        ? Icon(
+                          Icons.volume_off,
+                          key: const ValueKey('muted'),
+                          color: Colors.grey.shade700,
+                          size: 22,
+                        )
+                        : _isPlaying
+                        ? Icon(
+                          Icons.stop,
+                          key: const ValueKey('stop'),
+                          color: Colors.deepPurple,
+                          size: 22,
+                        )
+                        : Icon(
+                          Icons.volume_up,
+                          key: const ValueKey('play'),
+                          color: Colors.deepPurple,
+                          size: 22,
+                        ),
+              ),
+              onPressed:
+                  muted
+                      ? null
+                      : () async {
+                        if (_isPlaying) {
+                          await _audioPlayer.stop();
+                          setState(() {
+                            _isPlaying = false;
+                          });
+                        } else {
+                          await _playLetterSound();
+                        }
+                      },
+              splashRadius: 20,
+              tooltip:
+                  muted
+                      ? 'Səs söndürülüb'
+                      : _isPlaying
+                      ? 'Dayandır'
+                      : 'Səsləndir',
+            ),
           ),
-          onPressed: () async {
-            if (_isPlaying) {
-              await _audioPlayer.stop();
-              setState(() {
-                _isPlaying = false;
-              });
-            } else {
-              await _playLetterSound();
-            }
-          },
-          splashRadius: 20,
-          tooltip: _isPlaying ? 'Dayandır' : 'Səsləndir',
-        ),
-      ),
+        );
+      },
     );
   }
 }

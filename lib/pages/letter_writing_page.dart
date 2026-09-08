@@ -1,10 +1,11 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
 import '../core/config.dart';
 import '../core/letter_strokes.dart';
 import '../core/progress.dart';
+import '../core/settings.dart';
+import '../core/sound.dart';
 import '../core/stroke_tracker.dart';
 import '../widgets/tracing_canvas.dart';
 
@@ -31,10 +32,10 @@ class LetterWritingPage extends StatefulWidget {
 }
 
 class _LetterWritingPageState extends State<LetterWritingPage> {
-  // AAudioPlayer-lər sahə elanında qurulur — `_initAudio()` yalnız `setAsset`
-  // edir. Bu qayda pozulsa erkən toxunuşda LateInitializationError yaranır.
-  final AudioPlayer _clickPlayer = AudioPlayer();
-  final AudioPlayer _winPlayer = AudioPlayer();
+  // Pleyerlər sahə elanında qurulur — `_initAudio()` yalnız `setAsset` edir.
+  // Bu qayda pozulsa erkən toxunuşda LateInitializationError yaranır.
+  final GatedPlayer _clickPlayer = GatedPlayer(SoundChannel.effect);
+  final GatedPlayer _winPlayer = GatedPlayer(SoundChannel.effect);
 
   late final ConfettiController _confetti;
 
@@ -71,14 +72,7 @@ class _LetterWritingPageState extends State<LetterWritingPage> {
     super.dispose();
   }
 
-  Future<void> _play(AudioPlayer player) async {
-    try {
-      await player.seek(Duration.zero);
-      await player.play();
-    } catch (e) {
-      debugPrint('Səs oynatma xətası: $e');
-    }
-  }
+  Future<void> _play(GatedPlayer player) => player.replay();
 
   void _onTraceEvent(TraceResult r) {
     if (r.letterCompleted) {
@@ -91,7 +85,9 @@ class _LetterWritingPageState extends State<LetterWritingPage> {
         return;
       }
       _play(_winPlayer);
-      _confetti.play();
+      if (!AppSettings.instance.reduceMotion) {
+        _confetti.play();
+      }
       // Store `notifyListeners()` çağırır — ulduz və sayğac AnimatedBuilder ilə
       // özü yenilənir, `setState` lazım deyil.
       _store.markWritten(_letter);

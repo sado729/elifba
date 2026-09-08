@@ -1,10 +1,17 @@
 # Ayarlar + Valideyn bölməsi — dizayn sənədi
 
 **Tarix:** 2026-09-08
-**Status:** Təsdiq gözləyir
+**Status:** ✅ İcra olunub (`flutter analyze` təmiz, 178 test keçir)
 **Əhatə:** Səs idarəetməsi (master + kanallar), valideyn qapısı, ayarlar səhifəsi,
 titrəmə, animasiyanı azaltma, pazl çətinliyi, progresin sıfırlanması.
 
+> **İcra qeydi (2026-09-08).** Plan tam icra olunub. Plandan iki kənarlaşma:
+> 1. **`GatedPlayer` xam `playerStateStream`-i açmır.** Əvəzinə `onCompleted`
+>    (`Stream<void>`) verir, beləliklə `just_audio` tipləri səhifələrə sızmır —
+>    indi bütün layihədə `just_audio`-nu YALNIZ `core/sound.dart` import edir.
+> 2. **Pleyer sayı 9 yox, 9-dur, amma bölgü fərqlidir:** detal səhifəsinin tək
+>    pleyeri iki kanala bölündüyü üçün fiziki pleyer sayı 10-a çatdı.
+>
 > **Sətir nömrələri qəsdən yazılmayıb.** Bu sənəd yazılarkən iş ağacında paralel
 > olaraq başqa sessiyalar (hərf cızma kartı, ulduz progresi) işləyirdi və eyni
 > fayllar dəyişirdi. Bütün istinadlar **simvol adı** ilə verilir — sətir nömrəsi

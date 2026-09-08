@@ -13,6 +13,7 @@ import 'package:elifba/pages/alphabet_page.dart';
 import 'package:elifba/pages/animal_detail_page.dart';
 import 'package:elifba/pages/animal_list_page.dart';
 import 'package:elifba/pages/letter_writing_page.dart';
+import 'package:elifba/widgets/parental_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -107,14 +108,48 @@ void main() {
     expect(tester.takeException(), isNull);
   }, timeout: const Timeout(Duration(seconds: 60)));
 
-  testWidgets('səs mənbələri dialoqu açılır', (tester) async {
+  testWidgets('səs mənbələri dialoqu valideyn qapısının arxasındadır', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MyApp());
 
-    await tester.tap(find.byIcon(Icons.info_outline));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    // Kitab səhifəsində artıq birbaşa keçid yoxdur.
+    expect(find.byIcon(Icons.info_outline), findsNothing);
 
-    expect(find.text('Səs mənbələri'), findsOneWidget);
+    await openSettingsThroughGate(tester);
+    expect(find.text('Ayarlar'), findsOneWidget);
+
+    // "Məlumat" bölməsi siyahının sonundadır; 800x600 test səthində ekrandan
+    // aşağıda qalır və `find.text` offstage widget-ləri saymır.
+    await tester.scrollUntilVisible(find.text('Səs mənbələri'), 200);
+    await tester.tap(find.text('Səs mənbələri'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('bigsoundbank.com'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  }, timeout: const Timeout(Duration(seconds: 30)));
+
+  testWidgets('qapı yarımçıq buraxılsa ayarlar açılmır', (tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    // Müddətin yarısını saxlayıb barmağı qaldırmaq kifayət etmir.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.touch_app_outlined)),
+    );
+    await tester.pump();
+    await tester.pump(kParentalGateHold ~/ 2);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Valideynlər üçün'), findsOneWidget);
+    expect(find.text('Ayarlar'), findsNothing);
+
+    await tester.tap(find.text('Ləğv et'));
+    await tester.pumpAndSettle();
+    expect(find.text('Valideynlər üçün'), findsNothing);
     expect(tester.takeException(), isNull);
   }, timeout: const Timeout(Duration(seconds: 30)));
 
@@ -291,4 +326,21 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   }, timeout: const Timeout(Duration(seconds: 60)));
+}
+
+/// Valideyn qapısını keçib ayarlar səhifəsini açır.
+///
+/// Qapı 3 saniyəlik basıb-saxlamadır: barmaq qaldırılsa tərəqqi sıfırlanır,
+/// ona görə jest müddət bitənə qədər basılı saxlanılır.
+Future<void> openSettingsThroughGate(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.settings_outlined));
+  await tester.pumpAndSettle();
+
+  final gesture = await tester.startGesture(
+    tester.getCenter(find.byIcon(Icons.touch_app_outlined)),
+  );
+  await tester.pump(); // basma qeydə alınsın
+  await tester.pump(kParentalGateHold + const Duration(milliseconds: 100));
+  await gesture.up();
+  await tester.pumpAndSettle();
 }
