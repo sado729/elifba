@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/progress.dart';
 import 'pages/alphabet_page.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Android 16 (API 36) forces edge-to-edge and cannot be opted out of. Turn it on
   // everywhere so older Android versions render the same way, and keep the system
@@ -18,6 +19,9 @@ void main() {
       systemNavigationBarDividerColor: Colors.transparent,
     ),
   );
+  // Saxlanmış progres ilk kadrdan ƏVVƏL oxunur: əks halda səhifələr 0 ulduzla
+  // qurulur, yaddaş gələndə isə ulduzlar birdən "tullanır".
+  await ProgressStore.instance.load();
   runApp(const MyApp());
 }
 
