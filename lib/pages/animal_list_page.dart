@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'animal_detail_page.dart';
+import 'letter_writing_page.dart';
 import '../core/config.dart';
+import '../core/letter_strokes.dart';
 import 'package:just_audio/just_audio.dart';
 
-/// Qrid xanasındaki heyvan şəkli üçün dekod eni. Şəkillərin bir hissəsi
-/// 1024x1024, ikisi 2048x2048-dir; tam ölçüdə dekod hər şəkil üçün 4–16 MB RAM
-/// tutur, halbuki xana ~160 px göstərilir. `cacheWidth` şəkli böyütmür, ona görə
-/// artıq 400 px və daha kiçik olan şəkillər olduğu kimi qalır.
+/// Qrid xanasındaki heyvan şəkli üçün dekod eni. Bütün heyvan şəkilləri
+/// 400x400 WebP-dir və xana ~160 px göstərilir; `cacheWidth` şəkli böyütmür,
+/// ona görə bu dəyər mənbə ölçüsü ilə eynidir və detal səhifəsindəki hero ilə
+/// eyni image-cache açarını paylaşır (iki ayrı dekod yaranmır).
 const int kAnimalThumbDecodeWidth = 400;
 
 class AnimalListPage extends StatefulWidget {
@@ -18,6 +20,9 @@ class AnimalListPage extends StatefulWidget {
 }
 
 class _AnimalListPageState extends State<AnimalListPage> {
+  /// Hərf haqqında mətn ilk açılışda gizlidir; başlığa toxunanda açılır.
+  bool _infoExpanded = false;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +69,19 @@ class _AnimalListPageState extends State<AnimalListPage> {
         elevation: 0,
         centerTitle: true,
         actions: [
+          // Yazı oyunu buradan açılır: bu səhifə əsl hərfi (Ə, Ş...) bilir, ona
+          // görə diakritikanı normalizasiyadan yenidən çıxarmaq lazım gəlmir.
+          if (LetterStrokes.has(letter))
+            IconButton(
+              icon: const Icon(Icons.draw_outlined),
+              tooltip: '$letter hərfini yaz',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LetterWritingPage(letter: letter),
+                ),
+              ),
+            ),
           _LetterArrowAppBarButton(
             direction: ArrowDirection.left,
             currentLetter: letter,
@@ -94,7 +112,9 @@ class _AnimalListPageState extends State<AnimalListPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hərf haqqında məlumat üçün dekorativ kart və səsləndirmə düyməsi
+              // Hərf haqqında məlumat üçün dekorativ kart və səsləndirmə düyməsi.
+              // Mətn ilk açılışda bağlıdır: yalnız başlıq görünür, uşaq istəsə
+              // ona toxunub açır. Beləcə ekranın böyük hissəsi heyvanlara qalır.
               const SizedBox(height: 10),
               Stack(
                 clipBehavior: Clip.none,
@@ -126,28 +146,94 @@ class _AnimalListPageState extends State<AnimalListPage> {
                       horizontal: 16,
                       vertical: 14,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            info,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.2,
+                        // Şəffaf Material olmasa dalğa effekti gradient
+                        // Container-in altında, Scaffold-un Material-ində qalır.
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap:
+                                () => setState(() {
+                                  _infoExpanded = !_infoExpanded;
+                                }),
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                // Səsləndirmə düyməsi kartın sol yuxarı küncünü
+                                // örtür; başlıq onun altında qalmasın.
+                                left: AppConfig.hasLetterAudio(letter) ? 26 : 0,
+                                top: 2,
+                                bottom: 2,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _infoExpanded
+                                          ? '$letter hərfi haqqında'
+                                          : '$letter hərfi haqqında oxu',
+                                      style: const TextStyle(
+                                        color: Colors.yellowAccent,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  AnimatedRotation(
+                                    turns: _infoExpanded ? 0.5 : 0,
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
+                                    child: const Icon(
+                                      Icons.expand_more,
+                                      color: Colors.yellowAccent,
+                                      size: 26,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        ),
+                        AnimatedCrossFade(
+                          firstChild: const SizedBox(
+                            width: double.infinity,
+                            height: 0,
+                          ),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Text(
+                              info,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                          crossFadeState:
+                              _infoExpanded
+                                  ? CrossFadeState.showSecond
+                                  : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 250),
+                          sizeCurve: Curves.easeInOut,
                         ),
                       ],
                     ),
                   ),
-                  Positioned(
-                    top: -16,
-                    left: -16,
-                    child: _SoundButton(info: info, letter: letter),
-                  ),
+                  // Səs faylı olmayan hərfdə düyməni ümumiyyətlə göstərmirik:
+                  // 32 hərfdən yalnız A, B, C-nin tələffüz səsi var.
+                  if (AppConfig.hasLetterAudio(letter))
+                    Positioned(
+                      top: -16,
+                      left: -16,
+                      child: _SoundButton(info: info, letter: letter),
+                    ),
                 ],
               ),
               const SizedBox(height: 28),
@@ -410,6 +496,24 @@ class _SoundButtonState extends State<_SoundButton> {
     await _audioPlayer.play();
   }
 
+  Future<void> _playLetterSound() async {
+    final audioPath = AppConfig.letterAudioPath(widget.letter);
+    setState(() {
+      _isPlaying = true;
+    });
+    try {
+      await _playSound(audioPath);
+    } catch (e) {
+      // Fayl yoxdursa və ya oxunmursa düymə "dayandır" vəziyyətində ilişməsin.
+      debugPrint('Hərf səsi oxunmadı ($audioPath): $e');
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -463,13 +567,7 @@ class _SoundButtonState extends State<_SoundButton> {
                 _isPlaying = false;
               });
             } else {
-              setState(() {
-                _isPlaying = true;
-              });
-              final letter = widget.letter.toLowerCase();
-              final audioPath =
-                  'assets/audios/$letter/${letter}_info_sound.mp3';
-              await _playSound(audioPath);
+              await _playLetterSound();
             }
           },
           splashRadius: 20,
