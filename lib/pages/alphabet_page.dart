@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'animal_list_page.dart';
 import '../core/config.dart';
+import '../core/progress.dart';
+import '../widgets/star_row.dart';
 import 'package:just_audio/just_audio.dart';
 
 class AlphabetPage extends StatefulWidget {
@@ -19,11 +21,18 @@ class _AlphabetPageState extends State<AlphabetPage> {
   @override
   void initState() {
     super.initState();
+    // Ulduzlar hərf səhifələrində qazanılır; kitaba qayıdanda hər hərfin
+    // ulduzu və başlıqdaki ümumi sayğac təzə dəyəri göstərsin.
+    ProgressStore.instance.addListener(_onProgressChanged);
     _preloadFlipSound();
     // Şəkil faylını öncədən yüklə
     WidgetsBinding.instance.addPostFrameCallback((_) {
       precacheImage(const AssetImage('assets/images/book_cover.webp'), context);
     });
+  }
+
+  void _onProgressChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _preloadFlipSound() async {
@@ -37,6 +46,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
 
   @override
   void dispose() {
+    ProgressStore.instance.removeListener(_onProgressChanged);
     _audioPlayer.dispose();
     _pageController.dispose();
     super.dispose();
@@ -86,6 +96,16 @@ class _AlphabetPageState extends State<AlphabetPage> {
               ),
             ),
             actions: [
+              // Valideyn üçün: yığılmış ulduzları silir. Uşaq təsadüfən basa
+              // bilməsin deyə ikinci, açıq-aşkar təsdiq addımı var.
+              //
+              // Yeri müvəqqətidir: `docs/superpowers/specs/2026-09-08-ayarlar-
+              // valideyn-bolmesi-design.md` bu dialoqu valideyn qapısı arxasındaki
+              // ayarlar səhifəsinə köçürür — sıfırlama da onunla birlikdə gedəcək.
+              TextButton(
+                onPressed: () => _confirmResetProgress(context),
+                child: const Text('Progresi sıfırla'),
+              ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Bağla'),
@@ -93,6 +113,39 @@ class _AlphabetPageState extends State<AlphabetPage> {
             ],
           ),
     );
+  }
+
+  /// Sıfırlamanın ikinci addımı. `dialogContext` — səs mənbələri dialoqunun
+  /// konteksti; təsdiq gələndə onu da bağlayırıq ki, uşaq silinmiş sayğaca
+  /// baxarkən köhnə dialoq arxada qalmasın.
+  Future<void> _confirmResetProgress(BuildContext dialogContext) async {
+    final store = ProgressStore.instance;
+    final confirmed = await showDialog<bool>(
+      context: dialogContext,
+      builder:
+          (context) => AlertDialog(
+            icon: const Icon(Icons.warning_amber_rounded, size: 40),
+            title: const Text('Bütün ulduzlar silinsin?'),
+            content: Text(
+              'Yığılmış ${store.totalStars} ulduz və tamamlanmış bütün bölmələr '
+              'silinəcək. Bu addımı geri qaytarmaq mümkün deyil.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Ləğv et'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Bəli, sil'),
+              ),
+            ],
+          ),
+    );
+    if (confirmed != true) return;
+    await store.reset();
+    if (!dialogContext.mounted) return;
+    Navigator.of(dialogContext).pop();
   }
 
   void _openAnimalList(BuildContext context, String letter) {
@@ -153,7 +206,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    const SizedBox(width: 48),
+                    _TotalStarsBadge(),
                     const Expanded(
                       child: Center(
                         child: Text(
@@ -287,6 +340,9 @@ class _BookPage extends StatelessWidget {
   }
 
   Widget _buildLetter(String letter) {
+    final store = ProgressStore.instance;
+    final stars = store.starsOf(letter);
+    final complete = stars >= ProgressStore.maxStarsPerLetter;
     return GestureDetector(
       onTap: () => onTap(letter),
       child: Container(
@@ -294,17 +350,90 @@ class _BookPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withAlpha((0.1 * 255).toInt()),
           borderRadius: BorderRadius.circular(8),
+          // Tam bitmiş hərf kitab səhifəsində uzaqdan seçilsin: qızılı çərçivə
+          // və yumşaq işıq. Yarımçıq hərfdə çərçivə yoxdur ki, səhifə
+          // kələ-kötür görünməsin.
+          border:
+              complete
+                  ? Border.all(color: kStarGold, width: 2.5)
+                  : null,
+          boxShadow:
+              complete
+                  ? [
+                    BoxShadow(
+                      color: kStarGold.withAlpha(110),
+                      blurRadius: 16,
+                    ),
+                  ]
+                  : null,
         ),
-        child: Center(
-          child: Text(
-            letter,
-            style: const TextStyle(
-              fontSize: 72,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              fontFamily: 'Baloo2',
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Qlif `Flexible` + `FittedBox` içindədir: ulduz sırası əlavə
+            // olunduqdan sonra alçaq ekranlarda 72 px hərf sığmaya bilər.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  letter,
+                  style: const TextStyle(
+                    fontSize: 72,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontFamily: 'Baloo2',
+                  ),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+            // Kitab səhifəsi açıq rəngdədir, ona görə boş ulduz ağ deyil,
+            // tünd-şəffaf olur.
+            StarRow(
+              filled: stars,
+              size: 20,
+              spacing: 1,
+              emptyColor: Colors.black26,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Başlıqdaki ümumi ulduz sayğacı: `⭐ 41/96`.
+///
+/// Store-a özü qoşulmur — [_AlphabetPageState] dinləyici saxlayır və dəyişəndə
+/// bütün başlığı yenidən qurur.
+class _TotalStarsBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final store = ProgressStore.instance;
+    return Semantics(
+      label:
+          '${store.maxTotalStars} ulduzdan ${store.totalStars} ulduz yığılıb',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha(28),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kStarGold.withAlpha(120), width: 1.2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.star_rounded, color: kStarGold, size: 20),
+            const SizedBox(width: 4),
+            Text(
+              '${store.totalStars}/${store.maxTotalStars}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

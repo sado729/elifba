@@ -1,8 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:path_drawing/path_drawing.dart';
+
+import '../core/stroke_tracker.dart';
+import '../widgets/tracing_canvas.dart';
 import 'animal_detail_page.dart';
 import 'letter_writing_page.dart';
 import '../core/config.dart';
 import '../core/letter_strokes.dart';
+import '../core/progress.dart';
+import '../widgets/star_row.dart';
 import 'package:just_audio/just_audio.dart';
 
 /// Qrid xanasındaki heyvan şəkli üçün dekod eni. Bütün heyvan şəkilləri
@@ -23,9 +31,58 @@ class _AnimalListPageState extends State<AnimalListPage> {
   /// Hərf haqqında mətn ilk açılışda gizlidir; başlığa toxunanda açılır.
   bool _infoExpanded = false;
 
+  ProgressStore get _store => ProgressStore.instance;
+
+  /// Alt səhifədən (heyvan detalı və ya yazı oyunu) qayıdanda hərfin tamamlanıb
+  /// tamamlanmadığını yoxlayır.
+  ///
+  /// Təbrik store dinləyicisindən deyil, məhz QAYIDIŞDA göstərilir: son bölmə
+  /// alt səhifədə bitir və dinləyici ilə dialoq həmin səhifənin ÜSTÜNDƏ açılardı.
+  /// `takeLetterCelebration` özü bir dəfəlikdir, ona görə təkrar açılmır.
+  Future<void> _maybeCelebrateLetter() async {
+    if (!mounted) return;
+    if (!_store.takeLetterCelebration(widget.letter)) return;
+    await showDialog<void>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            icon: const StarRow(
+              filled: ProgressStore.maxStarsPerLetter,
+              size: 42,
+              spacing: 2,
+              emptyColor: Colors.black12,
+            ),
+            title: Text('${widget.letter} hərfi tamam!'),
+            content: Text(
+              'Bu hərflə bağlı hər şeyi etdin — heyvanları, tapmacaları və '
+              'hərfi yazmağı. ${ProgressStore.maxStarsPerLetter} ulduz sənindir!',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Yaşa!'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _onProgressChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _store.removeListener(_onProgressChanged);
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    // Ulduzlar alt səhifədə (heyvan detalı, yazı oyunu) qazanılır; qayıdanda
+    // qrid və hərf sayğacı təzə dəyərləri göstərsin.
+    _store.addListener(_onProgressChanged);
     // Şəkilləri qabaqcadan yüklə. Ölçü qridd-dəki `cacheWidth` ilə eyni olmalıdır,
     // əks halda image cache-də hər şəkil üçün ikinci nüsxə yaranır.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,6 +112,10 @@ class _AnimalListPageState extends State<AnimalListPage> {
         '$letter hərfi haqqında məlumat yoxdur.';
     final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
+    // Yazı kartı yalnız cizgiləri təsvir olunmuş hərflərdə görünür. Bu səhifə
+    // əsl hərfi (Ə, Ş...) bilir, ona görə diakritikanı normalizasiyadan
+    // yenidən çıxarmaq lazım gəlmir.
+    final showWrite = LetterStrokes.has(letter);
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -69,19 +130,6 @@ class _AnimalListPageState extends State<AnimalListPage> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          // Yazı oyunu buradan açılır: bu səhifə əsl hərfi (Ə, Ş...) bilir, ona
-          // görə diakritikanı normalizasiyadan yenidən çıxarmaq lazım gəlmir.
-          if (LetterStrokes.has(letter))
-            IconButton(
-              icon: const Icon(Icons.draw_outlined),
-              tooltip: '$letter hərfini yaz',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => LetterWritingPage(letter: letter),
-                ),
-              ),
-            ),
           _LetterArrowAppBarButton(
             direction: ArrowDirection.left,
             currentLetter: letter,
@@ -251,29 +299,21 @@ class _AnimalListPageState extends State<AnimalListPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(2),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.yellowAccent.withAlpha((0.7 * 255).toInt()),
-                            Colors.deepPurple.shade200.withAlpha(
-                              (0.3 * 255).toInt(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Dekorativ xəttin yerini hərfin tərəqqisi tutur: səhifəyə
+                  // YENİ şaquli blok əlavə etmək olmur — sabit hündürlük
+                  // `Expanded`-dəki qridi sıxır və alçaq ekranda daşma yaranır.
+                  Expanded(child: _LetterProgressBar(letter: letter)),
                 ],
               ),
               const SizedBox(height: 18),
-              // Heyvanlar gridi
+              // Heyvanlar gridi. Yazı oyunu AppBar ikonundan buraya, qridin ilk
+              // xanasına köçürüldü: AppBar-da üç ağ ikon (yazı + iki ox)
+              // yan-yana dururdu, yazı oyunu naviqasiya oxları ilə eyni çəkidə
+              // görünürdü və 24 dp-lik qlif uşaq barmağı üçün kiçik hədəf idi.
+              // Kart şəklində o, ekranın ilk gördüyü, ən böyük hədəfdir.
               Expanded(
                 child:
-                    animals.isEmpty
+                    (animals.isEmpty && !showWrite)
                         ? const Center(
                           child: Text(
                             'Bu hərflə başlayan heyvan yoxdur.',
@@ -284,41 +324,91 @@ class _AnimalListPageState extends State<AnimalListPage> {
                             ),
                           ),
                         )
-                        : GridView.builder(
-                          padding: const EdgeInsets.only(top: 4),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 24,
-                                crossAxisSpacing: 24,
-                                childAspectRatio: 0.95,
-                              ),
-                          itemCount: animals.length,
-                          itemBuilder: (context, index) {
-                            final animal = animals[index];
-                            final animalInfo = AppConfig.findAnimal(
-                              letter,
-                              animal,
-                            );
-                            final imageAsset = animalInfo?.imagePath ?? '';
-                            return _ModernAnimalCard(
-                              animal: animal,
-                              imageAsset: imageAsset,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => AnimalDetailPage(
-                                          animal: animal,
-                                          animals: animals,
-                                          currentIndex: index,
-                                        ),
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Ğ, I, Ü hərflərinin heyvanı yoxdur: qriddə tək
+                            // yazı kartı qalır, uşaq isə niyəsini bilməlidir.
+                            if (animals.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.only(bottom: 14),
+                                child: Text(
+                                  'Bu hərflə başlayan heyvan yoxdur, amma hərfi yaza bilərsən!',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                );
-                              },
-                            );
-                          },
+                                ),
+                              ),
+                            Expanded(
+                              child: GridView.builder(
+                                padding: const EdgeInsets.only(top: 4),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      mainAxisSpacing: 24,
+                                      crossAxisSpacing: 24,
+                                      childAspectRatio: 0.95,
+                                    ),
+                                itemCount: animals.length + (showWrite ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (showWrite && index == 0) {
+                                    return _WriteLetterCard(
+                                      letter: letter,
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) => LetterWritingPage(
+                                                  letter: letter,
+                                                ),
+                                          ),
+                                        ).then((_) {
+                                          _maybeCelebrateLetter();
+                                        });
+                                      },
+                                    );
+                                  }
+                                  // Yazı kartı qridin başına əlavə olunduğu
+                                  // üçün heyvan indeksi bir sürüşür.
+                                  // AnimalDetailPage-ə MÜTLƏQ sürüşdürülməmiş
+                                  // heyvan indeksi verilməlidir, yoxsa detal
+                                  // səhifəsindəki irəli/geri naviqasiya səhv
+                                  // heyvandan başlayır.
+                                  final animalIndex =
+                                      showWrite ? index - 1 : index;
+                                  final animal = animals[animalIndex];
+                                  final animalInfo = AppConfig.findAnimal(
+                                    letter,
+                                    animal,
+                                  );
+                                  final imageAsset =
+                                      animalInfo?.imagePath ?? '';
+                                  return _ModernAnimalCard(
+                                    animal: animal,
+                                    imageAsset: imageAsset,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => AnimalDetailPage(
+                                                animal: animal,
+                                                animals: animals,
+                                                currentIndex: animalIndex,
+                                              ),
+                                        ),
+                                      ).then((_) {
+                                        _maybeCelebrateLetter();
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
               ),
             ],
@@ -419,7 +509,7 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
               const SizedBox(height: 14),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 9),
+                padding: const EdgeInsets.symmetric(vertical: 7),
                 decoration: BoxDecoration(
                   color: Colors.deepPurple.shade50,
                   borderRadius: BorderRadius.circular(12),
@@ -435,15 +525,33 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
                     ),
                   ],
                 ),
-                child: Text(
-                  widget.animal,
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple.shade700,
-                    letterSpacing: 1.1,
-                  ),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.animal,
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple.shade700,
+                        letterSpacing: 1.1,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 3),
+                    // Ulduzlar adın ALTINDA, kartın öz qutusunun içindədir:
+                    // şəklin üstündə üzən nişan heyvanı örtürdü, burada isə
+                    // uşaq adı və qazandığı ulduzu bir yerdə görür. Ağ kartda
+                    // boş ulduz açıq bənövşəyi olur (tünd fondaki ağ deyil).
+                    StarRow(
+                      filled: ProgressStore.instance.animalStars(
+                        widget.animal,
+                      ),
+                      size: 15,
+                      spacing: 1,
+                      emptyColor: Colors.deepPurple.shade100,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -452,6 +560,229 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
       ),
     );
   }
+}
+
+/// Qridin ilk xanası: hərfi yazma oyununa giriş.
+///
+/// Formaca `_ModernAnimalCard` ilə eynidir (18 radius, eyni kölgə quruluşu,
+/// 200 ms hover animasiyası, eyni padding), amma rəngcə qəsdən ayrılır:
+/// heyvan kartları ağ fondadır, bu kart isə səhifədə onsuz da işlənən
+/// sarı-narıncı (yellowAccent → orangeAccent) qradiyentlə isti görünür, ona
+/// görə uşaq onu heyvanla qarışdırmır.
+/// Yazı oyununun qrid xanası.
+///
+/// Söz yazılmır: kartın ÖZÜ hərfin cızılmamış halıdır — qalın solğun "yol",
+/// üstündə kəsik orta xətt və birinci ştrixin başlanğıcında sarı nöqtə. Uşaq
+/// oyunda məhz bunu görəcək, ona görə kart nə vəd etdiyini mətnsiz anladır.
+///
+/// Ağ heyvan kartlarının arasında qəsdən tərsinə boyanıb (səhifənin öz bənövşəyi
+/// qradiyenti) — beləcə heyvan sayılmır və AppBar-dakı kiçik ikondan fərqli
+/// olaraq gözdən qaçmır.
+class _WriteLetterCard extends StatefulWidget {
+  final String letter;
+  final VoidCallback onTap;
+  const _WriteLetterCard({required this.letter, required this.onTap});
+
+  @override
+  State<_WriteLetterCard> createState() => _WriteLetterCardState();
+}
+
+class _WriteLetterCardState extends State<_WriteLetterCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final units = LetterStrokes.unitsFor(widget.letter);
+    return Semantics(
+      button: true,
+      label: '${widget.letter} hərfini yaz',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.deepPurple.shade500,
+                  Colors.deepPurple.shade800,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.yellowAccent.withAlpha(_hovered ? 150 : 60),
+                width: 1.4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(_hovered ? 90 : 55),
+                  blurRadius: _hovered ? 26 : 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Küncdəki kiçik lələk nişanı: mətn olmadan "bu, yazı işidir"
+                // deyən yeganə əlavə. Hərfin özünə yer qalsın deyə kiçikdir.
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Yazma tək tapşırıqdır, ona görə üç ulduz yerinə bir
+                      // ulduz: dolu = hərf yazılıb.
+                      Icon(
+                        ProgressStore.instance.isWritten(widget.letter)
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        size: 20,
+                        color:
+                            ProgressStore.instance.isWritten(widget.letter)
+                                ? Colors.white
+                                : Colors.white54,
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.history_edu,
+                        size: 18,
+                        color: Colors.yellowAccent.withAlpha(
+                          _hovered ? 235 : 165,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: units == null
+                      // Ştrix datası olmayan hərf üçün ehtiyat: sadəcə hərfin
+                      // özü. Praktikada bura düşülmür — kart yalnız
+                      // `LetterStrokes.has()` doğru olanda qurulur.
+                      ? Center(
+                          child: Text(
+                            widget.letter,
+                            style: const TextStyle(
+                              fontFamily: 'Baloo2',
+                              fontSize: 56,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 4),
+                          child: CustomPaint(
+                            painter: _TraceGlyphPainter(
+                              units: units,
+                              road: Colors.white.withAlpha(56),
+                              ink: Colors.white.withAlpha(_hovered ? 235 : 195),
+                              accent: Colors.yellowAccent,
+                            ),
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hərfi "hələ cızılmamış" halda çəkir: qalın yol + kəsik orta xətt + başlanğıc
+/// nöqtəsi. `TracingCanvas`-ın kiçildilmiş, statik variantıdır — eyni
+/// [LetterStrokes] datasından qidalanır, ona görə kartda görünən forma oyunda
+/// görünənlə həmişə eyni olur.
+class _TraceGlyphPainter extends CustomPainter {
+  const _TraceGlyphPainter({
+    required this.units,
+    required this.road,
+    required this.ink,
+    required this.accent,
+  });
+
+  final List<TraceUnit> units;
+  final Color road;
+  final Color ink;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (units.isEmpty) return;
+
+    // Qutu (100x104) xanaya sığdırılır, nisbət qorunur və mərkəzləşdirilir.
+    final scale = math.min(
+      size.width / kGlyphBox.width,
+      size.height / kGlyphBox.height,
+    );
+    canvas.save();
+    canvas.translate(
+      (size.width - kGlyphBox.width * scale) / 2,
+      (size.height - kGlyphBox.height * scale) / 2,
+    );
+    canvas.scale(scale);
+
+    final roadPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = road;
+
+    final inkPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = ink;
+
+    for (final u in units) {
+      if (u.kind == TraceUnitKind.stroke) {
+        canvas.drawPath(u.partialPath(1), roadPaint);
+      } else {
+        canvas.drawCircle(u.start, 6, Paint()..color = road);
+      }
+    }
+
+    for (final u in units) {
+      if (u.kind == TraceUnitKind.stroke) {
+        canvas.drawPath(
+          dashPath(
+            u.partialPath(1),
+            dashArray: CircularIntervalList<double>(const [5, 4.5]),
+          ),
+          inkPaint,
+        );
+      } else {
+        canvas.drawCircle(u.start, 2.6, Paint()..color = ink);
+      }
+    }
+
+    // Birinci ştrixin başlanğıcı: "buradan başla".
+    for (final u in units) {
+      if (u.kind != TraceUnitKind.stroke) continue;
+      canvas.drawCircle(u.start, 4.4, Paint()..color = accent);
+      break;
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_TraceGlyphPainter old) =>
+      old.units != units ||
+      old.road != road ||
+      old.ink != ink ||
+      old.accent != accent;
 }
 
 // Səsləndirmə düyməsi üçün xüsusi widget
@@ -639,6 +970,61 @@ class _LetterArrowAppBarButton extends StatelessWidget {
                   ),
                 );
               },
+    );
+  }
+}
+
+/// Hərfin ümumi tərəqqisi: zolaq + ulduzlar + "n/m".
+///
+/// "Heyvanlar" başlığının sağındaki dekorativ xəttin yerində durur, ona görə
+/// QƏSDƏN nazikdir (ən hündür elementi 18 px ulduzdur) — başlıq sətrindən
+/// hündür olsa səhifə uzanır və qrid sıxılır.
+///
+/// Store-a özü qoşulmur — valideyn [AnimalListPage] `ProgressStore`-u dinləyir
+/// və dəyişəndə bütün alt ağacı yenidən qurur. Beləcə səhifədə tək bir dinləyici
+/// olur, hər kart üçün ayrı-ayrı deyil.
+class _LetterProgressBar extends StatelessWidget {
+  const _LetterProgressBar({required this.letter});
+
+  final String letter;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = ProgressStore.instance;
+    final total = store.letterTotal(letter);
+    // Əlifbada olmayan hərf (praktikada baş vermir) — "0/0" yazmaq yerinə
+    // köhnə dekorativ xətt kimi sadəcə boşluq qalır.
+    if (total <= 0) return const SizedBox.shrink();
+    final done = store.letterDone(letter);
+    final complete = done >= total;
+
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: done / total,
+              minHeight: 6,
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                complete ? kStarGold : Colors.yellowAccent,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        StarRow(filled: store.starsOf(letter), size: 18, spacing: 1),
+        const SizedBox(width: 6),
+        Text(
+          complete ? 'Tamam!' : '$done/$total',
+          style: TextStyle(
+            color: complete ? kStarGold : Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }

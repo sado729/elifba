@@ -10,7 +10,16 @@ import 'dart:async';
 
 class PuzzlePage extends StatefulWidget {
   final String animal;
-  const PuzzlePage({super.key, required this.animal});
+
+  /// Pazl ilk dəfə tamamlananda çağırılır (hər `_resetPuzzle`-dən sonra yenidən
+  /// tamamlansa yenə çağırılır — progresi qeyd etmək idempotentdir).
+  ///
+  /// Pazl bu səhifənin özündə deyil, valideyn səhifəsində ulduza çevrilir:
+  /// `PuzzlePage` `AnimalDetailPage`-in içində göstərilir və hansı heyvana
+  /// aid olduğunu bilən oradır.
+  final VoidCallback? onCompleted;
+
+  const PuzzlePage({super.key, required this.animal, this.onCompleted});
 
   @override
   State<PuzzlePage> createState() => _PuzzlePageState();
@@ -327,10 +336,11 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                         pieces.add(slots[i]!);
                                         slots[i] = null;
                                       }
-                                      if (!completed && _isCompleted()) {
+                                      if (!completed && !showHint && _isCompleted()) {
                                         completed = true;
                                         _confettiController.play();
                                         _playWinSound();
+                                        widget.onCompleted?.call();
                                         final dialogContext = context;
                                         Future.delayed(
                                           const Duration(milliseconds: 1500),
@@ -468,10 +478,11 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                   slotCorrectMap[i] = false;
                                 }
                               }
-                              if (!completed && _isCompleted()) {
+                              if (!completed && !showHint && _isCompleted()) {
                                 completed = true;
                                 _confettiController.play();
                                 _playWinSound();
+                                widget.onCompleted?.call();
                                 final dialogContext = context;
                                 Future.delayed(
                                   const Duration(milliseconds: 1500),

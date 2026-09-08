@@ -3,6 +3,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:confetti/confetti.dart';
 import '../core/utils.dart';
 import '../core/config.dart';
+import '../core/progress.dart';
+import '../widgets/star_row.dart';
 import 'puzzle_page.dart';
 import 'dart:math';
 
@@ -29,11 +31,17 @@ class AnimalDetailPage extends StatefulWidget {
   final List<String> animals;
   final int currentIndex;
 
+  /// Progres store-u. Defolt qlobal [ProgressStore.instance]-dır; widget
+  /// testləri buraya `ProgressStore.forTesting()` verib singleton-un vəziyyətini
+  /// çirkləndirmədən yoxlaya bilir (`LetterWritingPage` ilə eyni pattern).
+  final ProgressStore? store;
+
   const AnimalDetailPage({
     super.key,
     required this.animal,
     required this.animals,
     required this.currentIndex,
+    this.store,
   });
 
   @override
@@ -65,12 +73,53 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   double _haloOpacity = 0.0;
   bool showCongrats = false;
 
+  /// Təbrik pəncərəsi "tam ulduz" mesajını göstərsinmi (söz tapmacası qalibiyyəti
+  /// deyil, heyvanın BÜTÜN bölmələrinin bitməsi).
+  bool _congratsIsFullStar = false;
+
+  /// Bu səhifə açıq olduğu müddətdə tam-ulduz təbriki bir dəfə göstərilir.
+  bool _fullStarShown = false;
+
+  ProgressStore get _store => widget.store ?? ProgressStore.instance;
+
+  /// Bölməni qeyd edir və səhifəni yeniləyir.
+  ///
+  /// Bu səhifə store-a `AnimatedBuilder` ilə qoşulmur: bütün qeydlər səhifənin
+  /// ÖZ callback-lərindən gəlir, ona görə adi `setState` kifayətdir və
+  /// `actions` siyahısı (build içində qurulur) təzə dəyərlərlə yenidən yaranır.
+  void _mark(Activity activity) {
+    _store.markDone(widget.animal, activity);
+    if (!mounted) return;
+    setState(() {});
+    _maybeCelebrateFullStar();
+  }
+
+  /// Heyvanın bütün bölmələri bitibsə tam-ulduz təbrikini göstərir.
+  void _maybeCelebrateFullStar() {
+    if (_fullStarShown) return;
+    final total = _store.animalTotal(widget.animal);
+    if (total <= 0 || _store.animalDone(widget.animal) < total) return;
+    _fullStarShown = true;
+    setState(() {
+      _congratsIsFullStar = true;
+      showCongrats = true;
+    });
+    _confettiController.play();
+  }
+
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 1),
     );
+
+    // Heyvan ƏVVƏLKİ baxışlarda artıq tamamlanıbsa təbrik göstərilmir: əks halda
+    // bitmiş heyvanı hər açanda "Tam ulduz!" pəncərəsi qarşıya çıxır, çünki
+    // `Activity.info` ilk kadrda yenidən qeyd olunur. Təbrik yalnız bu baxışda
+    // son bölmə bitəndə görünür.
+    final total = _store.animalTotal(widget.animal);
+    _fullStarShown = total > 0 && _store.animalDone(widget.animal) >= total;
 
     // Səs bitdikdə isPlayingInfo-nu false et
     audioPlayer.playerStateStream.listen((state) {
@@ -84,6 +133,15 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // "Məlumat" bölməsi `showInfo = true` ilə açıq qurulur, yəni heyvanı
+      // açmaq həmin bölməyə keçmək deməkdir — ilk kadrdan sonra onu tamamlanmış
+      // sayırıq. Qulaq asmaq tələb olunmur (səs ulduza daxil deyil).
+      // Qeyd ilk kadrdan SONRA edilir: `markDone` `notifyListeners()` çağırır və
+      // valideyn siyahı səhifəsindəki `AnimatedBuilder` build fazasında
+      // `setState` almasın.
+      _mark(Activity.info);
+
       final animalLetter = getFirstLetter(widget.animal);
       final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
       final imageAsset = animalData?.imagePath ?? '';
@@ -250,6 +308,12 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     // Sonda heyvan şəklinin üzərində qida və halo effekti
     await _showFoodArrivalEffect(foodImagePath);
     _foodEffectActive = false;
+    // Qida yalnız heyvana ÇATANDAN sonra sayılır — animasiya yarıda kəsilsə
+    // (səhifə bağlanıb) qeyd edilmir.
+    if (!mounted) return;
+    _store.markFoodFed(widget.animal, food);
+    setState(() {});
+    _maybeCelebrateFullStar();
   }
 
   @override
@@ -287,6 +351,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
           });
         },
         visible: true,
+        done: _store.isDone(widget.animal, Activity.info),
       ),
       _ActionButtonData(
         tooltip: 'Qidalar',
@@ -301,6 +366,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
           });
         },
         visible: foods.isNotEmpty,
+        done: _store.isDone(widget.animal, Activity.foods),
       ),
       _ActionButtonData(
         tooltip: 'Söz tapmaca',
@@ -315,6 +381,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
           });
         },
         visible: true,
+        done: _store.isDone(widget.animal, Activity.wordPuzzle),
       ),
     ];
     // Puzzle iconunu yalnız map-da true olan heyvanlar üçün əlavə et
@@ -333,6 +400,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
             });
           },
           visible: true,
+          done: _store.isDone(widget.animal, Activity.tilePuzzle),
         ),
       );
     }
@@ -451,6 +519,46 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
+                    // Ulduzlar hero-nun sağ üst küncündədir: ayrı sətir kimi
+                    // qoyulanda Column-a sabit hündürlük əlavə edir və alçaq
+                    // ekranda `Expanded`-dəki scroll sahəsi daşırdı. Üst-qat
+                    // nişanın hündürlük xərci sıfırdır.
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(46),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              StarRow(
+                                filled: _store.animalStars(widget.animal),
+                                size: 18,
+                                spacing: 1,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${_store.animalDone(widget.animal)}/'
+                                '${_store.animalTotal(widget.animal)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                     AspectRatio(
                       aspectRatio: 16 / 9,
                       child: ClipRRect(
@@ -567,10 +675,13 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                   ],
                 ),
               ),
-              // Müasir buttonlar bir sıra şəklində
+              // Müasir buttonlar bir sıra şəklində.
+              // Şaquli boşluq 16 deyil 10-dur: bu Column HEAD-də onsuz da
+              // 8 px daşırdı (alçaq ekranda `Expanded`-dəki scroll sahəsinə yer
+              // qalmırdı), 12 px qazanc onu bağlayır.
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  vertical: 16,
+                  vertical: 10,
                   horizontal: 8,
                 ),
                 child: SingleChildScrollView(
@@ -614,6 +725,20 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                       Icon(action.icon, size: 24),
                                       const SizedBox(width: 8),
                                       Text(action.tooltip),
+                                      // Tamamlanmış bölmə ✓ ilə işarələnir.
+                                      // Seçili düymə sarı fondadır, ona görə
+                                      // yaşıl ✓ orada tünd tonda göstərilir.
+                                      if (action.done) ...[
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          Icons.check_circle,
+                                          size: 18,
+                                          color:
+                                              action.selected
+                                                  ? Colors.green.shade800
+                                                  : Colors.greenAccent,
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -741,6 +866,16 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                           );
                                           final foodImagePath =
                                               'assets/foods/${AppConfig.normalizeFileName(food)}.webp';
+                                          // "Qidalar" bölməsi yalnız HAMISI
+                                          // verildikdə bağlanır, ona görə uşaq
+                                          // hansını verdiyini görməlidir —
+                                          // əks halda 6 qidalı heyvanda
+                                          // qaldığını tapmaq yaddaş oyununa
+                                          // çevrilir. Təkrar vermək qadağan
+                                          // deyil, sadəcə ✓ ilə işarələnir.
+                                          final fed = _store
+                                              .fedFoods(widget.animal)
+                                              .contains(food);
                                           return GestureDetector(
                                             key: _foodKeys[food],
                                             onTap:
@@ -749,7 +884,35 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                                   foodImagePath,
                                                 ),
                                             child: Chip(
-                                              label: Text(food),
+                                              backgroundColor:
+                                                  fed
+                                                      ? Colors.green.shade50
+                                                      : null,
+                                              side:
+                                                  fed
+                                                      ? BorderSide(
+                                                        color:
+                                                            Colors
+                                                                .green
+                                                                .shade300,
+                                                      )
+                                                      : null,
+                                              label: Row(
+                                                mainAxisSize:
+                                                    MainAxisSize.min,
+                                                children: [
+                                                  Text(food),
+                                                  if (fed) ...[
+                                                    const SizedBox(width: 5),
+                                                    Icon(
+                                                      Icons.check_circle,
+                                                      size: 15,
+                                                      color:
+                                                          Colors.green.shade600,
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
                                               avatar: Image.asset(
                                                 foodImagePath,
                                                 width: 32,
@@ -796,9 +959,14 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                             word: widget.animal,
                             onWin: () {
                               setState(() {
+                                _congratsIsFullStar = false;
                                 showCongrats = true;
                               });
                               _confettiController.play();
+                              // Qeyd təbrikdən SONRA: bu heyvanın son bölməsi
+                              // idisə `_mark` üstündən tam-ulduz təbriki
+                              // göstərəcək və sadə "Təbriklər"-i əvəz edəcək.
+                              _mark(Activity.wordPuzzle);
                             },
                           ),
                         ],
@@ -806,7 +974,11 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                           showPuzzle
                               ? Padding(
                                 padding: const EdgeInsets.only(top: 12.0),
-                                child: PuzzlePage(animal: widget.animal),
+                                child: PuzzlePage(
+                                  animal: widget.animal,
+                                  onCompleted:
+                                      () => _mark(Activity.tilePuzzle),
+                                ),
                               )
                               : Card(
                                 color: Colors.white.withAlpha(
@@ -910,20 +1082,45 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.emoji_events,
-                              color: Colors.amber,
-                              size: 54,
-                            ),
+                            // Tam ulduz halında kubok yerinə üç dolu ulduz
+                            // göstərilir: mükafat ulduz sistemi ilə eyni dildə
+                            // danışsın.
+                            if (_congratsIsFullStar)
+                              const StarRow(
+                                filled: ProgressStore.maxStarsPerLetter,
+                                size: 46,
+                                spacing: 2,
+                                emptyColor: Colors.black12,
+                              )
+                            else
+                              const Icon(
+                                Icons.emoji_events,
+                                color: Colors.amber,
+                                size: 54,
+                              ),
                             const SizedBox(height: 16),
-                            const Text(
-                              'Təbriklər!',
-                              style: TextStyle(
+                            Text(
+                              _congratsIsFullStar
+                                  ? 'Tam ulduz!'
+                                  : 'Təbriklər!',
+                              style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF2E2B5F),
                               ),
                             ),
+                            if (_congratsIsFullStar) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                '${widget.animal} haqqında hər şeyi öyrəndin!',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1B1A3A),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -945,12 +1142,16 @@ class _ActionButtonData {
   final VoidCallback onTap;
   final bool visible;
 
+  /// Bölmə tamamlanıbmı — düymənin üzərində kiçik ✓ nişanı göstərilir.
+  final bool done;
+
   _ActionButtonData({
     required this.icon,
     required this.tooltip,
     required this.selected,
     required this.onTap,
     required this.visible,
+    this.done = false,
   });
 }
 

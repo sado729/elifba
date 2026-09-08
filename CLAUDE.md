@@ -40,15 +40,24 @@ lib/
   core/
     config.dart              # ALL content + the data model. ~760 lines of const maps.
     utils.dart               # normalizeFileName / getFirstLetter helpers (delegate to config.dart)
+    progress.dart            # ProgressStore: which sections are done, star maths, persistence
+    letter_strokes.dart      # per-letter stroke geometry for the tracing game
+    stroke_tracker.dart      # scores a traced stroke against its target path
   pages/
-    alphabet_page.dart       # book of letters, 2 letters per page (PageView)
-    animal_list_page.dart    # grid of animals for a letter, prev/next letter nav
+    alphabet_page.dart       # book of letters, 2 letters per page (PageView) + per-letter stars
+    animal_list_page.dart    # grid of animals for a letter, prev/next letter nav, letter progress
     animal_detail_page.dart  # detail screen + inline AnimalWordPuzzle
     puzzle_page.dart         # sliding image-tile puzzle (CustomPainter slices the image)
+    letter_writing_page.dart # letter tracing game
+  widgets/
+    star_row.dart            # the shared filled/empty star row (one look everywhere)
+    tracing_canvas.dart      # the tracing game's draw surface
 test/
   widget_test.dart               # smoke tests for the alphabet book
   content_integrity_test.dart    # config maps vs. the files actually on disk
   normalize_file_name_test.dart  # normalizeFileName / getFirstLetter behaviour
+  progress_test.dart             # star maths, task plan, persistence round-trip
+  star_ui_test.dart              # stars on screen: book, letter progress, cards, reset
 ```
 
 Dependencies are deliberately minimal, one per capability: **`just_audio`** (audio),
@@ -78,6 +87,47 @@ animal, update **every** map consistently — the integrity test will tell you i
 
 `AppConfig.findLetter()` / `findAnimal()` build `LetterConfig` / `AnimalInfo` objects on
 the fly from these maps **on every call** (no caching).
+
+### Star progress (`core/progress.dart`)
+
+`ProgressStore` is a `ChangeNotifier` singleton (`ProgressStore.instance`), loaded in
+`main()` **before** `runApp` so the first frame already has the right stars. It persists to
+`shared_preferences` under one JSON key (`progress_v1`), debounced 400 ms.
+
+A letter's stars come from the sections completed under it:
+
+- Per animal, up to 4 tasks in `Activity`: `info` (the Məlumat section — completed by
+  *opening* the animal, since it is the default section), `foods` (**all** of its foods fed
+  one by one), `wordPuzzle`, `tilePuzzle` (only when `animalHasPuzzle`).
+- Per letter, +1 for tracing the letter (`markWritten`), which is why every one of the 32
+  letters has content and `maxTotalStars` is 96 — `Ğ`, `I` and `Ü` have no animals but can
+  still be written.
+- `starsFor(done, total)`: 0 done → 0 stars, any progress → 1, `≥ 2/3` → 2, **all** → 3.
+  Monotone by design, and the third star is the only strict one, so "did everything about
+  this letter" is exactly 3 stars. Pinned by `progress_test.dart`.
+
+**Audio is deliberately not a task.** Only 60 of 91 animals have narration and only 3 of 32
+letters have a pronunciation recording, so counting listening would put a full star out of
+reach for a third of the app. Nothing requires the child to listen.
+
+`markDone` ignores an activity that is not in the animal's task plan and `markFoodFed`
+ignores a food the animal does not eat, so `animalDone` can never exceed `animalTotal`.
+Restoring unknown animals, activities or foods from stored JSON is silently skipped —
+old saves never break a new build. `_scheduleSave()` no-ops while `_prefs` is null, so a
+widget test that records progress does not leave a pending debounce timer behind.
+
+Pages do not thread the store through constructors: `alphabet_page.dart` and
+`animal_list_page.dart` hold one `addListener`/`removeListener` pair each and rebuild their
+whole subtree, while `animal_detail_page.dart` just calls `setState` after its own marks.
+`AnimalDetailPage` and `LetterWritingPage` accept an optional `store` so a widget test can
+pass `ProgressStore.forTesting()`. **Never mark progress during a build** — the detail page
+records `Activity.info` from a post-frame callback precisely because `notifyListeners()`
+would otherwise call `setState` on the listening list page mid-build.
+
+`ProgressStore.reset()` is wired to "Progresi sıfırla" in the alphabet page's ℹ️ dialog,
+behind a second explicit confirmation so a child cannot wipe the stars with one tap. That
+dialog is slated to move into the parent-gated settings page (see the spec under
+`docs/superpowers/specs/`); the reset moves with it.
 
 ### Asset naming convention
 
@@ -198,6 +248,25 @@ diacritic letters. See Gotchas.
     (`git worktree add --detach <tmp> HEAD && cd <tmp> && flutter pub get && flutter build bundle`),
     since `flutter analyze` in the main tree cannot see the problem. Deleting the pubspec
     line instead would be worse: a recording dropped in later would silently never bundle.
+
+13. **The star UI must not add a fixed-height row to a page's `Column`.**
+    `animal_detail_page.dart` and `animal_list_page.dart` both end in
+    `Expanded(<scrollable>)`, and on a short screen the fixed children already use up the
+    height — the detail page overflowed by 8 px even before stars existed. A star row added
+    as one more `Column` child took that to 44 px, and on the list page it squeezed
+    `Expanded` to nearly zero so the **lazy** grid built no cells at all and every
+    `find.text(<animal>)` failed. Both are now placed at zero height cost: the animal's
+    stars are a `Positioned` overlay inside the hero `Stack` (whose size the `AspectRatio`
+    child fixes), and the letter's progress replaced the decorative divider **inside** the
+    existing "Heyvanlar" heading `Row` (its tallest element, an 18 px star, is shorter than
+    the 24 px heading text). Verify a new badge with
+    `tester.getSize(find.byType(GridView))` — it must not shrink.
+
+14. **A puzzle star must not be awarded during a hint.** `_showHint()` in
+    `puzzle_page.dart` puts the solved arrangement into `slots` for 2 seconds, which makes
+    `_isCompleted()` return `true`. Both completion checks are therefore guarded with
+    `!showHint` before calling `widget.onCompleted` — without it a child could tap the hint
+    and collect the star. No test catches this; it is a logic invariant.
 
 ## Known content gaps
 

@@ -3,27 +3,50 @@
 **Tarix:** 2026-09-08
 **Status:** Təsdiq gözləyir
 **Əhatə:** Səs idarəetməsi (master + kanallar), valideyn qapısı, ayarlar səhifəsi,
-animasiyanı azaltma, pazl çətinliyinin yadda saxlanması.
+titrəmə, animasiyanı azaltma, pazl çətinliyi, progresin sıfırlanması.
+
+> **Sətir nömrələri qəsdən yazılmayıb.** Bu sənəd yazılarkən iş ağacında paralel
+> olaraq başqa sessiyalar (hərf cızma kartı, ulduz progresi) işləyirdi və eyni
+> fayllar dəyişirdi. Bütün istinadlar **simvol adı** ilə verilir — sətir nömrəsi
+> saatlar içində köhnəlir, simvol adı isə yox. İşə başlamazdan əvvəl hər simvolun
+> yerini `grep` ilə təsdiqləyin.
 
 ---
 
 ## 1. Məqsəd
 
-Tətbiqdə hazırda heç bir ayar yoxdur: səs həmişə açıqdır, heç nə yadda saxlanmır
-və valideyn üçün ayrıca sahə mövcud deyil. Bu iş üç problemi həll edir:
+Tətbiqdə hazırda heç bir istifadəçi ayarı yoxdur: səs həmişə açıqdır, titrəmə
+söndürülə bilmir və valideyn üçün ayrıca sahə mövcud deyil. Bu iş üç problemi
+həll edir:
 
 1. **Səsi söndürmək mümkün deyil.** İctimai yerdə və ya yatmazdan əvvəl valideyn
    tətbiqi susdura bilmir — cihazın səsini tam bağlamaqdan başqa yol yoxdur.
-2. **Uşağa aid olmayan seçimlər uşağın əlindədir.** Pazl çətinliyi kimi
-   parametrlər oyun ekranının ortasındadır.
+2. **Uşağa aid olmayan seçimlər uşağın əlindədir.** Pazl çətinliyi oyun ekranının
+   ortasındadır; progresin sıfırlanması isə hazırda əlifba səhifəsindəki ℹ️
+   dialoqundadır — yəni qapısız, uşağın çata biləcəyi yerdə. (İki addımlı təsdiq
+   var, amma bu qapı deyil.) Ulduz progresi işlənəndə müvəqqəti olaraq ora
+   qoyulub; bu bölmə hazır olanda **ora köçürülməlidir**, çünki həmin ℹ️ dialoqu
+   onsuz da bu sənədə görə silinir.
 3. **Google Play Families siyasəti** uşaq tətbiqlərində valideynə yönəlik
    məzmunun uşaq üçün çətin keçiləcək bir "qapı" arxasında olmasını tələb edir.
+
+### 1.1 Kod artıq bu bölməni gözləyir
+
+`lib/core/progress.dart` iki yerdə valideyn ekranına birbaşa işarə edir —
+funksionallıq mövcuddur, sadəcə onu çağıran UI yoxdur:
+
+- `ProgressStore.reset()` — sənəd şərhi: *"Bütün progresi silir (valideyn üçün
+  'sıfırla')"*.
+- `ProgressStore.writtenLetterCount` — sənəd şərhi: *"Yazılmış hərflərin sayı
+  (valideyn ekranı / statistika üçün)"*.
+
+`reset()` bu işə daxil edilir. Statistika ekranı **daxil edilmir** (bax §10).
 
 ## 2. Qərarlar (istifadəçi ilə razılaşdırılıb)
 
 | Sual | Qərar |
 |---|---|
-| Bölmənin əhatəsi | **Standart paket** — səs qrupları, animasiyanı azaltma, pazl çətinliyi, səs mənbələri, tətbiq haqqında. Ekran vaxtı və irəliləyiş statistikası **daxil deyil**. |
+| Bölmənin əhatəsi | **Standart paket** — səs qrupları, titrəmə, animasiyanı azaltma, pazl çətinliyi, progresi sıfırla, səs mənbələri, tətbiq haqqında. Ekran vaxtı və irəliləyiş statistikası **daxil deyil**. |
 | Qapı mexanizmi | **Uzun basıb saxlama** (3 saniyə). |
 | Səs düyməsinin yeri | **Hər ikisi** — əsas ekranda sürətli master düyməsi + valideyn bölməsində kanal-kanal ayarlar. |
 | Xarici keçidlər | **Yoxdur.** Məxfilik/haqqında mətni tətbiqin içindədir; `url_launcher` əlavə olunmur. |
@@ -41,8 +64,8 @@ Yumşaltma tədbirləri:
 - **Səs və titrəmə geri-bildirişi yoxdur** — uzun basmaq uşaq üçün maraqlı bir
   "oyuncaq" olmamalıdır.
 
-Qapının arxasında dağıdıcı heç nə yoxdur (satınalma, xarici link, silinmə), ona
-görə bu risk qəbul ediləndir.
+Qapının arxasında **bir dağıdıcı əməliyyat var** — "Progresi sıfırla". Ona görə o,
+qapıdan əlavə öz təsdiq dialoqu ilə də qorunur (§5, "Valideyn" bölməsi).
 
 ---
 
@@ -58,58 +81,88 @@ lib/widgets/mute_button.dart    Sürətli master mute düyməsi
 lib/pages/settings_page.dart    Valideyn bölməsinin UI-ı
 ```
 
-`lib/widgets/` qovluğu hazırda mövcud deyil (köhnə YouTube widget-i ilə birlikdə
-silinib) — yenidən yaradılır.
+`lib/widgets/` qovluğu **artıq mövcuddur** (`star_row.dart`, `tracing_canvas.dart`).
 
-### 3.2 AppSettings
+### 3.2 AppSettings — `ProgressStore`-un eyni nümunəsi ilə
+
+**`shared_preferences` artıq layihədədir** (`^2.3.0`) və `lib/core/progress.dart`
+onunla işləyən, sınaqdan çıxmış bir nümunə qurub. `AppSettings` **yeni üslub
+uydurmur** — `ProgressStore`-un formasını hərfi-hərfinə təkrarlayır:
+
+| `ProgressStore`-dan götürülən | Səbəb |
+|---|---|
+| `ChangeNotifier` + `static final instance` | Paket asılılığı olmadan; layihənin "sadə setState" konvensiyasını pozmur. |
+| `@visibleForTesting factory .forTesting()` | Diskə yazmayan təmiz nüsxə — testlər üçün. |
+| `static const _prefsKey` (`'settings_v1'`) | Versiyalı açar; gələcək miqrasiya üçün yer saxlayır. |
+| `_scheduleSave()` + `_saveDebounce` | Açarın sürətli çevrilməsi hər dəfə diskə yazmasın. |
+| `load()` içində `try/catch` | Prefs oxunmasa tətbiq **default dəyərlərlə işləməyə davam edir**, çökmür. |
 
 ```dart
 enum SoundChannel { narration, animal, effect }
 
 class AppSettings extends ChangeNotifier {
+  AppSettings._();
   static final AppSettings instance = AppSettings._();
+
+  @visibleForTesting
+  factory AppSettings.forTesting() => AppSettings._();
+
+  static const String _prefsKey = 'settings_v1';
+  static const Duration _saveDebounce = Duration(milliseconds: 400);
 
   bool masterSound    = true;   // ümumi açar
   bool narrationSound = true;   // hərf/heyvan izahı (…_info_sound.mp3)
   bool animalSound    = true;   // heyvan səsi (…_sound.mp3)
   bool effectSound    = true;   // click, win, page_flip
+  bool haptics        = true;   // tracing_canvas-dakı titrəmə
   bool reduceMotion   = false;  // konfeti söndürülür
   int  puzzleGridSize = 3;      // 3 və ya 4
 
   bool isOn(SoundChannel c);    // masterSound && <kanalın öz açarı>
 
   Future<void> load();          // main()-də runApp-dan ƏVVƏL
-  // hər setter dəyəri yazır, sonra notifyListeners()
 }
 ```
 
-- **Saxlama:** `shared_preferences` (yeni asılılıq, `^2.3.0`). Açarlar
-  `settings.masterSound` və s. prefiksi ilə.
-- **Yükləmə anı:** `main()` içində `await AppSettings.instance.load()`,
-  `runApp()`-dan əvvəl. Səbəb: ilk kadrda default dəyərlərin görünüb sonra
-  dəyişməsinin qarşısını alır və ayarlar gəlməmiş səs çalınmasına imkan vermir.
-  Qiymət: ~5 ms açılış gecikməsi.
-- **Yazma:** `notifyListeners()` sinxron, disk yazısı `unawaited` — açar dərhal
-  reaksiya verir, disk arxa planda yazır.
+**Saxlama formatı:** `ProgressStore` kimi tək bir JSON sətri (`_prefsKey`
+altında), ayrı-ayrı `setBool` açarları yox — eyni nümunə, eyni miqrasiya yolu.
+
+**Yükləmə anı:** `main()` içində, mövcud `await ProgressStore.instance.load()`
+sətrinin **yanında**:
+
+```dart
+await ProgressStore.instance.load();
+await AppSettings.instance.load();
+runApp(const MyApp());
+```
+
+`main.dart`-dakı mövcud şərh bunun səbəbini artıq izah edir (ilk kadrda default
+dəyər görünüb sonra "tullanmasın"). Ayarlar üçün əlavə səbəb: ayarlar gəlməmiş
+səs çalınmamalıdır. İki `load()` ardıcıl işləyir; hər ikisi eyni
+`SharedPreferences.getInstance()` nüsxəsini alır, ona görə ikinci çağırış praktiki
+olaraq pulsuzdur.
 
 ### 3.3 Dəyərin səhifələrə çatdırılması
 
-Provider/Bloc əlavə olunmur (mövcud konvensiya: `StatefulWidget` + `setState`).
-İki mexanizm, hər biri öz yerində:
+Provider/Bloc əlavə olunmur. İki mexanizm, hər biri öz yerində:
 
 **(a) Çalınma anında oxumaq** — səs kodu üçün. `GatedPlayer` sinxron olaraq
-`AppSettings.instance.isOn(channel)` oxuyur. `InheritedWidget` plumbing-i 7
+`AppSettings.instance.isOn(channel)` oxuyur. `InheritedWidget` plumbing-i 9
 pleyerə çəkmək lazım gəlmir.
 
-**(b) Dinləmək** — yalnız yenidən çəkilməli UI üçün:
-`ListenableBuilder(listenable: AppSettings.instance, …)`. İstifadə yerləri: mute
-düyməsi, ayarlar səhifəsi, səs düymələrinin sönük görünüşü.
+**(b) `AnimatedBuilder` ilə dinləmək** — yalnız yenidən çəkilməli UI üçün.
+`ProgressStore` üçün seçilmiş bağlama üsulu budur (bax onun sinif şərhi), ona görə
+`AppSettings` də `ListenableBuilder` yox, **`AnimatedBuilder`** işlədir — tətbiqdə
+tək bir üsul qalsın. İstifadə yerləri: mute düyməsi, ayarlar səhifəsi, səs
+düymələrinin sönük görünüşü.
 
 ### 3.4 GatedPlayer — səs keçid qatı
 
-**Niyə lazımdır:** 7 çalınma nöqtəsinə `if (settings.effectsOn)` səpələmək
+**Niyə lazımdır:** 9 çalınma nöqtəsinə `if (səs açıqdır)` şərti səpələmək
 kövrəkdir — biri unudula bilər və gələcəkdə əlavə olunan yeni `AudioPlayer`
-səssizcə mute-u keçər. Keçid pleyerin öz içində olmalıdır.
+səssizcə mute-u keçər. Bu, nəzəri risk deyil: bu sənəd yazılarkən `letter_writing_page.dart`
+əlavə olundu və özü ilə **iki yeni `AudioPlayer`** gətirdi. Keçid pleyerin öz
+içində olmalıdır.
 
 ```dart
 class GatedPlayer {
@@ -130,43 +183,52 @@ Konstruktorda `AppSettings.instance`-ə abunə olur: öz kanalı **söndürülə
 dərhal `_inner.stop()` çağırır. Bu, "susdur" düyməsinə basanda oxunmaqda olan
 izahın ortada kəsilməsini təmin edir. `dispose()` abunəni ləğv edir.
 
-Mövcud `final ... = AudioPlayer()` sahə-səviyyəli qurma nümunəsi saxlanılır
-(CLAUDE.md gotcha #5) — `GatedPlayer` də sahədə sinxron qurulur.
+Mövcud `final ... = AudioPlayer()` sahə-səviyyəli qurma nümunəsi **saxlanılır**
+(CLAUDE.md gotcha #5) — `GatedPlayer` də sahədə sinxron qurulur, `setAsset`
+`_initAudio()` içində try/catch ilə qalır.
 
-### 3.5 Mövcud 7 pleyerin kanallara bölünməsi
+### 3.5 Mövcud 9 pleyerin kanallara bölünməsi
 
-| Fayl | Sətir | Pleyer | Kanal |
+| Fayl | Simvol | Nə çalır | Kanal |
 |---|---|---|---|
-| `alphabet_page.dart` | 15 | səhifə çevirmə (`page_flip.mp3`) | `effect` |
-| `animal_list_page.dart` | 384 | `_SoundButton` — hərf izahı | `narration` |
-| `animal_detail_page.dart` | 38 | `audioPlayer` — **iki işdə** | bax aşağı |
-| `animal_detail_page.dart` | 971 | `_clickPlayer` | `effect` |
-| `animal_detail_page.dart` | 972 | `_winPlayer` | `effect` |
-| `puzzle_page.dart` | 34 | `_audioPlayer` (klik) | `effect` |
-| `puzzle_page.dart` | 35 | `_winPlayer` | `effect` |
+| `alphabet_page.dart` | `_AlphabetPageState._audioPlayer` | `page_flip.mp3` | `effect` |
+| `animal_list_page.dart` | `_SoundButtonState._audioPlayer` | hərf izahı | `narration` |
+| `animal_detail_page.dart` | `_AnimalDetailPageState.audioPlayer` | **iki iş** | bax aşağı |
+| `animal_detail_page.dart` | `_AnimalWordPuzzleState._clickPlayer` | `click.mp3` | `effect` |
+| `animal_detail_page.dart` | `_AnimalWordPuzzleState._winPlayer` | `win.mp3` | `effect` |
+| `puzzle_page.dart` | `_PuzzlePageState._audioPlayer` | `click.mp3` | `effect` |
+| `puzzle_page.dart` | `_PuzzlePageState._winPlayer` | `win.mp3` | `effect` |
+| `letter_writing_page.dart` | `_clickPlayer` | `click.mp3` | `effect` |
+| `letter_writing_page.dart` | `_winPlayer` | `win.mp3` | `effect` |
 
-**`animal_detail_page.dart:38` bölünməlidir.** Bu tək pleyer həm
+**`_AnimalDetailPageState.audioPlayer` bölünməlidir.** Bu tək pleyer həm
 `_toggleAnimalInfo()` (izah — `narration`), həm də AppBar-dakı heyvan səsi
-düyməsi (sətir 350 — `animal`) tərəfindən istifadə olunur. İki ayrı
-`GatedPlayer`-ə bölünür: `_infoPlayer` (narration) və `_animalPlayer` (animal).
-Yan fayda: heyvan səsi artıq izahı yarıda kəsmir.
+düyməsinin `_playSound(animalSoundAsset)` çağırışı (`animal`) tərəfindən istifadə
+olunur. İki ayrı `GatedPlayer`-ə bölünür: `_infoPlayer` və `_animalPlayer`.
+**Yan fayda:** heyvan səsi artıq izahı yarıda kəsməyəcək.
+
+`letter_writing_page.dart`-da artıq `_play(AudioPlayer player)` adlı tək bir
+köməkçi var — o səhifədə migrasiya yalnız həmin bir funksiyaya toxunur.
 
 ### 3.6 "Susdurulub" vəziyyətinin UI-da göstərilməsi
 
-**Problem:** `animal_detail_page` (sətir 68-76) və `_SoundButton`
-(`animal_list_page.dart:388`) `playerStateStream`-i dinləyib `isPlaying`
-bayrağını `completed` hadisəsində sıfırlayır. Səs susdurulubsa heç nə çalınmır,
-`completed` gəlmir və düymə **əbədi "Dayandır" vəziyyətində ilişir**.
+**Problem:** `_AnimalDetailPageState` və `_SoundButtonState`
+`playerStateStream`-i dinləyib `isPlaying` / `isPlayingInfo` bayrağını
+`ProcessingState.completed` hadisəsində sıfırlayır. Səs susdurulubsa heç nə
+çalınmır, `completed` gəlmir və düymə **əbədi "Dayandır" vəziyyətində ilişir**.
 
 **Həll (iki qat):**
 
-1. **UI qatı:** kanal söndürülübsə səs düymələri sönük (`disabled`) və susdurulmuş
-   ikonu ilə göstərilir. Uşaq üçün işləməyən düymədən yaxşıdır — nə üçün səs
-   gəlmədiyi görünür. `ListenableBuilder` ilə bağlanır. Yerlər: detal səhifəsinin
-   "Dinlə" düyməsi (sətir ~660), AppBar heyvan səsi (sətir 347), siyahı
+1. **UI qatı:** kanal söndürülübsə səs düymələri sönük (`onPressed: null`) və
+   susdurulmuş ikonu ilə göstərilir. Uşaq üçün işləməyən düymədən yaxşıdır — nə
+   üçün səs gəlmədiyi görünür. `AnimatedBuilder` ilə bağlanır. Yerlər: detal
+   səhifəsinin "Dinlə" düyməsi, AppBar-dakı heyvan səsi düyməsi, siyahı
    səhifəsinin `_SoundButton`-u.
-2. **Təhlükəsizlik qatı:** `play()` `false` qaytarır və çağırış yerləri
-   `isPlaying`-i `true` etmir.
+2. **Təhlükəsizlik qatı:** `play()` `false` qaytarır və çağırış yerləri bayrağı
+   `true` etmir.
+
+CLAUDE.md gotcha #6 ("səssiz səs düyməsi mövcud olmamalıdır") eyni qaydanın
+mövcud ifadəsidir — bu, onun mute-a genişləndirilməsidir.
 
 ---
 
@@ -200,7 +262,7 @@ eyni çağırış istifadə olunacaq.
 `lib/pages/settings_page.dart` — adi `Scaffold` + `AppBar`, digər səhifələrlə eyni
 tünd bənövşəyi fon.
 
-> **Edge-to-edge** (CLAUDE.md gotcha #9): yeni səhifə mütləq öz insetini tətbiq
+> **Edge-to-edge** (CLAUDE.md gotcha #10): yeni səhifə mütləq öz insetini tətbiq
 > etməlidir. `ListView`-in `padding.bottom`-una
 > `MediaQuery.viewPaddingOf(context).bottom` əlavə olunur, tam-en gradient
 > `Container` isə insetdən **kənarda** qalır.
@@ -218,13 +280,23 @@ tünd bənövşəyi fon.
 
 **2. Oyun**
 
+- `Titrəmə` — `TracingCanvas._emit()` içindəki `HapticFeedback.selectionClick()`
+  çağırışını şərtə salır (hərfi cızarkən yoxlama nöqtəsi keçiləndə işləyir).
 - `Animasiyanı azalt` — konfeti effektini söndürür. Həssas uşaqlar və zəif
   cihazlar üçün.
 - `Pazl çətinliyi` — `SegmentedButton`: 3×3 / 4×4.
 
-**3. Məlumat**
+**3. Valideyn**
 
-- `Səs mənbələri` — mövcud dialoq buraya köçür (`alphabet_page.dart:47`).
+- `Progresi sıfırla` — mövcud `ProgressStore.reset()`-i çağırır. **İkiqat
+  qorunur:** valideyn qapısından keçmiş olsa da, ayrıca `AlertDialog` təsdiqi
+  istəyir ("Bütün ulduzlar silinəcək. Davam edilsin?"), çünki əməliyyat geri
+  qaytarıla bilmir. Təsdiqdən sonra `SnackBar` ilə bildiriş.
+
+**4. Məlumat**
+
+- `Səs mənbələri` — mövcud dialoq (`_AlphabetPageState._showSoundCredits`) buraya
+  köçür.
 - `Tətbiq haqqında` — ad, versiya, paket id (`com.vebstudio.elifba`), qısa
   məxfilik mətni: "Bu tətbiq heç bir şəxsi məlumat toplamır, internetə qoşulmur
   və reklam göstərmir."
@@ -237,7 +309,8 @@ saxlanılır; `package_info_plus` asılılığı əlavə edilmir. **Bu sabit
 
 ## 6. Əsas ekrandakı giriş nöqtələri
 
-`alphabet_page.dart:141-171` başlıq sırası dəyişir:
+`_AlphabetPageState.build()` içindəki başlıq sırası (`Əlifba` mətni + mövcud
+`Icons.info_outline` düyməsi) dəyişir:
 
 ```
 [ 🔊 ]        Əlifba        [ ⚙ ]
@@ -247,7 +320,7 @@ master susdur            3 san. basıb saxla → Ayarlar
 ```
 
 - **Sol — `MuteButton`:** `masterSound`-u dərhal çevirir, qapı yoxdur.
-  `ListenableBuilder` ilə açıq/bağlı ikonlar arasında keçir.
+  `AnimatedBuilder` ilə açıq/bağlı ikonlar arasında keçir.
 - **Sağ — ⚙:** `if (await showParentalGate(context))` → `SettingsPage`.
 - Mövcud ℹ️ (səs mənbələri) düyməsi **silinir** — məzmunu ayarlar səhifəsinə köçür.
 
@@ -255,10 +328,19 @@ master susdur            3 san. basıb saxla → Ayarlar
 
 ## 7. Qalan bağlantılar
 
-### 7.1 reduceMotion
+### 7.1 reduceMotion — 5 konfeti nöqtəsi
 
-4 çağırış yeri şərtə salınır: `animal_detail_page.dart:799`,
-`animal_detail_page.dart:1037`, `puzzle_page.dart:331`, `puzzle_page.dart:472`.
+Konfeti indi **beş** yerdə oynadılır (əvvəlki üç deyil):
+
+| Fayl | Simvol / kontekst |
+|---|---|
+| `animal_detail_page.dart` | tam-ulduz təbriki (`_fullStarShown` yoxlanılan metod) |
+| `animal_detail_page.dart` | qida/bölmə tamamlanma nöqtəsi |
+| `animal_detail_page.dart` | `_AnimalWordPuzzleState._checkWin()` |
+| `puzzle_page.dart` | iki tamamlanma nöqtəsi |
+| `letter_writing_page.dart` | `_confetti.play()` — hərf cızma qalibiyyəti |
+
+Hər birində:
 
 ```dart
 if (!AppSettings.instance.reduceMotion) _confettiController.play();
@@ -269,10 +351,15 @@ ağacına salmaq lazım deyil.
 
 ### 7.2 puzzleGridSize
 
-`puzzle_page.dart:24` (`int gridSize = 3;`) → `initState`-də
+`_PuzzlePageState.gridSize` sahəsi `initState`-də
 `AppSettings.instance.puzzleGridSize`-dan alınır. Səhifə daxilindəki ölçü seçicisi
-(sətir 84 və 717) seçimi **geri yazır** — beləliklə oyun içindəki seçim və ayar
-tək bir dəyərdir, iki fərqli həqiqət mənbəyi yaranmır.
+seçimi **geri yazır** — beləliklə oyun içindəki seçim və ayar tək bir dəyərdir,
+iki fərqli həqiqət mənbəyi yaranmır.
+
+### 7.3 haptics
+
+`TracingCanvas._emit()` içindəki tək `HapticFeedback.selectionClick()` çağırışı
+şərtə salınır. Tətbiqdə başqa haptik çağırış yoxdur.
 
 ---
 
@@ -280,43 +367,53 @@ tək bir dəyərdir, iki fərqli həqiqət mənbəyi yaranmır.
 
 | Fayl | Nə yoxlanılır |
 |---|---|
-| `test/settings_test.dart` | `SharedPreferences.setMockInitialValues({})` ilə yükləmə/yazma dövrü; `isOn()` məntiqi (master söndürülübsə bütün kanallar bağlıdır, alt-açarların dəyəri itmir). |
+| `test/settings_test.dart` | `AppSettings.forTesting()` ilə `isOn()` məntiqi (master söndürülübsə bütün kanallar bağlıdır, alt-açarların dəyəri itmir); `SharedPreferences.setMockInitialValues({})` ilə yükləmə/yazma dövrü və zədələnmiş JSON-un default dəyərlərə düşməsi. |
 | `test/parental_gate_test.dart` | 2.9 san. → dialoq açıq qalır; 3.1 san. → `true`; barmaq erkən qaldırılanda tərəqqi sıfırlanır; "Ləğv et" → `false`. |
-| `test/settings_page_test.dart` | Master söndürüləndə alt-açarlar `disabled` olur; pazl seçimi yazılır. |
+| `test/settings_page_test.dart` | Master söndürüləndə alt-açarlar `disabled` olur; "Progresi sıfırla" təsdiq dialoqu olmadan `ProgressStore`-a toxunmur. |
 
-**Qeyd:** `GatedPlayer` üçün ayrıca test yazılmır — `AudioPlayer()` qurulması test
-mühitində platforma kanalı tələb edir. Bunun əvəzinə keçid məntiqi
-`AppSettings.isOn()` saf funksiyasında cəmlənir və orada test olunur.
+**`GatedPlayer` üçün ayrıca test yazılmır** — `AudioPlayer()` qurulması test
+mühitində platforma kanalı tələb edir (CLAUDE.md gotcha #11: just_audio
+çağırışını `await` etməyin, `tester.runAsync` işlətməyin). Bunun əvəzinə keçid
+məntiqi `AppSettings.isOn()` saf funksiyasında cəmlənir və orada test olunur.
 
-**Ayrıca:** `test/widget_test.dart` hazırda default sayğac şablonudur və
-**uğursuz olur** (tətbiqdə nə `Icons.add`, nə də "0" mətni var). Bu işin bir
-hissəsi kimi düzəldilir və `AlphabetPage`-in açıldığını yoxlayan sadə smoke
-testinə çevrilir.
+**Mövcud test dəsti:** `test/widget_test.dart` artıq 250 sətirlik həqiqi smoke
+test dəstidir (fayl başında just_audio qaydaları sənədləşdirilib) — bu iş ona
+yalnız yeni mute düyməsi/⚙ düyməsi üçün lazım gələn düzəlişi əlavə edir.
+
+> **Diqqət:** bu sənəd yazılarkən `flutter test` 136 keçid / 4 uğursuzluq verirdi.
+> Dördü də `_WriteLetterCard` ilə bağlıdır və **başqa sessiyanın yarımçıq işidir**
+> — bu plana aid deyil. İşə başlamazdan əvvəl `flutter test`-in təmiz olduğuna
+> əmin olun, əks halda öz dəyişikliyinizin nəyi sındırdığını ayırd edə
+> bilməyəcəksiniz.
 
 ---
 
 ## 9. Risklər və tələlər
 
-1. **Yeni plugin.** `shared_preferences` Android build-inə toxunur;
-   `flutter pub get` təkrar işlədilməlidir. Manifest dəyişikliyi tələb etmir.
-2. **Edge-to-edge** — 5-ci bölmədəki xəbərdarlığa bax.
-3. **İlişən `isPlaying`** — 3.6-cı bölmədə həll olunub; migrasiyada unudulmamalıdır.
-4. **Detal səhifəsinin tək pleyeri iki kanala xidmət edir** — bölünməlidir (3.5).
-5. **Qapının zəifliyi** — bilərəkdən qəbul edilib (2.1).
-6. **Versiya sabitinin sinxronu** — `pubspec.yaml` ilə əl ilə (5-ci bölmə).
+1. **İş ağacı paralel redaktə altındadır.** Bu sənəd yazılarkən ən azı iki başqa
+   sessiya eyni fayllarda işləyirdi; `pubspec.yaml` və `lib/widgets/` bir neçə
+   dəqiqə ərzində dəyişdi. **Başlamazdan əvvəl `git status` və `flutter test`
+   yoxlanılmalı**, digər sessiyaların bitdiyi təsdiqlənməlidir.
+2. **Edge-to-edge** — §5-dəki xəbərdarlığa bax.
+3. **İlişən `isPlaying`** — §3.6-da həll olunub; migrasiyada unudulmamalıdır.
+4. **Detal səhifəsinin tək pleyeri iki kanala xidmət edir** — bölünməlidir (§3.5).
+5. **Qapının zəifliyi** — bilərəkdən qəbul edilib (§2.1); `reset()` üçün ikinci
+   təsdiq qatı ona görə əlavə olunub.
+6. **Versiya sabitinin sinxronu** — `pubspec.yaml` ilə əl ilə (§5).
 7. **CRLF churn** — layihədə `autocrlf=true` və köhnə CRLF blob-ları var; mövcud
    fayllardakı kiçik redaktələr diff-də bütöv fayl yenidən yazılması kimi görünə
    bilər. Commit-dən əvvəl `git diff --stat` yoxlanılmalıdır.
 
 ## 10. Əhatədən kənar (YAGNI)
 
+- **Statistika ekranı.** `ProgressStore` `totalStars`, `maxTotalStars`,
+  `writtenLetterCount` hazır verir və valideyn bölməsinə təbii oturardı, amma
+  istifadəçi "Standart paket"i seçdi. Sonradan asanlıqla əlavə edilə bilər —
+  yeni data qatı tələb etmir.
 - Ekran vaxtı limiti / fasilə xatırlatması.
-- İrəliləyiş izləmə və statistika.
 - PIN kodu, məxfilik siyasəti URL-i, "Bizi qiymətləndirin", e-poçt keçidi.
 - Dil seçimi (tətbiq yalnız Azərbaycan dilindədir).
 - Fon musiqisi (hazırda yoxdur).
-- İstifadə olunmayan `flutter_tts` asılılığının silinməsi və ölü `showYoutube`
-  bayrağının təmizlənməsi — ayrı, əlaqəsiz təmizlik işidir.
 
 ---
 
@@ -326,12 +423,15 @@ testinə çevrilir.
 `lib/widgets/parental_gate.dart`, `lib/widgets/mute_button.dart`,
 `lib/pages/settings_page.dart`
 
-**Dəyişən (7):** `pubspec.yaml`, `lib/main.dart`, `lib/core/config.dart`,
+**Dəyişən (8):** `lib/main.dart`, `lib/core/config.dart`,
 `lib/pages/alphabet_page.dart`, `lib/pages/animal_list_page.dart`,
-`lib/pages/animal_detail_page.dart`, `lib/pages/puzzle_page.dart`
+`lib/pages/animal_detail_page.dart`, `lib/pages/puzzle_page.dart`,
+`lib/pages/letter_writing_page.dart`, `lib/widgets/tracing_canvas.dart`
 
-**Sənədləşmə:** `CLAUDE.md` — ayarlar qatı və yeni "səs `GatedPlayer`-dən
-keçməlidir" qaydası əlavə olunur.
+**`pubspec.yaml` dəyişmir** — `shared_preferences` artıq mövcuddur.
+
+**Sənədləşmə:** `CLAUDE.md` — ayarlar qatı və yeni qayda: *"hər səs
+`GatedPlayer`-dən keçməlidir, birbaşa `AudioPlayer` qurulmamalıdır"*.
 
 ---
 
@@ -339,12 +439,11 @@ keçməlidir" qaydası əlavə olunur.
 
 Hər mərhələ öz-özlüyündə yoxlanıla bilən vəziyyətdə bitir:
 
-1. **`AppSettings` + `shared_preferences` + testlər.** UI yoxdur; testlərlə
-   yoxlanılır.
-2. **`GatedPlayer` + 7 pleyerin migrasiyası.** Bütün defaultlar açıq olduğu üçün
-   istifadəçi davranışı **dəyişmir** — təmiz refaktor.
+1. **`AppSettings` + testlər.** UI yoxdur; `ProgressStore` nümunəsi təkrarlanır.
+2. **`GatedPlayer` + 9 pleyerin migrasiyası.** Bütün defaultlar açıq olduğu üçün
+   istifadəçi davranışı **dəyişmir** — təmiz refaktor, ayrıca yoxlanıla bilər.
 3. **`showParentalGate()` + testi.** Təcrid olunmuş widget.
 4. **`SettingsPage` + `MuteButton` + əsas ekran giriş nöqtələri.** Səs mənbələri
-   dialoqu köçürülür. Bu mərhələnin sonunda funksiya işlək olur.
-5. **`reduceMotion` və `puzzleGridSize` bağlantıları.**
-6. **Təmizlik:** `widget_test.dart` düzəldilir, `CLAUDE.md` yenilənir.
+   dialoqu köçürülür, `reset()` bağlanır. Bu mərhələnin sonunda funksiya işlək olur.
+5. **`haptics`, `reduceMotion`, `puzzleGridSize` bağlantıları.**
+6. **`CLAUDE.md` yenilənir.**

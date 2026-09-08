@@ -334,6 +334,11 @@ class ProgressStore extends ChangeNotifier {
   // ------------------------------------------------------------- saxlanma
 
   void _scheduleSave() {
+    // Yazmağa yer yoxdursa (load() çağırılmayıb və ya uğursuz olub) timer da
+    // qurulmur. `main()` `runApp`-dan əvvəl `load()`-u gözlədiyi üçün real
+    // tətbiqdə `_prefs` həmişə hazırdır; widget testlərində isə bu, ağac
+    // söküldükdən sonra qalan "pending timer" xətasını aradan qaldırır.
+    if (_prefs == null) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(_saveDebounce, _persist);
   }
