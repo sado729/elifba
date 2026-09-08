@@ -32,9 +32,16 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("release")
+            // R8 ilə kod kiçildilməsi və istifadə olunmayan resursların atılması.
+            // Flutter, just_audio və media3 öz keep qaydalarını consumer-rules
+            // kimi gətirir, ona görə proguard-rules.pro boşdur.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 
