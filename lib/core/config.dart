@@ -22,7 +22,6 @@ class AnimalInfo {
   final List<String> foods;
   final bool hasSound;
   final bool hasPuzzle;
-  final String? youtubeEmbed;
 
   const AnimalInfo({
     required this.name,
@@ -32,7 +31,6 @@ class AnimalInfo {
     required this.foods,
     this.hasSound = false,
     this.hasPuzzle = false,
-    this.youtubeEmbed,
   });
 }
 
@@ -71,6 +69,23 @@ class AppConfig {
     'Y',
     'Z',
   ];
+
+  /// Tələffüz səsi (`assets/audios/<hərf>/<hərf>_info_sound.mp3`) faktiki olaraq
+  /// mövcud olan hərflər. Səs faylı olmayan hərfdə səsləndirmə düyməsi
+  /// göstərilmir — əks halda düymə səssiz qalır və "dayandır" vəziyyətində ilişir.
+  /// Yeni səs faylı əlavə edəndə bu siyahını da yeniləyin; test/content_integrity_test.dart
+  /// siyahının diskdəki fayllarla üst-üstə düşdüyünü yoxlayır.
+  static const Set<String> lettersWithAudio = {'A', 'B', 'C'};
+
+  /// Verilmiş hərfin tələffüz səsi varmı.
+  static bool hasLetterAudio(String letter) =>
+      lettersWithAudio.contains(letter.toUpperCase());
+
+  /// Hərfin tələffüz səsinin asset yolu.
+  static String letterAudioPath(String letter) {
+    final folder = letter.toLowerCase();
+    return 'assets/audios/$folder/${folder}_info_sound.mp3';
+  }
 
   static const Map<String, String> letterDescriptions = {
     'A':
@@ -661,78 +676,11 @@ class AppConfig {
     'Zebra': true,
   };
 
-  static const Map<String, String> animalYoutubeEmbeds = {
-    'At': '',
-    'Ayı': '',
-    'Ağcaqanad': '',
-    'Alpaka': '',
-    'Balıq': '',
-    'Bayquş': '',
-    'Buqələmun': '',
-    'Bizon': '',
-    'Begemot': '',
-    'Baltadimdik': '',
-    'Camış': '',
-    'Cücə': '',
-    'Ceyran': '',
-    'Çalağan': '',
-    'Çita': '',
-    'Dənizatı': '',
-    'Donuz': '',
-    'Dovşan': '',
-    'Eşşək': '',
-    'Eland': '',
-    'Echidna': '',
-    'Ərincək': '',
-    'Əqrəb': '',
-    'Folivora': '',
-    'Fil': '',
-    'Flamingo': '',
-    'Gürzə': '',
-    'Gəlincik': '',
-    'Hamster': '',
-    'Xərçəng': '',
-    'İlan': '',
-    'Jaquar': '',
-    'Kəpənək': '',
-    'Kirpi': '',
-    'Kərtənkələ': '',
-    'Kəklik': '',
-    'Qaranquş': '',
-    'Qartal': '',
-    'Qaz': '',
-    'Qoyun': '',
-    'Qurd': '',
-    'Lama': '',
-    'Leopard': '',
-    'Leylek': '',
-    'Mamont': '',
-    'Meymun': '',
-    'Nərə': '',
-    'Orka': '',
-    'Ördək': '',
-    'Pələng': '',
-    'Pinqvin': '',
-    'Rakun': '',
-    'Siçan': '',
-    'Sincab': '',
-    'Sərçə': '',
-    'Şahin': '',
-    'Şir': '',
-    'Tısbağa': '',
-    'Tülkü': '',
-    'Ulaq': '',
-    'Vaşaq': '',
-    'Yarasa': '',
-    'Zürafə': '',
-    'Zebra': '',
-  };
-
   static LetterConfig? findLetter(String letter) {
     final letterKey = letter.toUpperCase();
     // Hər dəfə map-lardan yeni obyekt yaradılır
     final letterLower = letter.toLowerCase();
-    final imagePath = 'assets/images/$letterLower/$letterLower.png';
+    final imagePath = 'assets/images/$letterLower/$letterLower.webp';
     final audioPath =
         'assets/audios/$letterLower/${letterLower}_info_sound.mp3';
     final description = letterDescriptions[letterKey] ?? '';
@@ -742,7 +690,7 @@ class AppConfig {
       final animalLetter = letterKey;
       final normalizedName = normalizeFileName(animalName);
       final animalImagePath =
-          'assets/images/${animalLetter.toLowerCase()}/$normalizedName.png';
+          'assets/images/${animalLetter.toLowerCase()}/$normalizedName.webp';
       final animalAudioPath =
           'assets/audios/${animalLetter.toLowerCase()}/${normalizedName}_info_sound.mp3';
       animals.add(
@@ -754,7 +702,6 @@ class AppConfig {
           foods: animalFoods[animalName] ?? [],
           hasSound: animalHasSound[animalName] ?? false,
           hasPuzzle: animalHasPuzzle[animalName] ?? false,
-          youtubeEmbed: animalYoutubeEmbeds[animalName],
         ),
       );
     }
@@ -781,7 +728,7 @@ class AppConfig {
     // Əgər heyvan hələ konfiqurasiyada yoxdursa, yaradaq
     final animalLetter = letter.toLowerCase();
     final normalizedName = normalizeFileName(animalName);
-    final imagePath = 'assets/images/$animalLetter/$normalizedName.png';
+    final imagePath = 'assets/images/$animalLetter/$normalizedName.webp';
     final audioPath =
         'assets/audios/$animalLetter/${normalizedName}_info_sound.mp3';
 
@@ -793,7 +740,6 @@ class AppConfig {
       foods: animalFoods[animalName] ?? [],
       hasSound: animalHasSound[animalName] ?? false,
       hasPuzzle: animalHasPuzzle[animalName] ?? false,
-      youtubeEmbed: animalYoutubeEmbeds[animalName],
     );
 
     // Yeni yaradılmış heyvanı əlavə edək

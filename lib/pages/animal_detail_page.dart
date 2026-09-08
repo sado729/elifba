@@ -6,15 +6,22 @@ import '../core/config.dart';
 import 'puzzle_page.dart';
 import 'dart:math';
 
-/// Şəkil dekod ölçüləri. Mənbə fayllar 400–2048 px arasındadır və tam ölçüdə
-/// dekod olunanda hər biri 0.6–16 MB RAM tutur. `cacheWidth` şəkli böyütmür,
-/// yalnız lazımsız böyükləri kiçildir.
+/// Şəkil dekod ölçüləri. Mənbə fayllar 256–600 px arasındadır: heyvan şəkilləri
+/// 400x400 WebP, yem şəkilləri 256x256 WebP, pazl kəsikləri 600x600 JPEG (ən
+/// böyüyü ~1.4 MB RAM). `cacheWidth` şəkli böyütmür, yalnız lazımsız böyükləri
+/// kiçildir — mənbədən böyük dəyər faydasızdır, üstəlik ayrıca image-cache
+/// açarı yaradır.
 ///
 /// Yem şəkilləri üç yerdə (chip 32 px, uçan animasiya 40 px, effekt 64 px)
 /// göstərilir — hamısı EYNİ ölçü ilə dekod olunur ki, image cache-də hər yem
 /// üçün bir dəfə saxlanılsın.
-const int kAnimalHeroDecodeWidth = 800;
-const int kFoodDecodeWidth = 160;
+// Heyvan şəkilləri 400x400-dür: 800 heç vaxt çatmır (cacheWidth böyütmür), amma
+// qrid xanası (400) ilə fərqli image-cache açarı yaradıb eyni şəkli iki dəfə
+// saxlayırdı.
+const int kAnimalHeroDecodeWidth = 400;
+// Yem şəkilləri 256 px WebP-dir; ən böyük göstərim 64 dp x 1.3 miqyas, yəni 3x
+// sıxlıqda ~250 fiziki px — 256 tam örtür (160 isə 36% əskik idi).
+const int kFoodDecodeWidth = 256;
 const int kPuzzlePreviewDecodeWidth = 700;
 
 class AnimalDetailPage extends StatefulWidget {
@@ -41,7 +48,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   bool showFoods = false;
   bool showPuzzle = false;
   bool showWordPuzzle = false;
-  bool showYoutube = false;
   late ConfettiController _confettiController;
 
   // --- ANİMASİYA üçün əlavə dəyişənlər ---
@@ -90,7 +96,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       final foods = animalData?.foods ?? [];
       for (final food in foods) {
         final foodImagePath =
-            'assets/foods/${AppConfig.normalizeFileName(food)}.png';
+            'assets/foods/${AppConfig.normalizeFileName(food)}.webp';
         precacheImage(
           ResizeImage(AssetImage(foodImagePath), width: kFoodDecodeWidth),
           context,
@@ -254,7 +260,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final animalLetter = getFirstLetter(widget.animal);
     final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
     final imageAsset = animalData?.imagePath ?? '';
-    final puzzleAsset = imageAsset.replaceFirst('.png', '_puzzle.jpg');
+    final puzzleAsset = imageAsset.replaceFirst('.webp', '_puzzle.jpg');
     final info =
         animalData?.description ?? 'Bu heyvan haqqında məlumat yoxdur.';
     final foods = animalData?.foods ?? [];
@@ -278,7 +284,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
             showFoods = false;
             showPuzzle = false;
             showWordPuzzle = false;
-            showYoutube = false;
           });
         },
         visible: true,
@@ -293,7 +298,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
             showInfo = !showFoods;
             showPuzzle = false;
             showWordPuzzle = false;
-            showYoutube = false;
           });
         },
         visible: foods.isNotEmpty,
@@ -308,7 +312,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
             showInfo = !showWordPuzzle;
             showFoods = false;
             showPuzzle = false;
-            showYoutube = false;
           });
         },
         visible: true,
@@ -327,7 +330,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               showInfo = !showPuzzle;
               showFoods = false;
               showWordPuzzle = false;
-              showYoutube = false;
             });
           },
           visible: true,
@@ -738,7 +740,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                             () => GlobalKey(),
                                           );
                                           final foodImagePath =
-                                              'assets/foods/${AppConfig.normalizeFileName(food)}.png';
+                                              'assets/foods/${AppConfig.normalizeFileName(food)}.webp';
                                           return GestureDetector(
                                             key: _foodKeys[food],
                                             onTap:

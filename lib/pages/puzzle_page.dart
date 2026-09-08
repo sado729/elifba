@@ -17,7 +17,8 @@ class PuzzlePage extends StatefulWidget {
 }
 
 /// 60x60 önizləmə üçün dekod eni (mənbə 600x600 = ~1.4 MB RAM).
-const int kPuzzleThumbDecodeWidth = 160;
+/// 60 dp x 3.0 piksel sıxlığı = 180 fiziki px, ona görə 192.
+const int kPuzzleThumbDecodeWidth = 192;
 
 class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   static const double fullSize = 240;
@@ -165,7 +166,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     final animalLetter = getFirstLetter(animal);
     final animalData = AppConfig.findAnimal(animalLetter, animal);
     final imageAsset =
-        animalData?.imagePath.replaceFirst('.png', '_puzzle.jpg') ?? '';
+        animalData?.imagePath.replaceFirst('.webp', '_puzzle.jpg') ?? '';
     return Stack(
       children: [
         Column(

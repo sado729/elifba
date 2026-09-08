@@ -22,12 +22,17 @@ class _AlphabetPageState extends State<AlphabetPage> {
     _preloadFlipSound();
     // Şəkil faylını öncədən yüklə
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      precacheImage(const AssetImage('assets/images/book_cover.png'), context);
+      precacheImage(const AssetImage('assets/images/book_cover.webp'), context);
     });
   }
 
   Future<void> _preloadFlipSound() async {
-    await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+    try {
+      await _audioPlayer.setAsset('assets/audios/page_flip.mp3');
+    } catch (e) {
+      // Səs yüklənməsə də kitab işləməlidir.
+      debugPrint('Səhifə çevirmə səsi yüklənmədi: $e');
+    }
   }
 
   @override
@@ -38,8 +43,12 @@ class _AlphabetPageState extends State<AlphabetPage> {
   }
 
   Future<void> _playPageFlipSound() async {
-    await _audioPlayer.seek(Duration.zero);
-    await _audioPlayer.play();
+    try {
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint('Səhifə çevirmə səsi oxunmadı: $e');
+    }
   }
 
   void _showSoundCredits() {
@@ -255,7 +264,7 @@ class _BookPage extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         image: const DecorationImage(
-          image: AssetImage('assets/images/book_cover.png'),
+          image: AssetImage('assets/images/book_cover.webp'),
           fit: BoxFit.cover,
         ),
         borderRadius: BorderRadius.circular(8),
@@ -293,7 +302,7 @@ class _BookPage extends StatelessWidget {
               fontSize: 72,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
-              fontFamily: 'Baloo 2',
+              fontFamily: 'Baloo2',
             ),
           ),
         ),
