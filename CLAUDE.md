@@ -51,8 +51,9 @@ test/
   normalize_file_name_test.dart  # normalizeFileName / getFirstLetter behaviour
 ```
 
-Dependencies are deliberately minimal: **`just_audio` and `confetti` only** (plus
-`flutter_lints`). `flutter_tts`, `turn_page_transition`, `collection`, `cupertino_icons`
+Dependencies are deliberately minimal, one per capability: **`just_audio`** (audio),
+**`confetti`** (celebration), **`shared_preferences`** (star progress) and
+**`path_drawing`** (letter tracing), plus `flutter_lints`. `flutter_tts`, `turn_page_transition`, `collection`, `cupertino_icons`
 and `webview_flutter` were all declared but never used, and have been removed — do not
 re-add a package without a call site. Keep `uses-material-design: true`; the Material icon
 font is the one the app actually uses.
@@ -179,6 +180,19 @@ diacritic letters. See Gotchas.
     just_audio call** (it hangs for the full 10-minute timeout) and **never use
     `tester.runAsync`** on a page that builds an `AudioPlayer` (the real event loop then
     delivers `MissingPluginException` and fails the test).
+
+12. **An empty asset folder is invisible to git and breaks a clean clone.** `pubspec.yaml`
+    declares `assets/audios/<letter>/` for all 32 letters, but git does not track empty
+    directories, so a folder holding no recordings simply does not exist after `git clone`
+    — and Flutter turns that into a hard build failure, not a warning:
+    `Error: unable to find directory entry in pubspec.yaml: ...assets\audios\ğ\`.
+    It went unnoticed for the project's whole history because the folders existed locally
+    on the machine where they were created by hand. `ğ`, `ı`, `ş` and `ü` therefore each
+    carry a `.gitkeep`. **Declaring a new asset folder means either putting a real file in
+    it or adding a `.gitkeep`** — verify with a throwaway worktree
+    (`git worktree add --detach <tmp> HEAD && cd <tmp> && flutter pub get && flutter build bundle`),
+    since `flutter analyze` in the main tree cannot see the problem. Deleting the pubspec
+    line instead would be worse: a recording dropped in later would silently never bundle.
 
 ## Known content gaps
 
