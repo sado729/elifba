@@ -179,7 +179,12 @@ diacritic letters. See Gotchas.
     the name from the allowlist or the test fails. In widget tests: **never `await` a
     just_audio call** (it hangs for the full 10-minute timeout) and **never use
     `tester.runAsync`** on a page that builds an `AudioPlayer` (the real event loop then
-    delivers `MissingPluginException` and fails the test).
+    delivers `MissingPluginException` and fails the test). And the animal grid is built
+    lazily: on the default 800x600 test surface the GridView is 768x357 and lays out
+    only its first **two** cells, so a finder reaching the third animal matches nothing
+    and `ensureVisible` throws `Bad state: No element` — use `tester.scrollUntilVisible`.
+    Adding a cell at the head of the grid shifts which animals those two slots hold, so
+    a test that names an animal by position breaks without the grid itself being wrong.
 
 12. **An empty asset folder is invisible to git and breaks a clean clone.** `pubspec.yaml`
     declares `assets/audios/<letter>/` for all 32 letters, but git does not track empty
