@@ -3,7 +3,7 @@
 /// ⚠️ `pubspec.yaml`-dakı `version:` ilə ƏL İLƏ sinxronlaşdırılmalıdır.
 /// `package_info_plus` asılılığı bilərəkdən əlavə edilmir — tək bir sətir mətn
 /// üçün yeni plugin gətirmək baha başa gəlir.
-const String kAppVersion = '1.2.0';
+const String kAppVersion = '1.3.0';
 
 /// Android paket adı — "Tətbiq haqqında" bölməsində göstərilir.
 const String kAppPackageId = 'com.vebstudio.elifba';
