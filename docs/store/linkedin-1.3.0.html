@@ -1,0 +1,135 @@
+<!doctype html>
+<!--
+  LinkedIn elanı — Əlifba 1.3.0 (1200×1200).
+  PNG-ni yenidən yaratmaq üçün (repo kökündən):
+
+  "C:\Program Files\Google\Chrome\Application\chrome.exe" --headless=new --disable-gpu ^
+    --allow-file-access-from-files --hide-scrollbars --force-device-scale-factor=1 ^
+    --virtual-time-budget=6000 --window-size=1200,1200 ^
+    --screenshot="docs\store\linkedin-1.3.0.png" "docs/store/linkedin-1.3.0.html"
+
+  Şriftlər və loqo repo-dakı fayllardan gəlir (assets/fonts, branding/logo.png).
+-->
+<style>
+  @font-face{font-family:'Noto';font-weight:400;src:url(../../assets/fonts/NotoSans-Regular.ttf) format('truetype')}
+  @font-face{font-family:'Noto';font-weight:700;src:url(../../assets/fonts/NotoSans-Bold.ttf) format('truetype')}
+  @font-face{font-family:'Baloo';font-weight:700;src:url(../../assets/fonts/Baloo2-ExtraBold.ttf) format('truetype')}
+  .applogo{background-image:url(../../branding/logo.png)}
+</style>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:1200px;overflow:hidden}
+  body{font-family:'Noto',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .stage{position:relative;width:1200px;height:1200px;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 8%, #4FB0FF 0%, #1E86EE 42%, #0B5CC8 78%, #08479E 100%)}
+
+  .rays{position:absolute;inset:-25%;
+    background:repeating-conic-gradient(from 0deg at 50% 32%,
+      rgba(255,255,255,.085) 0deg 7deg, rgba(255,255,255,0) 7deg 16deg);
+    mask-image:radial-gradient(60% 60% at 50% 32%, #000 25%, transparent 78%);
+    -webkit-mask-image:radial-gradient(60% 60% at 50% 32%, #000 25%, transparent 78%)}
+
+  .spark{position:absolute;color:#fff;font-size:26px;opacity:.55;line-height:1}
+  .spark.s2{font-size:16px;opacity:.4}
+  .spark.s3{font-size:34px;opacity:.3}
+
+  .content{position:relative;height:100%;padding:60px 64px 56px;display:flex;flex-direction:column}
+
+  .badge{display:inline-flex;align-items:center;gap:13px;align-self:center;
+    padding:13px 30px;border-radius:999px;background:rgba(255,255,255,.18);
+    border:2px solid rgba(255,255,255,.40);color:#fff;font-weight:700;
+    font-size:25px;letter-spacing:2.6px}
+  .badge .dot{width:13px;height:13px;border-radius:50%;background:#FFD54F;
+    box-shadow:0 0 0 6px rgba(255,213,79,.28)}
+
+  .letters{display:flex;justify-content:center;align-items:flex-end;gap:40px;margin-top:40px;height:168px}
+  .letters span{font-family:'Baloo','Noto',sans-serif;font-weight:700;font-size:126px;line-height:1;
+    -webkit-text-stroke:11px #fff;paint-order:stroke fill;
+    filter:drop-shadow(0 11px 0 rgba(6,52,116,.42)) drop-shadow(0 18px 28px rgba(4,36,84,.45))}
+  .l1{color:#FF5B52;transform:rotate(-11deg)}
+  .l2{color:#FF9E2C;transform:rotate(6deg) translateY(-14px)}
+  .l3{color:#3FC1FF;transform:rotate(-5deg)}
+  .l4{color:#5FD068;transform:rotate(9deg) translateY(-10px)}
+  .l5{color:#FFD028;transform:rotate(-8deg)}
+
+  h1{margin-top:30px;text-align:center;color:#fff;font-weight:700;font-size:104px;line-height:1.02;
+    letter-spacing:-1.5px;text-shadow:0 7px 0 rgba(6,52,116,.35),0 20px 44px rgba(4,36,84,.45)}
+  .sub{margin-top:22px;text-align:center;color:rgba(255,255,255,.93);font-size:32px;font-weight:400}
+  .sub b{font-weight:700;color:#FFE08A}
+
+  .cards{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;gap:30px}
+  .card{background:#fff;border-radius:32px;padding:44px 32px;
+    box-shadow:0 20px 44px rgba(4,36,84,.30);display:flex;gap:24px;align-items:center}
+  .ic{flex:0 0 88px;width:88px;height:88px;border-radius:27px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 9px 20px rgba(4,36,84,.22)}
+  .ic svg{width:48px;height:48px;fill:#fff}
+  .ic.a{background:linear-gradient(145deg,#7C4DFF,#5B29E0)}
+  .ic.b{background:linear-gradient(145deg,#FFC431,#FF9500)}
+  .ic.c{background:linear-gradient(145deg,#2BB4F0,#1179D8)}
+  .ic.d{background:linear-gradient(145deg,#4ED17A,#1FA85A)}
+  .card h3{color:#0E2A57;font-size:35px;font-weight:700;line-height:1.15;margin-bottom:10px}
+  .card p{color:#5A6C8C;font-size:26px;line-height:1.3;white-space:nowrap}
+
+  .foot{margin-top:auto;display:flex;align-items:center;gap:24px;
+    background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.28);
+    border-radius:36px;padding:22px 30px}
+  .applogo{width:92px;height:92px;border-radius:24px;background-size:cover;background-position:center;
+    box-shadow:0 9px 22px rgba(4,36,84,.35);flex:0 0 92px}
+  .fname{color:#fff;font-size:37px;font-weight:700;line-height:1.2}
+  .fsub{color:rgba(255,255,255,.86);font-size:24px;margin-top:5px}
+  .store{margin-left:auto;text-align:right;color:#fff;font-size:26px;font-weight:700;line-height:1.25}
+  .store span{display:block;font-weight:400;font-size:21px;color:rgba(255,255,255,.82);margin-top:4px}
+</style>
+
+<div class="stage">
+  <div class="rays"></div>
+  <div class="spark s1" style="left:90px;top:150px">✦</div>
+  <div class="spark s2" style="left:215px;top:92px">✦</div>
+  <div class="spark s3" style="left:1065px;top:130px">✦</div>
+  <div class="spark s2" style="left:985px;top:250px">✦</div>
+  <div class="spark s1" style="left:150px;top:380px">✦</div>
+  <div class="spark s2" style="left:1105px;top:450px">✦</div>
+  <div class="spark s3" style="left:56px;top:590px">✦</div>
+  <div class="spark s2" style="left:1140px;top:700px">✦</div>
+
+  <div class="content">
+    <div class="badge"><span class="dot"></span>YENİ VERSİYA 1.3.0</div>
+
+    <div class="letters">
+      <span class="l1">A</span><span class="l2">E</span><span class="l3">B</span><span class="l4">Z</span><span class="l5">Ğ</span>
+    </div>
+
+    <h1>Əlifba yeniləndi</h1>
+    <p class="sub">Uşaqlar üçün Azərbaycan əlifbası — <b>32 hərf · 91 heyvan · 96 ulduz</b></p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="ic a"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>
+        <div><h3>Hərf yazma oyunu</h3><p>32 hərfi barmaqla cız</p></div>
+      </div>
+      <div class="card">
+        <div class="ic b"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+        <div><h3>Ulduz progresi</h3><p>Hər hərfə 3 ulduza qədər</p></div>
+      </div>
+      <div class="card">
+        <div class="ic c"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm3 11c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg></div>
+        <div><h3>Valideyn bölməsi</h3><p>Səs, titrəmə, çətinlik</p></div>
+      </div>
+      <div class="card">
+        <div class="ic d"><svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></div>
+        <div><h3>Daha yüngül</h3><p>Kiçik ölçü, sürətli açılış</p></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="applogo"></div>
+      <div>
+        <div class="fname">Əlifba</div>
+        <div class="fsub">Oflayn · reklamsız · pulsuz</div>
+      </div>
+      <div class="store">Google Play<span>com.vebstudio.elifba</span></div>
+    </div>
+  </div>
+</div>
