@@ -103,6 +103,20 @@ mono, 48 kbps. Only the TTS input was prepared, never the app text: lines were j
 spaced dash (` – `) became a comma so the pause survives. If you edit a description, the
 matching narration goes stale; regenerate it the same way.
 
+**Animal sounds (`<name>_sound.mp3`, 34 files) are levelled.** On 2026-09-29 each one was
+processed the same way:
+- **Channels and edges:** downmixed to mono, and edge silence trimmed. The threshold is 35 dB
+  under the loudest 20 ms window, or 6 dB over the noise floor when a field recording has one.
+- **Length:** internal pauses over 1.2 s shortened to 0.6 s, then capped at about 10 s. The cut
+  lands at the quietest point between 8 and 10 s, with a 0.4 s fade.
+- **Loudness:** normalised to **−18 LUFS** integrated, then peak-limited to −1.5 dBFS.
+  `Siçan` sits at about −20 on purpose: pushing its squeaks to −18 would have flattened them.
+- **Encoding:** re-encoded as 64 kbps mono MP3 at the source rate (44.1 or 48 kHz).
+
+Before this the loudness spread was 29 LU (from `Şir` at −9 to `Qurd` at −39), and several
+files clipped. `Qırqovul` was 67 s long and 89 % silence. A new animal sound should be
+brought to the same level, or it will stick out.
+
 The animal name string is the join key across ~5 separate maps, so a typo in any one map
 silently falls back to a default (empty description, no puzzle, etc.). When adding an
 animal, update **every** map consistently — the integrity test will tell you if you did not.
