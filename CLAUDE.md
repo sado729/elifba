@@ -86,9 +86,22 @@ There is **no database and no JSON** — all content lives as `const` maps in
 - `animalsByLetter[LETTER]` — list of animal names for each letter.
 - `animalInfo[NAME]`, `animalFoods[NAME]`, `animalHasSound[NAME]`, `animalHasPuzzle[NAME]`
   — per-animal data, all joined by the **animal name string**.
-- `lettersWithAudio` — the letters that actually have a pronunciation recording (`A`, `B`,
-  `C` today). `hasLetterAudio()` gates the speaker button in `animal_list_page.dart`, and
+- `lettersWithAudio` — the letters that actually have a narration recording (all 32
+  today). `hasLetterAudio()` gates the speaker button in `animal_list_page.dart`, and
   `content_integrity_test.dart` asserts the set still matches the files on disk.
+
+**Narration provenance.** On 2026-09-29 every narration (32 letters, 89 animals) was
+synthesised, or re-synthesised, from its own `letterDescriptions` / `animalInfo` text, so
+the whole app speaks in **one voice** and each recording matches the text on screen. The
+older recordings for 3 letters and 61 animals were replaced; many covered only about half
+of today's text. The voice is **Inflect-Micro-v2 Azerbaijani** (Apache-2.0,
+<https://huggingface.co/spaces/ilqarrrr/Inflect_Micro_v2_Azerbaijan>). That space is static:
+the model runs as ONNX, so it was run locally with the space's own `js/tts.js` under Node
+(`onnxruntime-node` + `@diffusionstudio/piper-wasm`), defaults speed 1.0 / variation 0.667 /
+seed 7 / 15-word chunks. The MP3s were encoded to match the existing ones: MPEG-2, 24 kHz,
+mono, 48 kbps. Only the TTS input was prepared, never the app text: lines were joined and a
+spaced dash (` – `) became a comma so the pause survives. If you edit a description, the
+matching narration goes stale; regenerate it the same way.
 
 The animal name string is the join key across ~5 separate maps, so a typo in any one map
 silently falls back to a default (empty description, no puzzle, etc.). When adding an
@@ -115,9 +128,11 @@ A letter's stars come from the sections completed under it:
   Monotone by design, and the third star is the only strict one, so "did everything about
   this letter" is exactly 3 stars. Pinned by `progress_test.dart`.
 
-**Audio is deliberately not a task.** Only 60 of 91 animals have narration and only 3 of 32
-letters have a pronunciation recording, so counting listening would put a full star out of
-reach for a third of the app. Nothing requires the child to listen.
+**Audio is deliberately not a task.** When stars were designed only 60 of 91 animals had
+narration and only 3 of 32 letters had a recording, so counting listening would have put a
+full star out of reach for a third of the app. Nothing requires the child to listen. Almost
+everything is narrated now (2 animals still are not), but this remains a product decision,
+not an accident.
 
 `markDone` ignores an activity that is not in the animal's task plan and `markFoodFed`
 ignores a food the animal does not eat, so `animalDone` can never exceed `animalTotal`.
@@ -215,6 +230,9 @@ diacritic letters. See Gotchas.
    (verified: one code unit, 105), so the `I` page loads the assets of `İ` and
    `assets/images/ı/` is unreachable from code. The fix is an explicit letter→folder
    table, not `toLowerCase()`. `normalize_file_name_test.dart` pins this behaviour.
+   **Letter audio is already fixed:** `AppConfig.letterAudioPath()` maps `I` to `ı/`
+   explicitly, so `I` plays `assets/audios/ı/ı_info_sound.mp3` and `İ` plays `i/`. Images
+   and the rest still go through `toLowerCase()`.
 3. **Where the widgets live.** `AnimalWordPuzzle` is defined **inline** in
    `animal_detail_page.dart`; the old duplicate `pages/animal_word_puzzle.dart`
    and the YouTube widget were deleted. Do not reintroduce copies of either.
@@ -227,8 +245,8 @@ diacritic letters. See Gotchas.
    declaration (`final ... = AudioPlayer()`), and `setAsset` calls live inside a
    try/catch. Keep this pattern — moving construction into an async `_initAudio()`
    reintroduces a `LateInitializationError` race on early interaction or `dispose()`.
-6. **A silent audio button must not exist.** Only 3 of 32 letters and 61 of 91 animals
-   have narration. The letter speaker button is rendered only when
+6. **A silent audio button must not exist.** All 32 letters and 89 of 91 animals have
+   narration today, but that coverage is not guaranteed. The letter speaker button is rendered only when
    `AppConfig.hasLetterAudio(letter)` is true, and every `setAsset` is wrapped in
    try/catch — without both, a missing file leaves the button stuck in its stop state and
    swallows the first tap. Apply the same rule to any new audio affordance.
@@ -332,9 +350,8 @@ diacritic letters. See Gotchas.
 
 Tracked as allowlists in `test/content_integrity_test.dart`, not as TODO comments:
 
-- 29 of 32 letters have **no pronunciation audio** (only `A`, `B`, `C` do).
-- 30 of 91 animals have **no narration** (`<name>_info_sound.mp3`).
-- `Ğ`, `I`, `Ü` have **no animals** — their list page opens empty.
+- 2 of 91 animals have **no narration** (`<name>_info_sound.mp3`): `Qarışqayeyən` and
+  `Qırqovul`, because they have no description text to narrate.- `Ğ`, `I`, `Ü` have **no animals** — their list page opens empty.
 - `Ş` has no letter-card image; `Qarışqayeyən` and `Qırqovul` have no description text.
 
 ## Security

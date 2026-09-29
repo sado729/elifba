@@ -20,38 +20,10 @@ import 'package:flutter_test/flutter_test.dart';
 // heyvan əlavə edib səsini unutsanız test uğursuz olacaq.
 
 /// Səsli izahı (`<ad>_info_sound.mp3`) olmayan heyvanlar.
-const Set<String> kAnimalsWithoutInfoAudio = {
-  'Ağacdələn',
-  'Bəbir',
-  'Bülbül',
-  'Çalağan',
-  'Çaqqal',
-  'Çəyirtkə',
-  'Dovşan',
-  'Dovdaq',
-  'Dələ',
-  'Dəvə',
-  'İlbiz',
-  'İnək',
-  'İt',
-  'Kərgədan',
-  'Koala',
-  'Köstəbək',
-  'Qarışqayeyən',
-  'Qırqovul',
-  'Qorilla',
-  'Qunduz',
-  'Qurbağa',
-  'Maral',
-  'Panda',
-  'Pişik',
-  'Porsuq',
-  'Piton',
-  'Sarıköynək',
-  'Suiti',
-  'Timsah',
-  'Turac',
-};
+///
+/// Hər ikisinin təsvir mətni də yoxdur (`kAnimalsWithoutInfoText`) — əvvəl
+/// mətn yazılmalı, sonra səsləndirilməlidir.
+const Set<String> kAnimalsWithoutInfoAudio = {'Qarışqayeyən', 'Qırqovul'};
 
 /// Təsvir mətni (`animalInfo`) olmayan heyvanlar.
 const Set<String> kAnimalsWithoutInfoText = {'Qarışqayeyən', 'Qırqovul'};

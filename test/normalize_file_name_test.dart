@@ -69,7 +69,18 @@ void main() {
     test('hasLetterAudio böyük/kiçik hərfə həssas deyil', () {
       expect(AppConfig.hasLetterAudio('A'), isTrue);
       expect(AppConfig.hasLetterAudio('a'), isTrue);
-      expect(AppConfig.hasLetterAudio('D'), isFalse);
+      expect(AppConfig.hasLetterAudio('W'), isFalse);
+    });
+
+    test('I və İ hərf səsi ayrı qovluqlara düşür', () {
+      expect(
+        AppConfig.letterAudioPath('I'),
+        'assets/audios/ı/ı_info_sound.mp3',
+      );
+      expect(
+        AppConfig.letterAudioPath('İ'),
+        'assets/audios/i/i_info_sound.mp3',
+      );
     });
 
     test('letterAudioPath gözlənilən yolu qurur', () {

@@ -85,15 +85,21 @@ class AppConfig {
   /// göstərilmir — əks halda düymə səssiz qalır və "dayandır" vəziyyətində ilişir.
   /// Yeni səs faylı əlavə edəndə bu siyahını da yeniləyin; test/content_integrity_test.dart
   /// siyahının diskdəki fayllarla üst-üstə düşdüyünü yoxlayır.
-  static const Set<String> lettersWithAudio = {'A', 'B', 'C'};
+  static const Set<String> lettersWithAudio = {
+    'A', 'B', 'C', 'Ç', 'D', 'E', 'Ə', 'F', 'G', 'Ğ', 'H', 'X', 'I', 'İ', 'J', 'K',
+    'Q', 'L', 'M', 'N', 'O', 'Ö', 'P', 'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z',
+  };
 
   /// Verilmiş hərfin tələffüz səsi varmı.
   static bool hasLetterAudio(String letter) =>
       lettersWithAudio.contains(letter.toUpperCase());
 
   /// Hərfin tələffüz səsinin asset yolu.
+  ///
+  /// `toLowerCase()` nöqtəsiz `I`-ni də `i` edir və onu `İ`-nin səsinə
+  /// yönəldirdi, ona görə `I` açıq şəkildə `ı/` qovluğuna bağlanır.
   static String letterAudioPath(String letter) {
-    final folder = letter.toLowerCase();
+    final folder = letter == 'I' ? 'ı' : letter.toLowerCase();
     return 'assets/audios/$folder/${folder}_info_sound.mp3';
   }
 
@@ -691,8 +697,7 @@ class AppConfig {
     // Hər dəfə map-lardan yeni obyekt yaradılır
     final letterLower = letter.toLowerCase();
     final imagePath = 'assets/images/$letterLower/$letterLower.webp';
-    final audioPath =
-        'assets/audios/$letterLower/${letterLower}_info_sound.mp3';
+    final audioPath = letterAudioPath(letter);
     final description = letterDescriptions[letterKey] ?? '';
     final animalNames = animalsByLetter[letterKey] ?? [];
     final animals = <AnimalInfo>[];
