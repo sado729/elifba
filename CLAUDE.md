@@ -90,7 +90,7 @@ There is **no database and no JSON** — all content lives as `const` maps in
   today). `hasLetterAudio()` gates the speaker button in `animal_list_page.dart`, and
   `content_integrity_test.dart` asserts the set still matches the files on disk.
 
-**Narration provenance.** On 2026-09-29 every narration (32 letters, 89 animals) was
+**Narration provenance.** On 2026-09-29 every narration (32 letters, today 88 animals) was
 synthesised, or re-synthesised, from its own `letterDescriptions` / `animalInfo` text, so
 the whole app speaks in **one voice** and each recording matches the text on screen. The
 older recordings for 3 letters and 61 animals were replaced; many covered only about half
@@ -117,6 +117,30 @@ Before this the loudness spread was 29 LU (from `Şir` at −9 to `Qurd` at −3
 files clipped. `Qırqovul` was 67 s long and 89 % silence. A new animal sound should be
 brought to the same level, or it will stick out.
 
+**34 more animal sounds were added on 2026-09-29 (68 in total).** They came from freesound,
+xeno-canto, Wikimedia Commons, figshare (the supplements of research papers) and NPS.
+Only CC0, Public Domain and CC BY sources were used; NonCommercial, NoDerivatives and
+"personal use" sources were rejected. They went through the same levelling, plus four
+additions for raw field recordings:
+- **High-pass per animal** against wind and traffic rumble: 35–100 Hz for large mammals,
+  300–600 Hz, 4th order, for birds.
+- **Best 10 s, not the first 10 s:** a long recording keeps the 10 s window with the most
+  sound within 15 dB of its loudest moment, measured in the animal's own band.
+- **Hand-picked segments** for two sources. `Hepard` uses the chirp series at 14.0–17.8 s of a
+  seven-call research file. `Turac` uses one song bout at 213.8–217.2 s of a 6.5-minute
+  café recording.
+- **Two exceptions to the level:**
+  - `Dağsiçanı` is a single very short squeak. It sits about 12 LU under target, and extra
+    limiting does not raise it.
+  - `Yaquar` was allowed 6 dB of limiting instead of 3.
+
+Every **CC BY sound needs its author** in the "Səs mənbələri" dialog
+(`settings_page.dart`, `_showSoundCredits`). Add the author there whenever you add one.
+Several animals still have no sound, for three reasons:
+- **Effectively silent species:** no sound needed.
+- **Only non-vocal recordings exist:** Maralöküz, Qunduz, Porsuq, Lama.
+- **Only NC or personal-use recordings exist:** Bəbir, Gəlincik, Dovdaq.
+
 The animal name string is the join key across ~5 separate maps, so a typo in any one map
 silently falls back to a default (empty description, no puzzle, etc.). When adding an
 animal, update **every** map consistently — the integrity test will tell you if you did not.
@@ -136,7 +160,7 @@ A letter's stars come from the sections completed under it:
   *opening* the animal, since it is the default section), `foods` (**all** of its foods fed
   one by one), `wordPuzzle`, `tilePuzzle` (only when `animalHasPuzzle`).
 - Per letter, +1 for tracing the letter (`markWritten`), which is why every one of the 32
-  letters has content and `maxTotalStars` is 96 — `Ğ`, `I` and `Ü` have no animals but can
+  letters has content and `maxTotalStars` is 96 — `Ğ`, `I`, `Ü`, `J` and `R` have no animals but can
   still be written.
 - `starsFor(done, total)`: 0 done → 0 stars, any progress → 1, `≥ 2/3` → 2, **all** → 3.
   Monotone by design, and the third star is the only strict one, so "did everything about
@@ -259,7 +283,7 @@ diacritic letters. See Gotchas.
    declaration (`final ... = AudioPlayer()`), and `setAsset` calls live inside a
    try/catch. Keep this pattern — moving construction into an async `_initAudio()`
    reintroduces a `LateInitializationError` race on early interaction or `dispose()`.
-6. **A silent audio button must not exist.** All 32 letters and 89 of 91 animals have
+6. **A silent audio button must not exist.** All 32 letters and 88 of 90 animals have
    narration today, but that coverage is not guaranteed. The letter speaker button is rendered only when
    `AppConfig.hasLetterAudio(letter)` is true, and every `setAsset` is wrapped in
    try/catch — without both, a missing file leaves the button stuck in its stop state and
@@ -364,9 +388,72 @@ diacritic letters. See Gotchas.
 
 Tracked as allowlists in `test/content_integrity_test.dart`, not as TODO comments:
 
-- 2 of 91 animals have **no narration** (`<name>_info_sound.mp3`): `Qarışqayeyən` and
-  `Qırqovul`, because they have no description text to narrate.- `Ğ`, `I`, `Ü` have **no animals** — their list page opens empty.
+- 2 of 90 animals have **no narration** (`<name>_info_sound.mp3`): `Qarışqayeyən` and
+  `Qırqovul`, because they have no description text to narrate.
+- `Ğ`, `I`, `Ü`, `J`, `R` have **no animals** — their list page opens empty. `J` and `R`
+  emptied when their only animals got their standard names (Jaquar → Yaquar, Rakun → Yenot).
 - `Ş` has no letter-card image; `Qarışqayeyən` and `Qırqovul` have no description text.
+- 22 of 90 animals have **no animal sound** (`<name>_sound.mp3`); see the sound notes above.
+
+**The name is the source of truth** for an animal. Its picture, text, foods and sounds must
+match what the Azerbaijani name means, as az.wikipedia defines it.
+
+A full audit of all 91 animals (name, illustration, puzzle photo, text, foods) ran on
+2026-09-29/30. Every changed text had its narration regenerated.
+
+Fixed:
+- **Rewritten:** `Dovdaq`, `Turac`, `Baltadimdik`, `Dələ`, `Sarıköynək` and `Suiti` had
+  texts, and some foods, describing another animal. Suiti's text described a small bird.
+- **Corrected in about 50 more texts:**
+  - **Grammar:** `ovlanmaq` means "to be hunted", not "to hunt". Also `sudan yaşamaq`,
+    `qarını`, `boyunu`, `baraj`, `istifadə etmək` + ablative, and `iy bilmə` →
+    `iybilmə`.
+  - **Facts:** mammoth tusks are not horns, rhino horns sit on the nose, a snail shell is not
+    bone, pandas live alone, and a cat does not catch with its tongue.
+  - **Foods:** only from the existing food images. The `Qurd` food icon is an earthworm, so
+    it is not used where a wolf could be read.
+- **Standard Azerbaijani names** (orthography dictionary orfoqrafiya.azleks.az, or az.wikipedia
+  where the dictionary has no entry). Every map key, text, credit and asset file was renamed with
+  them, and some animals moved to another letter: `Leylek` → `Leylək`, `Jaquar` → `Yaquar` (Y),
+  `Rakun` → `Yenot` (Y), `Echidna` → `Yexidna` (Y), `Çita` → `Hepard` (H; az.wikipedia title),
+  `Eland` → `Maralöküz` (M), `Hamster` → `Dağsiçanı` (D), `Flamingo` → `Qızılqaz` (Q; the text
+  still says it is also called flaminqo) and `Zebra` → `Zebr`, including Şir's food.
+  Saved stars of a renamed animal do not carry over, because progress is keyed by the name.
+- **Merged duplicate:** `Leopard` was the same species as `Bəbir`, so it was removed. Bəbir
+  now uses Leopard's spotted illustration instead of the black panther. Its text, foods and
+  puzzle photo stay.
+- **Photos:** `Dələ` uses the marten illustration that had been filed under `Çalağan`.
+  Four puzzle photos were replaced or recropped:
+  - `Baltadimdik`: hawfinch, iNaturalist photo 122343794, CC0, Лариса Артемьева.
+  - `Sarıköynək`: male golden oriole, Commons
+    "Rigogolo-maschio-Lazio, isola di Ventotene (LT) 19.4.2024.jpg", CC0, Carlo Caimi.
+  - `Ulaq`: donkey, replacing a mule; iNaturalist photo 529310977, CC0,
+    Emily Langdon-Lassagne.
+  - `Ayı`: recropped from 655×468 to a 600×600 square.
+
+**Illustrations that are still wrong.** Ready prompts for all of them are in
+`docs/art/illustration-prompts.md`:
+- **A different animal:**
+  - `Çalağan`: a marten.
+  - `Dovdaq`: a pheasant.
+  - `Turac`: a peacock.
+  - `Camış`: an African buffalo.
+  - `Baltadimdik`: a shoebill.
+  - `Sarıköynək`: a wagtail.
+  - `Qırqovul`: a bobwhite quail.
+  - `Maral`: a white-tailed deer.
+  - `Ceyran`: a Thomson's gazelle.
+  - `Gürzə`: a common adder.
+  - `Kəklik`: a red-legged partridge.
+- **Wrong anatomy:**
+  - `Ağcaqanad` has 8 legs.
+  - `Dağsiçanı` (hamster) has a long rat tail.
+  - `Çaqqal` has invented stripes.
+  - `Maralöküz` (eland) has kudu-like horns and no dewlap.
+
+`keklik.webp` was a style reference; do not use it as one any more.
+
+**Open question:** the `Leylək` animal sound is an American wood stork (fws.gov), not a white stork.
 
 ## Security
 
