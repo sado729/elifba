@@ -219,6 +219,13 @@ class SettingsPage extends StatelessWidget {
                   Text('• soundbible.com — Public Domain və CC BY 3.0'),
                   SizedBox(height: 6),
                   Text('• fws.gov, nps.gov — Public Domain arxivləri'),
+                  SizedBox(height: 6),
+                  Text('• freesound.org, xeno-canto.org — CC0 və CC BY 4.0'),
+                  SizedBox(height: 6),
+                  Text(
+                    '• commons.wikimedia.org, figshare.com (elmi '
+                    'məqalələrin əlavələri) — CC BY 4.0',
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'CC BY 3.0 müəllifləri:',
@@ -228,6 +235,33 @@ class SettingsPage extends StatelessWidget {
                   Text(
                     'Mike Koenig, Daniel Simon, J Dawg, Mark Mattingly, '
                     'Cat Stevens',
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'CC BY 4.0 müəllifləri '
+                    '(creativecommons.org/licenses/by/4.0):',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Çəyirtkə — reinsamba (freesound)\n'
+                    'Vaşaq — YleArkisto (freesound)\n'
+                    'Turac — NikosDemetriou (freesound)\n'
+                    'Dələ — Gabriele Vaudano (xeno-canto)\n'
+                    'Yaquar — About Zoos (Wikimedia Commons)\n'
+                    'Hepard — D. Smirnova, I. Volodin, T. Demina, E. Volodina\n'
+                    'Ceyran — I. A. Volodin, O. V. Sibiryakova, '
+                    'N. V. Soldatova, E. V. Volodina\n'
+                    'Zürafə — E. Volodina, I. Volodin, E. Chelysheva, R. Frey\n'
+                    'Koala — B. D. Charlton, W. A. H. Ellis, A. J. McKinnon, '
+                    'J. Brumm, K. Nilsson, W. T. Fitch\n'
+                    'Panda — B. D. Charlton, M. S. Martin-Wintle, M. A. Owen, '
+                    'Zhang Hemin, R. R. Swaisgood',
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Səslər tətbiq üçün qısaldılıb, təmizlənib və səs '
+                    'səviyyəsi bərabərləşdirilib.',
                   ),
                 ],
               ),

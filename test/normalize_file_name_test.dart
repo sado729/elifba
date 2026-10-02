@@ -23,10 +23,13 @@ void main() {
       expect(AppConfig.normalizeFileName('Ağac qabığı'), 'agac_qabigi');
     });
 
-    test('Flamingo faylı `flamingo` adlanmalıdır', () {
-      // Fayl bir müddət `flaminqo_...` yazılışı ilə saxlanıb və tətbiq onu
-      // heç vaxt tapa bilməyib; bu test həmin səhvin qayıtmasının qarşısını alır.
-      expect(AppConfig.normalizeFileName('Flamingo'), 'flamingo');
+    test('yeni adların fayl adları', () {
+      // Adlar standart Azərbaycan yazılışına keçəndə assetlər də bu adlarla
+      // yenidən adlandırıldı (məs. Hamster -> Dağsiçanı -> `dagsicani`).
+      expect(AppConfig.normalizeFileName('Qızılqaz'), 'qizilqaz');
+      expect(AppConfig.normalizeFileName('Dağsiçanı'), 'dagsicani');
+      expect(AppConfig.normalizeFileName('Maralöküz'), 'maralokuz');
+      expect(AppConfig.normalizeFileName('Leylək'), 'leylek');
     });
   });
 

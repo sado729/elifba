@@ -167,7 +167,7 @@ class AppConfig {
     'Y':
         '"Y" hərfi sanki yüngül bir yay kimi səslənir!\nBu hərflə yaşıl, yelkən, yemək, yoldaş kimi sözlər başlayır.\nY səsi çıxanda dil ağızın yuxarı hissəsinə yaxınlaşır və səs yumşaq olur.\n"Y" hərfi uşaqlar üçün sözləri daha şirin və rahat tələffüz etməkdə çox önəmlidir.\nUşaqlar "Y" hərfini öyrəndikdə danışıqda mehribanlıq və sevgi artar!',
     'Z':
-        '"Z" hərfi zümzümə edən bir səslə başlayır!\nBu hərflə zebra, zəfəran, zəng, zoologiya kimi sözlər başlayır.\nZ səsi çıxanda dodaqlar və dişlər bir az yaxınlaşır və səs vızıldayar.\n"Z" hərfi uşaqlar üçün sözləri daha canlı və maraqlı tələffüz etməkdə çox vacibdir.\nUşaqlar "Z" hərfini öyrəndikdə danışıqda daha ritmik və əyləncəli olur!',
+        '"Z" hərfi zümzümə edən bir səslə başlayır!\nBu hərflə zebr, zəfəran, zəng, zoologiya kimi sözlər başlayır.\nZ səsi çıxanda dodaqlar və dişlər bir az yaxınlaşır və səs vızıldayar.\n"Z" hərfi uşaqlar üçün sözləri daha canlı və maraqlı tələffüz etməkdə çox vacibdir.\nUşaqlar "Z" hərfini öyrəndikdə danışıqda daha ritmik və əyləncəli olur!',
   };
 
   static const Map<String, List<String>> animalsByLetter = {
@@ -183,16 +183,15 @@ class AppConfig {
       'Baltadimdik',
     ],
     'C': ['Camış', 'Cücə', 'Ceyran'],
-    'Ç': ['Çalağan', 'Çaqqal', 'Çita', 'Çəyirtkə'],
-    'D': ['Dənizatı', 'Donuz', 'Dovşan', 'Dovdaq', 'Dələ', 'Dəvə'],
-    'E': ['Eşşək', 'Eland', 'Echidna'],
+    'Ç': ['Çalağan', 'Çaqqal', 'Çəyirtkə'],
+    'D': ['Dənizatı', 'Donuz', 'Dovşan', 'Dovdaq', 'Dələ', 'Dəvə', 'Dağsiçanı'],
+    'E': ['Eşşək'],
     'Ə': ['Ərincək', 'Əqrəb'],
-    'F': ['Fil', 'Flamingo'],
+    'F': ['Fil'],
     'G': ['Gürzə', 'Gəlincik'],
-    'H': ['Hamster'],
+    'H': ['Hepard'],
     'X': ['Xərçəng'],
     'İ': ['İlan', 'İlbiz', 'İnək', 'İt'],
-    'J': ['Jaquar'],
     'K': [
       'Kəpənək',
       'Kirpi',
@@ -213,202 +212,200 @@ class AppConfig {
       'Qorilla',
       'Qunduz',
       'Qurbağa',
+      'Qızılqaz',
     ],
-    'L': ['Lama', 'Leopard', 'Leylek'],
-    'M': ['Mamont', 'Maral', 'Meymun'],
+    'L': ['Lama', 'Leylək'],
+    'M': ['Mamont', 'Maral', 'Meymun', 'Maralöküz'],
     'N': ['Nərə'],
     'O': ['Orka'],
     'Ö': ['Ördək'],
     'P': ['Panda', 'Pələng', 'Pinqvin', 'Pişik', 'Porsuq', 'Piton'],
-    'R': ['Rakun'],
     'S': ['Sarıköynək', 'Siçan', 'Sincab', 'Sərçə', 'Suiti'],
     'Ş': ['Şahin', 'Şir'],
     'T': ['Timsah', 'Tısbağa', 'Tülkü', 'Turac'],
     'U': ['Ulaq'],
     'V': ['Vaşaq'],
-    'Y': ['Yarasa'],
-    'Z': ['Zürafə', 'Zebra'],
+    'Y': ['Yarasa', 'Yaquar', 'Yenot', 'Yexidna'],
+    'Z': ['Zürafə', 'Zebr'],
   };
 
   static const Map<String, String> animalInfo = {
     'At':
-        'Atlar çox sürətli və zəkalı heyvanlardır. Onlar min illərdir ki, insanlara kömək edirlər – həm yük daşıyıblar, həm də insanları bir yerdən başqa yerə aparıblar.\nAtlar çox yaxşı yaddaşa malikdir və sahibini illərlə unutmaya bilirlər. Onlar həm də bir-birini tanıya və dostluq edə bilirlər.\nAtların qulaqları daim hərəkət edir – onlar bununla həm səsləri eşidirlər, həm də əhval-ruhiyyələrini göstərirlər.\nAtlar ot yeyirlər və çox vaxt ayaq üstə yatırlar. Bəli, atlar uzanmadan da dincələ bilirlər!\nBalaca ata tay deyilir və o çox oynaq və sevimli olur. Taylar doğulduqdan bir neçə dəqiqə sonra ayağa qalxa bilirlər!',
+        'Atlar çox sürətli və zəkalı heyvanlardır. Onlar min illərdir ki, insanlara kömək edirlər – həm yük daşıyıblar, həm də insanları bir yerdən başqa yerə aparıblar.\nAtlar çox yaxşı yaddaşa malikdir və sahiblərini illərlə unutmurlar. Onlar həm də bir-birini tanıya və dostluq edə bilirlər.\nAtların qulaqları daim hərəkət edir – onlar bununla həm səsləri eşidirlər, həm də əhval-ruhiyyələrini göstərirlər.\nAtlar ot yeyirlər və çox vaxt ayaq üstə yatırlar. Bəli, atlar uzanmadan da dincələ bilirlər!\nBalaca ata tay deyilir və o çox oynaq və sevimli olur. Taylar doğulduqdan təxminən bir saat sonra ayağa qalxa bilirlər!',
     'Ayı':
-        'Ayılar çox güclü və ağıllı heyvanlardır. Onların burnu çox iti olur, hətta kilometrlərlə uzaqdan yeməyin qoxusunu ala bilirlər! Ayılar çox vaxt tək yaşayır və meşələrdə, dağlarda və bəzən buzlu yerlərdə görülür.\nƏn məşhur ayı növlərindən biri qütb ayısıdır – o, tamamilə ağ rəngdə olur və buzlu dənizlərdə yaşayır.Amma qəhvəyi ayılar və qara ayılar da var. Onlar əsasən meşələrdə olur və bal, meyvə, balıq və hətta kiçik heyvanlarla qidalanırlar.\nAyılar qışda uzun bir yuxuya gedirlər. Bu yuxuya qış yuxusu deyilir. Onlar bir neçə ay heç oyanmadan yatırlar!\nAyılar çox sevimli görünür, amma əslində çox güclüdürlər. Körpə ayılar – yəni ayı balaları – çox şirin və oynaq olurlar, anaları onları qorumağa çox diqqət edir.',
+        'Ayılar çox güclü və ağıllı heyvanlardır. Onların burnu çox iti olur, hətta kilometrlərlə uzaqdan yeməyin qoxusunu ala bilirlər! Ayılar çox vaxt tək yaşayır və meşələrdə, dağlarda və bəzən buzlu yerlərdə görülür.\nƏn məşhur ayı növlərindən biri qütb ayısıdır – o, tamamilə ağ rəngdə olur və buzlu dənizlərdə yaşayır. Amma qəhvəyi ayılar və qara ayılar da var. Onlar əsasən meşələrdə olur və bal, meyvə, balıq və hətta kiçik heyvanlarla qidalanırlar.\nBir çox ayılar qışda uzun bir yuxuya gedirlər. Bu yuxuya qış yuxusu deyilir. Onlar bir neçə ay yuvalarında yatırlar!\nAyılar çox sevimli görünür, amma əslində çox güclüdürlər. Körpə ayılar – yəni ayı balaları – çox şirin və oynaq olurlar, anaları onları qorumağa çox diqqət edir.',
     'Ağacdələn':
         'Ağacdələnlər ağacların gövdəsini dimdikləri ilə döyərək içindəki böcəkləri tapırlar.\nOnların dimdiyi çox möhkəmdir və ağaca dəfələrlə vurduqda belə zədələnmir.\nAğacdələnlər ağacın içində balaları üçün yuva düzəldirlər.\nOnlar əsasən həşərat və qurdlarla qidalanırlar.\nAğacdələnin başını sürətlə vurduqda belə beyni zədələnmir – bu, təbiətin möcüzələrindən biridir!',
     'Ağcaqanad':
-        'Ağcaqanadlar çox kiçik, amma maraqlı canlılardır. Onlar uçarkən vızıltı kimi bir səs çıxarırlar – bu səs qanadlarını çox sürətli çaldıqları üçün yaranır.\nOnlar əsasən axşam və gecə saatlarında aktiv olurlar və isti havanı sevirlər.\nOnların bəziləri insanların qanını sorur, amma bunu yalnız dişi ağcaqanadlar edir! Çünki onlar yumurta qoymaq üçün xüsusi qidalara ehtiyac duyurlar.\nAğcaqanadların qoxuya qarşı çox həssas burunları var. Onlar insanın tər qoxusunu hiss edib yaxınlaşırlar.',
+        'Ağcaqanadlar çox kiçik, amma maraqlı canlılardır. Onlar uçarkən vızıltı kimi bir səs çıxarırlar – bu səs qanadlarını çox sürətli çaldıqları üçün yaranır.\nOnlar əsasən axşam və gecə saatlarında aktiv olurlar və isti havanı sevirlər.\nOnların bəziləri insanların qanını sorur, amma bunu yalnız dişi ağcaqanadlar edir! Çünki onlar yumurta qoymaq üçün xüsusi qidalara ehtiyac duyurlar.\nAğcaqanadların qoxuya qarşı çox həssas bığcıqları var. Onlar insanın tər qoxusunu hiss edib yaxınlaşırlar.',
     'Alpaka':
         'Alpakalar yumşaq və qalın tükləri ilə tanınan mehriban heyvanlardır. Onlar əsasən Cənubi Amerikanın dağlıq bölgələrində, xüsusilə And dağlarında yaşayırlar.\nAlpakaların tükləri çox dəyərlidir, çünki həm isti saxlayır, həm də allergiya yaratmır. Bu səbəbdən onların yunu ilə xüsusi geyimlər hazırlanır.\nAlpakalar çox sakit və dostcanlıdırlar. Onlar sürülərlə yaşayır və bir-biriləri ilə yumşaq səslərlə ünsiyyət qururlar.\nƏgər alpaka nəyisə bəyənməsə və ya qorxsa, tüpürə bilər – bu onların özlərini qoruma üsuludur!\nBalaca alpakalara "kriya" deyilir və onlar doğulandan bir neçə saat sonra ayaq üstə dura bilirlər.',
     'Balıq':
         'Balıqlar suyun altında yaşayan canlılardır və nəfəs almaq üçün qəlsəmələrdən istifadə edirlər. Onlar burunla deyil, suyun içindəki oksigeni qəlsəmələri ilə alırlar.\nBalıqların çoxu üzgəcləri ilə üzür və bədənlərini sağa-sola hərəkət etdirərək irəliləyirlər.\nBalıqların bəziləri çox parlaq və rəngarəng olur. Xüsusilə tropik dənizlərdə yaşayan balıqlar göy, sarı, qırmızı rənglərdə ola bilirlər!\nBəzi balıqlar qışda buzlu suyun altında belə yaşaya bilirlər. Hətta dəniz dibində işıq saçan balıqlar da var!\nBalıqlar çox sakit görünürlər, amma ətrafda baş verənləri hiss etmək üçün bədənlərində xüsusi xətlər var.',
     'Bayquş':
-        'Bayquşlar gecə ovlanan quşlardır və çox iti görmə qabiliyyətləri var.\nOnların başı demək olar ki, tam dairə ilə fırlana bilir!\nBayquşlar çox sakit uça bilirlər, bu da ovlarını qorxmadan yaxalamağa kömək edir.\nOnlar əsasən siçanlar, kiçik quşlar və böcəklərlə qidalanırlar.\nBayquşların iri gözləri və kəskin eşitmə qabiliyyəti onları gecənin ustasına çevirir.',
+        'Bayquşlar gecə ov edən quşlardır və çox iti görmə qabiliyyətləri var.\nOnlar başlarını demək olar ki, dairənin dörddə üçü qədər çevirə bilirlər!\nBayquşlar çox sakit uça bilirlər, bu da ovlarını qorxutmadan tutmağa kömək edir.\nOnlar əsasən siçanlar, kiçik quşlar və böcəklərlə qidalanırlar.\nBayquşların iri gözləri və kəskin eşitmə qabiliyyəti onları gecənin ustasına çevirir.',
     'Bəbir':
-        'Bəbir çevik və güclü yırtıcı pişikdir, bədənindəki ləkələrlə tanınır.\nO, ağaclara dırmaşmağı və ovunu budaqlarda gizlətməyi bacarır.\nBəbir tək yaşayır və ovunu səssizcə izləyib hücum edir.\nOnlar əsasən ceyran, meymun və quşlarla qidalanırlar.\nBəbir həm gündüz, həm də gecə ovlana bilər və çox sürətli qaça bilir.',
+        'Bəbir çevik və güclü yırtıcı pişikdir, bədənindəki ləkələrlə tanınır.\nO, ağaclara dırmaşmağı və ovunu budaqlarda gizlətməyi bacarır.\nBəbir tək yaşayır və ovunu səssizcə izləyib hücum edir.\nOnlar əsasən ceyran, meymun və quşlarla qidalanırlar.\nBəbir həm gündüz, həm də gecə ov edə bilər və çox sürətli qaça bilir.',
     'Buqələmun':
-        'Buqələmunlar çox xüsusi kərtənkələlərdir. Onların bədəni rəng dəyişə bilir! Əhvalına, ətraf mühitə və hətta temperatur dəyişməsinə görə buqələmunun rəngi dəyişir.\nOnların gözləri çox fərqlidir – hər iki gözü fərqli istiqamətə baxa bilir! Bu sayədə onlar ətrafı tam görə bilirlər.\nBuqələmunlar uzun və yapışqan dilləri ilə böcəkləri tuturlar. Dilləri o qədər sürətli çıxır ki, insan gözü ilə izləmək çətindir!\nOnlar çox yavaş hərəkət edirlər və ağac budaqlarında sakit-sakit gəzməyi sevirlər.\nBuqələmunlar təbiətdə gizlənmək üzrə ustadırlar. Dəyişən rəngləri sayəsində düşməndən asanlıqla gizlənə bilirlər.',
+        'Buqələmunlar çox xüsusi kərtənkələlərdir. Onların bədəni rəng dəyişə bilir! Əhvalına, ətraf mühitə və hətta temperatur dəyişməsinə görə buqələmunun rəngi dəyişir.\nOnların gözləri çox fərqlidir – hər iki gözü fərqli istiqamətə baxa bilir! Bu sayədə onlar ətrafı tam görə bilirlər.\nBuqələmunlar uzun və yapışqan dilləri ilə böcəkləri tuturlar. Dilləri o qədər sürətli çıxır ki, insan gözü ilə izləmək çətindir!\nOnlar çox yavaş hərəkət edirlər və ağac budaqlarında sakit-sakit gəzməyi sevirlər.\nBuqələmunlar təbiətdə gizlənmək üzrə ustadırlar. Yaşıl və qonur rəngləri sayəsində yarpaqlar arasında asanlıqla gizlənə bilirlər.',
     'Bizon':
-        'Bizonlar iri, güclü və tüklü bədənləri olan heyvanlardır. Onlar əsasən meşəlik və çəmənlik ərazilərdə yaşayırlar.\nBir bizonun çəkisi bir neçə ton ola bilər! Onlar həm çox güclüdür, həm də sürətli qaça bilirlər.\nBizonların alnında qalın tükləri və qısa, əyri buynuzları olur. Bu buynuzlardan həm müdafiə üçün, həm də öz aralarında yarışarkən istifadə edirlər.\nBizonlar sürülər halında yaşayırlar və çox sosial heyvanlardır. Bir-birilərinə təhlükə zamanı xəbərdarlıq edə bilirlər.\nBalaca bizonlara "buzov" deyilir və onlar doğulandan bir neçə dəqiqə sonra yeriməyə başlayırlar!',
+        'Bizonlar iri, güclü və tüklü bədənləri olan heyvanlardır. Onlar əsasən meşəlik və çəmənlik ərazilərdə yaşayırlar.\nBir bizonun çəkisi təxminən bir tona çata bilər! Onlar həm çox güclüdür, həm də sürətli qaça bilirlər.\nBizonların alnında qalın tükləri və qısa, əyri buynuzları olur. Bu buynuzlardan həm müdafiə üçün, həm də öz aralarında yarışarkən istifadə edirlər.\nBizonlar sürülər halında yaşayırlar və çox sosial heyvanlardır. Bir-birilərinə təhlükə zamanı xəbərdarlıq edə bilirlər.\nBalaca bizonlara "buzov" deyilir və onlar doğulandan bir neçə dəqiqə sonra yeriməyə başlayırlar!',
     'Bülbül':
-        'Bülbül çox gözəl və şirin səsi ilə tanınan kiçik quşdur.\nOnlar əsasən meşəlik və sakit yerlərdə yaşayırlar.\nBülbül gecə və səhər tezdən oxumağı sevir.\nOnlar qurd, həşərat və toxumlarla qidalanırlar.\nBülbülün oxuması insanlara sevinc və rahatlıq hissi bəxş edir.',
+        'Bülbül çox gözəl və şirin səsi ilə tanınan kiçik quşdur.\nOnlar əsasən meşəlik və sakit yerlərdə yaşayırlar.\nBülbül gecə və səhər tezdən oxumağı sevir.\nOnlar qurd, həşərat və giləmeyvələrlə qidalanırlar.\nBülbülün oxuması insanlara sevinc və rahatlıq hissi bəxş edir.',
     'Begemot':
         'Begemotlar suyu çox sevən, iri və güclü heyvanlardır. Onlar əsasən Afrikada çay və göllərdə yaşayırlar.\nGün ərzində saatlarla suyun içində qalırlar, çünki dəriyə birbaşa günəş düşəndə quruyur və zərər görə bilər.\nBegemotlar çöldə ağır və yavaş görünsələr də, suyun içində çox çevik və sürətli hərəkət edirlər.\nOnların ağızları çox böyük olur – bir begemot ağzını o qədər geniş aça bilir ki, içinə bir top yerləşə bilər!\nBaxmayaraq ki, çox vaxt sakit görünürlər, begemotlar özlərini və ailələrini qorumaq üçün çox cəsur ola bilirlər.',
     'Baltadimdik':
-        'Baltadimdik çox qəribə və maraqlı quşdur! Onun dimdiyi iri və baltaya bənzəyir, buna görə də adı baltadimdik qoyulub.\nBu quş əsasən Afrikanın bataqlıqlarında yaşayır və orada qurbağa, balıq və hətta kiçik timsahları ovlayır!\nBaltadimdik çox sakit və tərpənmədən durmağı sevir. Bəzən saatlarla tərpənmir ki, ov yaxına gəlsin.\nOnların boyu uşaqlardan da hündür ola bilər – bəziləri 1 metr 20 santimetrə qədər uzana bilir!\nƏn maraqlısı isə budur ki, baltadimdik salam verirmiş kimi başını aşağı-yuxarı tərpədir və qəribə səslər çıxarır.',
+        'Baltadimdik sərçədən bir az iri, qalın boyunlu quşdur.\nOnun dimdiyi başına görə çox iri və güclüdür – elə bil kiçik bir baltadır, adı da buradan gəlir!\nBu güclü dimdiklə baltadimdik gilas və albalı çəyirdəklərini belə asanlıqla sındırır.\nBaltadimdiklər meşələrdə, parklarda və meyvə bağlarında yaşayırlar.\nOnlar çox ehtiyatlıdırlar və adətən ağacların ən hündür budaqlarında otururlar.',
     'Camış':
         'Camışlar iri və güclü heyvanlardır. Onlar əsasən isti və rütubətli yerlərdə yaşayırlar və suyu çox sevirlər.\nCamışların böyük və əyri buynuzları olur. Bu buynuzlar onlara həm qorxulu görünüş verir, həm də özlərini qorumaq üçün istifadə olunur.\nCamışlar gündə saatlarla palçıq və suda qalmağı sevirlər – bu onların dərisini sərin saxlayır və həşəratlardan qoruyur.\nOnlar əsasən kənd təsərrüfatında istifadə olunur – həm süd verirlər, həm də ağır işlərdə kömək edirlər.\nCamışlar çox dözümlü heyvanlardır və çətin şəraitdə belə yaşaya bilirlər.',
     'Cücə':
-        'Cücələr toyuqların balaları olub, çox şirin və oynaq olurlar.\nOnlar yumurtadan çıxdıqdan dərhal sonra analarını tanıyır və onun arxasınca gedirlər.\nCücələr sarı, yumşaq tüklərlə örtülü olur və cik-cik səsləri çıxararaq ünsiyyət qururlar.\nOnlar tez böyüyürlər – cəmi bir neçə həftə ərzində tükləri tökülür və yeni, daha tünd rəngli tüklər çıxır.\nCücələr çox maraqlı və öyrənməyi sevən canlılardır – daim ətrafı kəşf edir və yeni şeylər öyrənirlər.',
+        'Cücələr toyuqların balaları olub, çox şirin və oynaq olurlar.\nOnlar yumurtadan çıxdıqdan dərhal sonra analarını tanıyır və onun arxasınca gedirlər.\nCücələr çox vaxt sarı, yumşaq tüklərlə örtülü olur və cik-cik səsləri çıxararaq ünsiyyət qururlar.\nOnlar tez böyüyürlər – cəmi bir neçə həftə ərzində tükləri tökülür və yeni, daha tünd rəngli tüklər çıxır.\nCücələr çox maraqlı və öyrənməyi sevən canlılardır – daim ətrafı kəşf edir və yeni şeylər öyrənirlər.',
     'Ceyran':
-        'Ceyranlar çox zərif və sürətli heyvanlardır. Onlar açıq çöllərdə və səhralarda yaşayırlar.\nCeyranların uzun və incə ayaqları var, bu onlara çox sürətli qaçmağa imkan verir – təhlükə zamanı bir ceyran saatda 80 kilometrə qədər sürətlə qaça bilir!\nOnların gözəl, əyri buynuzları olur və bu buynuzlar əsasən erkək ceyranlarda daha böyük olur.\nCeyranlar çox diqqətli heyvanlardır – həmişə təhlükəni hiss etmək üçün qulaqlarını dik saxlayır və ətrafı izləyirlər.\nOnlar sürülər halında yaşayır və bir-birinə xəbərdarlıq etməklə təhlükədən qorunurlar.',
+        'Ceyranlar çox zərif və sürətli heyvanlardır. Onlar açıq çöllərdə və səhralarda yaşayırlar.\nCeyranların uzun və incə ayaqları var, bu onlara çox sürətli qaçmağa imkan verir – təhlükə zamanı bir ceyran saatda 80 kilometrə qədər sürətlə qaça bilir!\nErkək ceyranların gözəl, əyri buynuzları olur, dişilərdə isə buynuz adətən olmur.\nCeyranlar çox diqqətli heyvanlardır – həmişə təhlükəni hiss etmək üçün qulaqlarını dik saxlayır və ətrafı izləyirlər.\nOnlar sürülər halında yaşayır və bir-birinə xəbərdarlıq etməklə təhlükədən qorunurlar.',
     'Çalağan':
-        'Çalağanlar iti gözləri və sürətli uçuşları ilə tanınan yırtıcı quşlardır.\nOnlar göydə dairələr cızaraq ovlarını axtarır və sonra sürətlə şığıyaraq onları tuturlar.\nÇalağanların qanadları çox uzun və ensizdir, bu onlara havada saatlarla qalmağa və küləyi istifadə etməyə imkan verir.\nOnlar əsasən kiçik gəmiricilər, quşlar və hətta ilan kimi sürünənlərlə qidalanırlar.\nÇalağanlar yuvalarını hündür ağaclarda və ya qayalarda qurur və balalarına ov etməyi öyrədirlər.',
-    'Çita':
-        'Çitalar dünyanın ən sürətli quru heyvanlarıdır! Onlar qısa məsafələrdə saatda 110 kilometrə qədər sürətlə qaça bilirlər.\nÇitaların bədəni qaçmaq üçün mükəmməl uyğunlaşıb – uzun və elastik bədən, güclü ayaqlar və balans saxlamaq üçün uzun quyruq.\nOnların bədənində qara nöqtələr var və bu nöqtələr hər çitada fərqlidir – elə bil barmaq izi kimidir!\nÇitalar əsasən Afrika çöllərində yaşayır və ceyran, antilop kimi sürətli heyvanları ovlayırlar.\nOnlar çox sürətli olsalar da, uzun müddət qaça bilmirlər – adətən 20-30 saniyə qaçdıqdan sonra yorulur və dincəlməlidirlər.',
+        'Çalağanlar iti gözləri və havada uzun müddət süzmələri ilə tanınan yırtıcı quşlardır.\nOnlar göydə dairələr cızaraq ovlarını axtarır və sonra sürətlə şığıyaraq onları tuturlar.\nÇalağanların qanadları çox uzun və ensizdir, bu onlara havada saatlarla qalmağa və küləyi istifadə etməyə imkan verir.\nOnlar əsasən kiçik gəmiricilər, balıq, böcəklər və hətta leşlə qidalanırlar.\nÇalağanlar yuvalarını hündür ağaclarda və ya qayalarda qurur və balalarına ov etməyi öyrədirlər.',
+    'Hepard':
+        'Hepardlar dünyanın ən sürətli quru heyvanlarıdır! Onlar qısa məsafələrdə saatda 100 kilometrdən çox sürətlə qaça bilirlər.\nHepardların bədəni qaçmaq üçün mükəmməl uyğunlaşıb – uzun və elastik bədən, güclü ayaqlar və balans saxlamaq üçün uzun quyruq.\nOnların bədənində qara nöqtələr var və bu nöqtələr hər hepardda fərqlidir – elə bil barmaq izi kimidir!\nHepardlar əsasən Afrika çöllərində yaşayır və ceyran, antilop kimi sürətli heyvanları ovlayırlar.\nOnlar çox sürətli olsalar da, uzun müddət qaça bilmirlər – adətən 20-30 saniyə qaçdıqdan sonra yorulur və dincəlməlidirlər.',
     'Çaqqal':
-        'Çaqqallar orta ölçülü yırtıcı heyvanlardır və sürü ilə yaşayırlar.\nOnlar çox ağıllı və çevikdirlər, ovlarını birlikdə tuturlar.\nÇaqqallar gecə və gündüz ovlana bilirlər.\nOnlar müxtəlif heyvanlarla, hətta bitkilərlə də qidalanırlar.\nÇaqqallar meşələrdə, çöllərdə və bəzən insanlara yaxın yerlərdə yaşayırlar.',
+        'Çaqqallar orta ölçülü yırtıcı heyvanlardır və cüt-cüt və ya kiçik ailə qrupları ilə yaşayırlar.\nOnlar çox ağıllı və çevikdirlər, çox vaxt tək və ya cüt ov edirlər.\nÇaqqallar gecə və gündüz ov edə bilirlər.\nOnlar müxtəlif heyvanlarla, hətta bitkilərlə də qidalanırlar.\nÇaqqallar meşələrdə, çöllərdə və bəzən insanlara yaxın yerlərdə yaşayırlar.',
     'Çəyirtkə':
-        'Çəyirtkələr kiçik, yaşıl və çox uzağa tullana bilən həşəratlardır.\nOnların arxa ayaqları çox güclüdür və tullanmaq üçün istifadə olunur.\nÇəyirtkələr əsasən ot və yarpaqlarla qidalanırlar.\nOnlar "çırçır" səsi çıxararaq bir-biri ilə əlaqə qururlar.\nÇəyirtkələr isti havada daha fəal olurlar və günəşli yerləri sevirlər.',
+        'Çəyirtkələr kiçik, yaşıl və ya qəhvəyi rəngli, çox uzağa tullana bilən həşəratlardır.\nOnların arxa ayaqları çox güclüdür və tullanmaq üçün istifadə olunur.\nÇəyirtkələr əsasən ot və yarpaqlarla qidalanırlar.\nOnlar "çırçır" səsi çıxararaq bir-biri ilə əlaqə qururlar.\nÇəyirtkələr isti havada daha fəal olurlar və günəşli yerləri sevirlər.',
     'Dənizatı':
         'Dənizatları çox qəribə və maraqlı dəniz canlılarıdır. Onların başı at başına bənzəyir, buna görə də belə adlanırlar!\nDənizatları üzgəcləri ilə çox yavaş hərəkət edirlər və adətən dəniz otlarına quyruqları ilə dolanaraq dayanırlar.\nƏn maraqlısı odur ki, dənizatlarında balalar ata tərəfindən dünyaya gətirilir! Dişi dənizatı yumurtaları erkəyin xüsusi cibinə qoyur və balalar orada inkişaf edir.\nOnlar çox kiçik dəniz canlıları ilə qidalanır və gündə minlərlə kiçik orqanizm yeyə bilirlər.\nDənizatları rənglərini dəyişə bilir və bununla ətraf mühitdə gizlənə bilirlər.',
     'Donuz':
-        'Donuzlar çox ağıllı və təmiz heyvanlardır. Onlar insanların düşündüyü kimi çirkli deyil, əksinə, imkan olduqda təmiz yerdə yatmağı sevirlər.\nDonuzların burnu çox həssasdır və onlar torpağın altında belə yeməyi tapa bilirlər. Bu buruna "xortum" deyilir.\nOnlar çox sosial heyvanlardır və qruplar halında yaşamağı sevirlər. Bir-biriləri ilə müxtəlif səslərlə ünsiyyət qururlar.\nBalaca donuzlara "çoşqa" deyilir və onlar çox oynaq və maraqlı olurlar.\nDonuzlar əslində çox zəkalıdırlar – onları hətta bəzi sadə oyunları oynamağa öyrətmək mümkündür!',
+        'Donuzlar çox ağıllı və təmiz heyvanlardır. Onlar insanların düşündüyü kimi çirkli deyil, əksinə, imkan olduqda təmiz yerdə yatmağı sevirlər.\nDonuzların burnu çox həssasdır və onlar burunları ilə torpağı eşərək altındakı yeməyi belə tapa bilirlər.\nOnlar çox sosial heyvanlardır və qruplar halında yaşamağı sevirlər. Bir-biriləri ilə müxtəlif səslərlə ünsiyyət qururlar.\nBalaca donuzlara "çoşqa" deyilir və onlar çox oynaq və maraqlı olurlar.\nDonuzlar əslində çox zəkalıdırlar – onları hətta bəzi sadə oyunları oynamağa öyrətmək mümkündür!',
     'Dovşan':
-        'Dovşanlar uzun qulaqları və sürətli hərəkətləri ilə tanınan şirin heyvanlardır.\nOnların qulaqları çox həssasdır və ən kiçik səsləri belə eşidə bilirlər – bu, təhlükədən qorunmaq üçün çox vacibdir.\nDovşanlar otla qidalanır və xüsusilə kök və yerkökünü çox sevirlər. Onlar yemək yeyərkən daim ətrafı izləyirlər.\nOnlar çox sürətli qaça bilirlər və təhlükə zamanı ziqzaqlarla qaçaraq düşməni çaşdırırlar.\nBalaca dovşanlara "dovşan balası" və ya "bala dovşan" deyilir və onlar gözləri qapalı, tüksüz doğulurlar.',
+        'Dovşanlar uzun qulaqları və sürətli hərəkətləri ilə tanınan şirin heyvanlardır.\nOnların qulaqları çox həssasdır və ən kiçik səsləri belə eşidə bilirlər – bu, təhlükədən qorunmaq üçün çox vacibdir.\nDovşanlar otla qidalanır və xüsusilə kök və yerkökünü çox sevirlər. Onlar yemək yeyərkən daim ətrafı izləyirlər.\nOnlar çox sürətli qaça bilirlər və təhlükə zamanı ziqzaqlarla qaçaraq düşməni çaşdırırlar.\nBalaca dovşanlara "dovşan balası" və ya "bala dovşan" deyilir. Ev dovşanlarının balaları gözləri qapalı, tüksüz doğulur, çöl dovşanlarının balaları isə tüklü və gözləri açıq doğulur.',
     'Dovdaq':
-        'Dovdaq böyük və güclü yırtıcı quşdur.\nO, yüksəkdən uçaraq ovunu diqqətlə izləyir.\nDovdaq çox iti görmə qabiliyyətinə malikdir və uzaqdan kiçik heyvanları görə bilir.\nOnun iti caynaqları ovunu tutmaq üçün çox güclüdür.\nDovdaqlar dağlıq və meşəlik yerlərdə yaşayırlar.',
+        'Dovdaq dünyanın uça bilən ən ağır quşlarından biridir!\nO, geniş çöllərdə və tarlalarda yaşayır, vaxtının çoxunu yerdə gəzərək keçirir.\nErkək dovdaq dişidən xeyli iridir, yazda isə tüklərini qabardaraq ağ bir topa bənzəyir.\nDovdaqlar ot, yarpaq, toxum və böcəklərlə qidalanırlar.\nDovdaq çox ehtiyatlı quşdur və Azərbaycanda nadir olduğu üçün qorunur.',
     'Dələ':
-        'Dələ kiçik və sürətli heyvandır, adətən meşələrdə yaşayır.\nOnun tükü yumşaq və qışda qalınlaşır.\nDələlər gecə aktivdir və əsasən kiçik heyvanlar və meyvələrlə qidalanırlar.\nOnlar çox yaxşı gizlənməyi bacarırlar və yırtıcılardan qaçırlar.\nDələlərin quyruğu qısa və tüklüdür.',
+        'Dələ çevik və sürətli yırtıcı heyvandır, adətən meşələrdə yaşayır.\nOnun tükü yumşaq və parlaqdır, qışda isə daha da qalınlaşır.\nDələlər ağaca çox yaxşı dırmaşır və budaqdan-budağa tullana bilirlər.\nOnlar əsasən gecə ov edir, siçan, quş, yumurta, meyvə və bal ilə qidalanırlar.\nDələnin quyruğu uzun və tüklüdür, sinəsində isə sarımtıl bir ləkə olur.',
     'Dəvə':
-        'Dəvələr səhra və quraq yerlərdə yaşayırlar.\nOnların bədəni susuzluğa və isti havaya çox dözümlüdür.\nDəvələrin boyununda və kürəyində hörgüclər olur, bunlar yağ toplayıb enerji verir.\nOnlar uzun müddət susuz qala və yemək tapmaya bilər.\nDəvələr yük daşımaq və insanlara kömək etmək üçün istifadə olunur.',
+        'Dəvələr səhra və quraq yerlərdə yaşayırlar.\nOnların bədəni susuzluğa və isti havaya çox dözümlüdür.\nDəvələrin kürəyində bir və ya iki hörgüc olur, hörgüclərdə yağ toplanır və enerji verir.\nOnlar uzun müddət susuz və yeməksiz qala bilirlər.\nDəvələr yük daşımaq və insanlara kömək etmək üçün istifadə olunur.',
     'Eşşək':
         'Eşşəklər çox dözümlü və səbirli heyvanlardır. Onlar min illərdir ki, insanlara yük daşımaqda kömək edirlər.\nEşşəklərin qulaqları atlarınkından daha uzundur və bu qulaqlar onlara çox yaxşı eşitmə qabiliyyəti verir.\nOnlar çətin şəraitdə yaşaya bilir və az su ilə kifayətlənə bilirlər. Bu xüsusiyyət onları səhra kimi yerlərdə çox dəyərli edir.\nEşşəklər çox ağıllıdırlar və yolları yaxşı yadda saxlayırlar. Hətta illər sonra belə getdikləri yolu xatırlaya bilirlər.\nOnların məşhur "ia-ia" səsi əslində bir ünsiyyət formasıdır və müxtəlif vəziyyətlərdə fərqli səslər çıxarırlar.',
-    'Eland':
-        'Elandlar dünyanın ən böyük antilop növlərindən biridir. Onlar əsasən Afrika savannalarında yaşayırlar.\nElandların böyük, burulmuş buynuzları olur və bu buynuzlar həm erkək, həm də dişilərdə ola bilir.\nOnlar çox güclü heyvanlardır və 4 metrə qədər hündürlüyə tulana bilirlər! Bu, təhlükədən qaçmaq üçün çox faydalıdır.\nElandlar otla qidalanır və susuz qalmağa dözə bilirlər, çünki lazımi nəmi yedikləri bitkilərdən alırlar.\nOnlar sakit və ürkək heyvanlardır, amma təhlükə zamanı çox sürətli qaça bilirlər.',
-    'Echidna':
-        'Echidnalar çox qəribə və maraqlı heyvanlardır. Onlar Avstraliyada yaşayırlar və tiknəli bədənləri var.\nƏn maraqlısı odur ki, echidnalar yumurta qoyan məməlilərdir! Bəli, onlar həm məməli, həm də yumurta qoyurlar – təbiətin əsl möcüzəsidir!\nEchidnaların uzun və yapışqan dilləri var və bu dillə qarışqaları və termitləri tuturlar.\nOnlar təhlükə zamanı özlərini top kimi bükür və tikanlı tərəfini yuxarı çevirirlər.\nEchidnalar çox yavaş hərəkət edirlər, amma çox dəqiq iy bilmə qabiliyyətinə malikdirlər.',
+    'Maralöküz':
+        'Maralöküzlər dünyanın ən böyük antilop növlərindən biridir. Onlar əsasən Afrika savannalarında yaşayırlar.\nMaralöküzlərin böyük, burulmuş buynuzları olur və bu buynuzlar həm erkək, həm də dişilərdə ola bilir.\nOnlar çox güclü heyvanlardır və iki metrdən də hündürə tullana bilirlər! Bu, təhlükədən qaçmaq üçün çox faydalıdır.\nMaralöküzlər ot və yarpaqlarla qidalanır və susuz qalmağa dözə bilirlər, çünki lazımi nəmi yedikləri bitkilərdən alırlar.\nOnlar sakit və ürkək heyvanlardır, amma təhlükə zamanı uzun müddət yorulmadan qaça bilirlər.',
+    'Yexidna':
+        'Yexidnalar çox qəribə və maraqlı heyvanlardır. Onlar Avstraliyada yaşayırlar və tikanlı bədənləri var.\nƏn maraqlısı odur ki, yexidnalar yumurta qoyan məməlilərdir! Bəli, onlar həm məməlidirlər, həm də yumurta qoyurlar – təbiətin əsl möcüzəsidir!\nYexidnaların uzun və yapışqan dilləri var və bu dillə qarışqaları və termitləri tuturlar.\nOnlar təhlükə zamanı özlərini top kimi bükür və tikanlı tərəfini yuxarı çevirirlər.\nYexidnalar çox yavaş hərəkət edirlər, amma çox dəqiq iybilmə qabiliyyətinə malikdirlər.',
     'Ərincək':
         'Ərincəklər ağaclarda yaşayan və çox yavaş hərəkət edən heyvanlardır. Onlar gündə təxminən 40 metr məsafə qət edirlər!\nƏrincəklərin uzun caynaqları var və bu caynaqlarla ağac budaqlarından asılı qalırlar. Onlar hətta yatarkən belə budaqdan asılı vəziyyətdə qalırlar.\nƏn maraqlısı odur ki, ərincəklər başı aşağı asılı vəziyyətdə qida yeyir, yatır və hətta balalarını dünyaya gətirirlər!\nOnların bədənində xüsusi yosunlar yaşayır və bu, onlara yaşıl rəng verir, beləliklə ağaclarda gizlənə bilirlər.\nƏrincəklər əsasən yarpaqlarla qidalanır və çox az su içirlər – lazımi nəmi yedikləri yarpaqlardan alırlar.',
     'Əqrəb':
         'Əqrəblər səkkiz ayaqlı, quyruqlarında zəhərli iynəsi olan canlılardır.\nOnların bədəni iki hissədən ibarətdir: baş-sinə və qarıncıq. Qarıncığın sonunda qıvrılan quyruq və zəhər iynəsi yerləşir.\nƏqrəblər əsasən gecə vaxtı ov edir və gündüzlər daşların altında və ya qumda gizlənirlər.\nOnlar həşəratlar və kiçik heyvanlarla qidalanırlar, ovlarını əvvəl qısqacları ilə tutur, sonra zəhərləyirlər.\nƏqrəblər ultraviolet işıqda parlayırlar – gecə vaxtı xüsusi lampalarla onları asanlıqla görmək olur!',
     'Fil':
         'Fillər dünyanın ən böyük quru heyvanlarıdır. Onların uzun xortumları var və bu xortumla həm qida götürür, həm su içir, həm də müxtəlif əşyaları qaldıra bilirlər.\nFillərin böyük qulaqları var və bu qulaqları yelləməklə bədənlərini sərinlədirlər. Qulaqlarının forması və ölçüsü yaşadıqları yerə görə dəyişir.\nOnlar çox ağıllı və sosial heyvanlardır. Ailələri ilə birlikdə yaşayır və bir-birinə kömək edirlər. Hətta öz ailə üzvlərini illər sonra belə tanıya bilirlər!\nFillərin dişləri fil sümüyü adlanır və çox dəyərlidir. Təəssüf ki, bu səbəbdən fillər ovlanır və sayları azalır.\nBalaca fillərə "fil balası" deyilir və onlar doğulduqdan sonra 2-3 il ana südü ilə qidalanırlar.',
-    'Flamingo':
-        'Flaminqolar uzun boyunları, nazik ayaqları və çəhrayı rəngləri ilə tanınan quşlardır.\nOnlar adətən bir ayaq üstündə dayanırlar – bu, enerji saxlamağa və soyuq sudan qorunmağa kömək edir.\nFlaminqoların rəngi qidalandıqları xərçəngkimilərdən gəlir – nə qədər çox xərçəng yesələr, o qədər parlaq çəhrayı olurlar!\nOnlar böyük qruplarda – koloniyalarda yaşayırlar və bəzən minlərlə flamingo bir yerdə ola bilir.\nFlaminqolar palçıqdan konus şəklində yuvalar düzəldir və yumurtalarını onun üstünə qoyurlar.',
+    'Qızılqaz':
+        'Qızılqazlar (flaminqolar) uzun boyunları, nazik ayaqları və çəhrayı rəngləri ilə tanınan quşlardır.\nOnlar adətən bir ayaq üstündə dayanırlar – bu, enerji saxlamağa və soyuq sudan qorunmağa kömək edir.\nQızılqazların rəngi qidalandıqları xərçəngkimilərdən gəlir – nə qədər çox xərçəng yesələr, o qədər parlaq çəhrayı olurlar!\nOnlar böyük qruplarda – koloniyalarda yaşayırlar və bəzən minlərlə qızılqaz bir yerdə ola bilir.\nQızılqazlar palçıqdan konus şəklində yuvalar düzəldir və yumurtasını onun üstünə qoyurlar.',
     'Gürzə':
-        'Gürzə zəhərli bir ilan növüdür və əsasən Qafqaz və Orta Asiyada yaşayır.\nOnların başında üçbucaq formalı naxışlar olur və bu, onları tanımağa kömək edir.\nGürzələr çox yaxşı ov edə bilirlər – onlar həm görmə, həm də istilik hiss etmə qabiliyyəti ilə şikarlarını tapırlar.\nOnlar əsasən gecə vaxtı aktiv olurlar və gündüzlər daşların altında və ya kolluqlarda gizlənirlər.\nGürzələr kiçik məməlilərlə, xüsusilə gəmiricilərlə qidalanırlar və təbiətdə faydalı rol oynayırlar.',
+        'Gürzə zəhərli bir ilan növüdür və əsasən Qafqaz və Orta Asiyada yaşayır.\nOnların başı iri, enli və üçbucaq formalıdır, bu da onları tanımağa kömək edir.\nGürzələr çox yaxşı ov edə bilirlər – onlar həm iybilmə, həm də görmə qabiliyyəti ilə şikarlarını tapırlar.\nOnlar əsasən gecə vaxtı aktiv olurlar və gündüzlər daşların altında və ya kolluqlarda gizlənirlər.\nGürzələr kiçik məməlilərlə, xüsusilə gəmiricilərlə qidalanırlar və təbiətdə faydalı rol oynayırlar.',
     'Gəlincik':
-        'Gəlinciklər kiçik, uzun bədənli və çevik məməlilərdir. Onlar çox sürətli hərəkət edirlər və kiçik deşiklərdən belə keçə bilirlər.\nOnların yay və qış üçün fərqli rəngli xəzləri olur – qışda ağ, yayda isə qəhvəyi olurlar. Bu, onlara mövsümə görə gizlənməyə kömək edir.\nGəlinciklər çox cəsur heyvanlardır və özlərindən böyük heyvanlarla belə döyüşə bilirlər!\nOnlar əsasən siçan və digər kiçik gəmiricilərlə qidalanırlar, buna görə də fermerlər üçün çox faydalıdırlar.\nGəlinciklər çox maraqlı və öyrənməyi sevən canlılardır – daim ətrafı kəşf edir və yeni şeylər öyrənirlər.',
-    'Hamster':
-        'Hamsterlər kiçik, yumşaq xəzli və sevimli gəmiricilərdir. Onların yanaqlarında xüsusi ciblər var və bu ciblərdə qida daşıya bilirlər!\nBəzən bir hamster öz çəkisinə bərabər qidanı yanaq ciblərində daşıya bilir – təsəvvür edin!\nOnlar gecə heyvanlarıdır, yəni əsasən gecələr aktiv olurlar və gündüzlər yatırlar.\nHamsterlər çox təmiz heyvanlardır və vaxtlarının çoxunu özlərini təmizləməklə keçirirlər.\nOnlar yuva qurmağı çox sevirlər və yuvalarını yumşaq materiallarla – samanla, kağızla və hətta pambıqla doldururlar.',
+        'Gəlinciklər kiçik, uzun bədənli və çevik məməlilərdir. Onlar çox sürətli hərəkət edirlər və kiçik deşiklərdən belə keçə bilirlər.\nBəzi gəlinciklərin xəzi qışda ağappaq, yayda isə qəhvəyi olur. Bu, onlara mövsümə görə gizlənməyə kömək edir.\nGəlinciklər çox cəsur heyvanlardır və özlərindən böyük heyvanlarla belə döyüşə bilirlər!\nOnlar əsasən siçan və digər kiçik gəmiricilərlə qidalanırlar, buna görə də fermerlər üçün çox faydalıdırlar.\nGəlinciklər çox maraqlı və öyrənməyi sevən canlılardır – daim ətrafı kəşf edir və yeni şeylər öyrənirlər.',
+    'Dağsiçanı':
+        'Dağsiçanları kiçik, yumşaq xəzli və sevimli gəmiricilərdir. Onların yanaqlarında xüsusi ciblər var və bu ciblərdə qida daşıya bilirlər!\nYanaq cibləri dolanda dağsiçanının başı iki-üç dəfə böyük görünür – təsəvvür edin!\nOnlar gecə heyvanlarıdır, yəni əsasən gecələr aktiv olurlar və gündüzlər yatırlar.\nDağsiçanları çox təmiz heyvanlardır və vaxtlarının çoxunu özlərini təmizləməklə keçirirlər.\nOnlar yuva qurmağı çox sevirlər və yuvalarını yumşaq materiallarla – samanla, kağızla və hətta pambıqla doldururlar.',
     'Xərçəng':
         'Xərçənglər suda yaşayan, bərk örtüklü canlılardır. Onların bədəni zirehlə örtülüdür və bu zireh böyüdükcə dəyişir.\nXərçənglərin bir cüt qısqacı var və bu qısqaclarla həm qida tutur, həm də özlərini qoruyurlar.\nOnlar yan-yan yeriyirlər və təhlükə zamanı çox sürətlə hərəkət edə bilirlər.\nXərçənglər həm şirin, həm də duzlu suda yaşaya bilirlər və əsasən kiçik balıqlar və bitkilərlə qidalanırlar.\nƏn maraqlısı odur ki, xərçənglər qopan qısqaclarını və ayaqlarını yenidən bərpa edə bilirlər!',
     'İlan':
-        'İlanlar ayaqsız sürünənlərdir və bütün dünyada müxtəlif növləri var.\nOnların bədəni elastikdir və çənələri çox geniş açılır – bu, özlərindən böyük şikarları belə uda bilməyə imkan verir.\nİlanların dili çatallıdır və onlar bu dili havadakı qoxuları hiss etmək üçün istifadə edirlər.\nBəzi ilanlar zəhərli olur, bəziləri isə şikarlarını sıxaraq ovlayır. Onlar həzm prosesi çox yavaş olduğu üçün az-az qidalanırlar.\nİlanlar dərilərini vaxtaşırı dəyişirlər – köhnə dəri sıyrılır və altından yeni, parlaq dəri çıxır.',
+        'İlanlar ayaqsız sürünənlərdir və bütün dünyada müxtəlif növləri var.\nOnların bədəni elastikdir və çənələri çox geniş açılır – bu, başlarından qat-qat böyük şikarları belə uda bilməyə imkan verir.\nİlanların dili çatallıdır və onlar bu dildən havadakı qoxuları hiss etmək üçün istifadə edirlər.\nBəzi ilanlar zəhərli olur, bəziləri isə şikarlarını sıxaraq ovlayır. Onlar həzm prosesi çox yavaş olduğu üçün az-az qidalanırlar.\nİlanlar dərilərini vaxtaşırı dəyişirlər – köhnə dəri sıyrılır və altından yeni, parlaq dəri çıxır.',
     'İlbiz':
-        'İlbiz yavaş hərəkət edən və yumşaq bədəni olan bir heyvandır.\nOnun bədəni qalın və sümüklü qabıqla örtülüdür, buna "evi" deyilir.\nİlbizlər əsasən gecə fəal olurlar və bitki örtüyü ilə qidalanırlar.\nOnlar çox yumşaq və süngər kimi sürtünmə qabiliyyətinə malikdirlər.\nİlbizlər özlərini təhlükədən qorumaq üçün bəzən sümük qabığını ev kimi daşıyırlar.',
+        'İlbiz yavaş hərəkət edən və yumşaq bədəni olan bir heyvandır.\nOnun belində əhəngdən olan bərk, burma qabıq var, buna "evi" deyilir.\nİlbizlər əsasən gecə fəal olurlar və bitki örtüyü ilə qidalanırlar.\nOnlar ayaqlarından ifraz etdikləri selik üzərində sürüşərək hərəkət edirlər.\nTəhlükə olanda ilbiz qabığının içinə çəkilib gizlənir.',
     'İnək':
         'İnəklər insanlar üçün çox faydalı heyvanlardır.\nOnlar süd verir və süd məhsulları hazırlanır.\nİnəklər otlarla qidalanır və geniş otlaqlarda yaşayırlar.\nOnların sakit və mehriban xarakteri var.\nİnəklər böyük qruplar halında birlikdə yaşayırlar və bir-birlərinə kömək edirlər.',
     'İt':
         'İtlər insanların ən yaxın dostlarıdır.\nOnlar müxtəlif növ və ölçüdə olurlar, amma hamısı çox ağıllı və sadiqdir.\nİtlər insanları qoruyur və onlarla oynamağı sevirlər.\nOnlar çox yaxşı qoxu duyğusuna malikdirlər və insanlara kömək edir.\nİtlər həm ev heyvanı, həm də işləyən heyvan kimi istifadə olunur.',
-    'Jaquar':
-        'Jaquarlar Cənubi və Mərkəzi Amerikada yaşayan iri pişikkimilərdir. Onlar pələnglərə bənzəyirlər, amma bədənlərindəki xallar fərqlidir.\nJaquarlar çox güclü çənələrə malikdirlər və şikarlarının kəlləsini bir dişləməklə sındıra bilirlər!\nOnlar həm ağaclara dırmaşmaqda, həm də üzməkdə çox mahirdirlər. Su onlar üçün problem deyil və çox vaxt çaylarda balıq ovlayırlar.\nJaquarlar əsasən gecələr ov edirlər və gündüzlər istirahət edirlər. Onlar tək yaşamağı sevirlər.\nBaxmayaraq ki, jaquarlar insanlardan uzaq durmağa çalışırlar, onlar təbiətin ən güclü və məğrur vəhşilərindən biri sayılırlar.',
+    'Yaquar':
+        'Yaquarlar Cənubi və Mərkəzi Amerikada yaşayan iri pişikkimilərdir. Onlar bəbirlərə bənzəyirlər, amma daha iri və güclüdürlər, xallarının ortasında isə kiçik qara nöqtələr olur.\nYaquarlar çox güclü çənələrə malikdirlər və şikarlarının kəlləsini bir dişləməklə sındıra bilirlər!\nOnlar həm ağaclara dırmaşmaqda, həm də üzməkdə çox mahirdirlər. Su onlar üçün problem deyil və çox vaxt çaylarda balıq ovlayırlar.\nYaquarlar əsasən gecələr ov edirlər və gündüzlər istirahət edirlər. Onlar tək yaşamağı sevirlər.\nBaxmayaraq ki, yaquarlar insanlardan uzaq durmağa çalışırlar, onlar təbiətin ən güclü və məğrur vəhşilərindən biri sayılırlar.',
     'Kəpənək':
-        'Kəpənəklər rəngarəng qanadları olan həşəratlardır. Onlar əvvəlcə tırtıl olur, sonra barama qurur və nəhayət kəpənəyə çevrilirlər.\nOnların qanadları üzərindəki naxışlar və rənglər çox gözəldir və hər növdə fərqlidir. Bu rənglər həm cəlbedici görünmək, həm də düşmənlərdən qorunmaq üçündür.\nKəpənəklər nektar içmək üçün uzun və spiral şəklində olan xortumlarını istifadə edirlər.\nOnların ömrü çox qısadır – bəzi növlər cəmi bir neçə gün yaşayır, digərləri isə bir neçə həftə.\nKəpənəklər çiçəklərin tozlanmasına kömək edirlər və təbiətdə çox vacib rol oynayırlar.',
+        'Kəpənəklər rəngarəng qanadları olan həşəratlardır. Onlar yumurtadan tırtıl kimi çıxır, sonra pup olur və nəhayət kəpənəyə çevrilirlər.\nOnların qanadları üzərindəki naxışlar və rənglər çox gözəldir və hər növdə fərqlidir. Bu rənglər həm cəlbedici görünmək, həm də düşmənlərdən qorunmaq üçündür.\nKəpənəklər nektar içmək üçün uzun və spiral şəklində olan xortumlarından istifadə edirlər.\nOnların ömrü çox qısadır – bəzi növlər cəmi bir neçə gün yaşayır, bəziləri isə bir neçə ay.\nKəpənəklər çiçəklərin tozlanmasına kömək edirlər və təbiətdə çox vacib rol oynayırlar.',
     'Kirpi':
-        'Kirpilər bədənləri tikanlı olan kiçik məməlilərdir. Təhlükə hiss etdikdə özlərini top kimi bükərək tikanlı tərəfi çölə çevirirlər.\nOnlar əsasən gecələr aktiv olurlar və gündüzlər yatırlar. Kirpilər həşəratlar, soxulcanlar, meyvələr və göbələklərlə qidalanırlar.\nKirpilərin iy bilmə qabiliyyəti çox güclüdür – onlar yeməyi qaranlıqda belə asanlıqla tapa bilirlər.\nQışda kirpilər qış yuxusuna gedirlər və yazın gəlişi ilə oyanırlar.\nBalaca kirpilər doğulduqda tikanlı olurlar, amma bu tikanlar yumşaq olur və zaman keçdikcə sərtləşir.',
+        'Kirpilər bədənləri tikanlı olan kiçik məməlilərdir. Təhlükə hiss etdikdə özlərini top kimi bükərək tikanlı tərəfi çölə çevirirlər.\nOnlar əsasən gecələr aktiv olurlar və gündüzlər yatırlar. Kirpilər həşəratlar, soxulcanlar, meyvələr və göbələklərlə qidalanırlar.\nKirpilərin iybilmə qabiliyyəti çox güclüdür – onlar yeməyi qaranlıqda belə asanlıqla tapa bilirlər.\nQışda kirpilər qış yuxusuna gedirlər və yazın gəlişi ilə oyanırlar.\nBalaca kirpilər doğulduqda tikanlı olurlar, amma bu tikanlar yumşaq olur və zaman keçdikcə sərtləşir.',
     'Kərtənkələ':
         'Kərtənkələlər sürünənlər sinfinə aid olan heyvanlardır və dünyada minlərlə növü var.\nOnların bəziləri rəng dəyişə bilir, məsələn buqələmun kimi. Bu, onlara həm gizlənməyə, həm də bədən temperaturunu tənzimləməyə kömək edir.\nKərtənkələlərin çoxu təhlükə zamanı quyruqlarını ata bilir – bu, düşməni çaşdırmaq üçün bir müdafiə mexanizmidir. Quyruq sonradan yenidən çıxır!\nOnlar əsasən həşəratlarla qidalanır və isti havalarda daha aktiv olurlar.\nKərtənkələlər günəş vannası almağı çox sevirlər – bu, onların soyuqqanlı olduğu üçün bədən temperaturunu artırmağa kömək edir.',
     'Kəklik':
         'Kəkliklər orta ölçülü quşlardır və əsasən dağlıq və çöl ərazilərdə yaşayırlar.\nOnların lələkləri qəhvəyi və boz rənglərdə olur, bu da onlara təbiətdə yaxşı gizlənməyə kömək edir.\nKəkliklər çox yaxşı qaça bilirlər və təhlükə zamanı uçmaqdan daha çox qaçmağı üstün tuturlar.\nOnlar toxumlar, meyvələr və həşəratlarla qidalanırlar. Kəkliklər yuvalarını yerdə qururlar və çoxlu yumurta qoyurlar.\nKəkliklərin səsi çox xoşdur və onlar səhər tezdən və axşamüstü daha çox səslənirlər.',
     'Kərgədan':
-        'Kərgədanlar böyük və güclü heyvanlardır, başlarının üstündə böyük buynuzları var.\nOnlar çox qalın dərili və möhkəm bədən quruluşuna malikdirlər.\nKərgədanlar əsasən otla qidalanırlar və geniş otlaqlarda yaşayırlar.\nBu heyvanlar çox səbirli və sakit olsalar da, təhlükə olduqda çox qorxuducu ola bilirlər.\nKərgədanların buynuzları insanlara və digər heyvanlara qarşı müdafiə üçün istifadə olunur.',
+        'Kərgədanlar böyük və güclü heyvanlardır, burunlarının üstündə bir və ya iki böyük buynuzu var.\nOnlar çox qalın dərili və möhkəm bədən quruluşuna malikdirlər.\nKərgədanlar əsasən otla qidalanırlar və geniş otlaqlarda yaşayırlar.\nBu heyvanlar çox səbirli və sakit olsalar da, təhlükə olduqda çox qorxuducu ola bilirlər.\nKərgədanların buynuzları insanlara və digər heyvanlara qarşı müdafiə üçün istifadə olunur.',
     'Koala':
         'Koalalar Avstraliyanın meşələrində yaşayır.\nOnlar çox yavaş hərəkət edir və günün çox hissəsini yataraq keçirirlər.\nKoalaların əsas yeməyi evkalipt yarpaqlarıdır.\nOnların tükü çox yumşaq və sıx olur.\nKoalalar tək yaşayırlar və öz ərazilərini qoruyurlar.',
     'Köstəbək':
-        'Köstəbəklər torpağın altında yaşayırlar və yeraltı dəliklər qazırlar.\nOnlar çox yaxşı qazıcıdırlar və torpaqda sürətlə hərəkət edə bilirlər.\nKöstəbəklərin gözləri çox kiçikdir və demək olar ki, görmürlər.\nOnlar əsasən torpaqda yaşayan həşəratlarla qidalanırlar.\nKöstəbəklər gecə və gündüz aktiv ola bilirlər.',
+        'Köstəbəklər torpağın altında yaşayırlar və yeraltı dəliklər qazırlar.\nOnlar çox yaxşı qazıcıdırlar və torpaqda sürətlə hərəkət edə bilirlər.\nKöstəbəklərin gözləri çox kiçikdir və demək olar ki, görmürlər.\nOnlar əsasən soxulcanlar və böcək sürfələri ilə qidalanırlar.\nKöstəbəklər gecə və gündüz aktiv ola bilirlər.',
     'Qaranquş':
         'Qaranquşlar uzun qanadları və haça quyruqları ilə tanınan kiçik quşlardır.\nOnlar çox sürətli və məharətli uçurlar, hətta havada su içə və ya həşərat tuta bilirlər!\nQaranquşlar palçıqdan yuva qururlar və bu yuvaları binaların kənarlarına, tavanlarına yapışdırırlar.\nOnlar köçəri quşlardır – qışda isti ölkələrə uçur, yazda isə geri qayıdırlar.\nQaranquşlar həşəratlarla qidalanır və bir gündə yüzlərlə milçək, ağcaqanad yeyə bilirlər, buna görə də təbiətdə çox faydalıdırlar.',
     'Qartal':
         'Qartallar ən güclü və iri yırtıcı quşlardandır. Onların iti caynaqları və güclü dimdiyi var.\nQartalların görmə qabiliyyəti insanlardan 4-5 dəfə daha yaxşıdır – onlar yüksəklikdən kiçik bir siçanı belə görə bilirlər!\nOnlar çox hündürdə uça bilirlər və bəzən buludlardan da yuxarıda süzürlər.\nQartallar adətən böyük yuvalar qurur və illər boyu eyni yuvadan istifadə edirlər. Bu yuvalar o qədər böyük olur ki, bəzən ağırlığı bir tona çatır!\nOnlar simvol olaraq güc, azadlıq və cəsarəti təmsil edirlər və bir çox ölkənin gerblərində təsvir olunurlar.',
     'Qaz':
-        'Qazlar böyük su quşlarıdır və əsasən sürülərlə yaşayırlar.\nOnların uzun boyunları var və uçarkən V şəklində düzülürlər. Bu forma küləyə qarşı müqaviməti azaldır və enerji qənaət etməyə kömək edir.\nQazlar həm suda, həm quruda, həm də havada yaşaya bilirlər. Onlar yaxşı üzür və sürətli uçurlar.\nOnlar otla, toxumlarla və kiçik su canlıları ilə qidalanırlar. Qazlar çox sayıq olurlar və yemək yeyərkən növbə ilə gözətçilik edirlər.\nQazlar çox vəfalıdırlar və adətən ömürlük cüt qururlar. Onlar balalarını qorumaq üçün çox cəsur olurlar.',
+        'Qazlar böyük su quşlarıdır və əsasən sürülərlə yaşayırlar.\nOnların uzun boyunları var və uçarkən V şəklində düzülürlər. Bu forma küləyə qarşı müqaviməti azaldır və enerjiyə qənaət etməyə kömək edir.\nQazlar həm suda üzə, həm quruda gəzə, həm də havada uça bilirlər. Onlar yaxşı üzür və sürətli uçurlar.\nOnlar otla, toxumlarla və su bitkiləri ilə qidalanırlar. Qazlar çox sayıq olurlar və yemək yeyərkən növbə ilə gözətçilik edirlər.\nQazlar çox vəfalıdırlar və adətən ömürlük cüt qururlar. Onlar balalarını qorumaq üçün çox cəsur olurlar.',
     'Qoyun':
         'Qoyunlar yumşaq yun örtüyü ilə tanınan ev heyvanlarıdır. Onların yunu insanlar tərəfindən paltar hazırlamaq üçün istifadə olunur.\nQoyunlar sürü halında yaşamağı sevir və bir-birindən ayrı düşdükdə narahat olurlar.\nOnlar otla qidalanır və gündə bir neçə saat otlamaqla keçirirlər. Qoyunlar çox sakit heyvanlardır, amma yaxşı yaddaşa malikdirlər.\nBalaca qoyunlara "quzu" deyilir və onlar doğulduqdan bir neçə dəqiqə sonra ayağa qalxa bilirlər.\nQoyunlar insanlar tərəfindən min illərdir ki, saxlanılır və onlardan həm ət, həm süd, həm də yun əldə edilir.',
     'Qurd':
-        'Qurdlar vəhşi itlər ailəsinə aid olan yırtıcı heyvanlardır. Onlar sürülər halında yaşayır və birlikdə ov edirlər.\nQurdların eşitmə və iy bilmə qabiliyyəti çox güclüdür – onlar kilometrlərlə uzaqdan səsləri eşidə və qoxuları hiss edə bilirlər.\nOnlar gecə heyvanlarıdır və əsasən qaranlıqda aktiv olurlar. Qurdlar çox sürətli qaça bilirlər və uzun məsafələri yorulmadan qət edə bilirlər.\nQurd sürüsündə ciddi bir iyerarxiya var – alfa erkək və dişi sürünü idarə edir, digərləri isə onlara tabe olur.\nQurdlar ulamaqla bir-biriləri ilə ünsiyyət qururlar və bu səs kilometrlərlə uzağa yayıla bilir.',
+        'Qurdlar vəhşi itlər ailəsinə aid olan yırtıcı heyvanlardır. Onlar sürülər halında yaşayır və birlikdə ov edirlər.\nQurdların eşitmə və iybilmə qabiliyyəti çox güclüdür – onlar kilometrlərlə uzaqdan səsləri eşidə və qoxuları hiss edə bilirlər.\nOnlar gecə heyvanlarıdır və əsasən qaranlıqda aktiv olurlar. Qurdlar çox sürətli qaça bilirlər və uzun məsafələri yorulmadan qət edə bilirlər.\nQurd sürüsü əslində bir ailədir – sürünü ana və ata qurd idarə edir, qalanları isə onların balalarıdır.\nQurdlar ulamaqla bir-biriləri ilə ünsiyyət qururlar və bu səs kilometrlərlə uzağa yayıla bilir.',
     'Qorilla':
-        'Qorillalar böyük və güclü meymunlardır.\nOnlar əsasən meşələrdə yaşayırlar və otlarla, meyvələrlə qidalanırlar.\nQorillalar çox ağıllıdır və öz ailələrini qoruyurlar.\nOnlar əl-ələ tutub yerdə gəzə bilirlər.\nQorillalar insanlara bənzər davranışları ilə məşhurdurlar.',
+        'Qorillalar böyük və güclü meymunlardır.\nOnlar əsasən meşələrdə yaşayırlar və otlarla, meyvələrlə qidalanırlar.\nQorillalar çox ağıllıdır və öz ailələrini qoruyurlar.\nOnlar yerdə dörd ayaq üstə, barmaq oynaqlarına dayanaraq gəzirlər.\nQorillalar insanlara bənzər davranışları ilə məşhurdurlar.',
     'Qunduz':
-        'Qunduzlar su ilə əhatə olunmuş yerlərdə yaşayırlar.\nOnlar ağacları dişləri ilə kəsib barajlar tikirlər.\nQunduzların quyruğu böyük və düz olur, bu onlara suyun içində yaxşı üzməyə kömək edir.\nOnlar gecə aktiv olur və otlarla, ağac qabıqları ilə qidalanırlar.\nQunduzlar öz barajları ilə kiçik göllər yaradır və evlərini qoruyurlar.',
+        'Qunduzlar su ilə əhatə olunmuş yerlərdə yaşayırlar.\nOnlar ağacları dişləri ilə kəsib bəndlər tikirlər.\nQunduzların quyruğu böyük və düz olur, bu onlara suyun içində yaxşı üzməyə kömək edir.\nOnlar gecə aktiv olur və otlarla, ağac qabıqları ilə qidalanırlar.\nQunduzlar öz bəndləri ilə kiçik göllər yaradır və evlərini qoruyurlar.',
     'Qurbağa':
-        'Qurbağalar həm sudan, həm də qurudan yaşaya bilən canlılardır.\nOnlar çox yaxşı tullanır və sürətli hərəkət edir.\nQurbağalar kiçik həşəratlarla qidalanırlar və dilini sürətlə çıxarırlar.\nOnların dərisi yaş və sürüşkəndir, bu onları qoruyur.\nQurbağalar suda və torpaqda yaşamağa uyğundur və müxtəlif növləri var.',
+        'Qurbağalar həm suda, həm də quruda yaşaya bilən canlılardır.\nOnlar çox yaxşı tullanır və sürətli hərəkət edir.\nQurbağalar kiçik həşəratlarla qidalanırlar və dilini sürətlə çıxarırlar.\nOnların dərisi yaş və sürüşkəndir, bu onları qoruyur.\nQurbağalar suda və torpaqda yaşamağa uyğundur və müxtəlif növləri var.',
     'Lama':
         'Lamalar Cənubi Amerikada yaşayan, dəvəyə bənzəyən, amma ondan kiçik olan heyvanlardır.\nOnların uzun boynu və yumşaq, qalın yunu var. Bu yun müxtəlif rənglərdə ola bilir – ağ, qara, qəhvəyi və hətta ala-bula!\nLamalar çox dözümlü heyvanlardır və ağır yükləri uzun məsafələrə daşıya bilirlər. Onlar hətta dağlıq ərazilərdə belə rahat hərəkət edirlər.\nƏgər lama əsəbiləşsə, o, tüpürə bilər – bu onların özlərini müdafiə etmə üsuludur!\nLamalar çox sosial heyvanlardır və sürülər halında yaşayırlar. Onlar bir-biriləri ilə müxtəlif səslərlə ünsiyyət qururlar.',
-    'Leopard':
-        'Leopardlar pişikkimilər ailəsinə aid olan yırtıcı heyvanlardır. Onların bədənində qara xallar var və bu xallar hər leopardda fərqli olur – elə bil barmaq izi kimidir!\nLeopardlar çox güclü və çevik heyvanlardır. Onlar ağaclara asanlıqla dırmaşa bilir və şikarlarını ağacın üstünə qaldırmağı sevirlər.\nOnlar tək yaşamağı sevir və əsasən gecələr ov edirlər. Leopardlar çox səssiz hərəkət edir və şikarlarına gizlicə yaxınlaşırlar.\nLeopardlar Afrika və Asiyada yaşayırlar və müxtəlif mühitlərə uyğunlaşa bilirlər – həm meşələrdə, həm dağlarda, həm də savannalarda rast gəlmək olar.\nOnlar çox sürətli qaça bilirlər və bir tullanışla 6 metrə qədər məsafəni keçə bilirlər!',
-    'Leylek':
-        'Leyleklər uzun ayaqları və dimdiyi olan iri quşlardır. Onlar əsasən bataqlıq və çəmənliklərdə yaşayırlar.\nLeyleklərin qanadları çox genişdir və onlar havada süzməyi sevirlər. Uçarkən boyunlarını və ayaqlarını düz saxlayırlar.\nOnlar qurbağa, ilan, balıq və həşəratlarla qidalanırlar. Leyleklər yuvalarını hündür yerlərdə – ağaclarda, qayalarda və hətta binaların damında qururlar.\nLeyleklər köçəri quşlardır – qışda isti ölkələrə uçur, yazda isə geri qayıdırlar.\nBir çox mədəniyyətdə leyleklər uğur və xoşbəxtlik rəmzi sayılır və deyilir ki, onlar körpələri gətirir!',
+    'Leylək':
+        'Leyləklər uzun ayaqları və dimdiyi olan iri quşlardır. Onlar əsasən bataqlıq və çəmənliklərdə yaşayırlar.\nLeyləklərin qanadları çox genişdir və onlar havada süzməyi sevirlər. Uçarkən boyunlarını və ayaqlarını düz saxlayırlar.\nOnlar qurbağa, ilan, balıq və həşəratlarla qidalanırlar. Leyləklər yuvalarını hündür yerlərdə – ağaclarda, qayalarda və hətta binaların damında qururlar.\nLeyləklər köçəri quşlardır – qışda isti ölkələrə uçur, yazda isə geri qayıdırlar.\nBir çox mədəniyyətdə leyləklər uğur və xoşbəxtlik rəmzi sayılır və deyilir ki, onlar körpələri gətirir!',
     'Mamont':
-        'Mamontlar nəhəng, tüklü fillərə bənzər heyvanlardır, amma artıq nəsli kəsilib. Onlar Buz dövrü zamanı yaşayıblar.\nMamontların uzun, əyri buynuzları və bədənlərini örtən qalın, uzun tükləri var idi. Bu tüklər onları soyuqdan qoruyurdu.\nOnlar çox iri heyvanlardır – boyları 4 metrə, çəkiləri isə 6 tona qədər ola bilərdi!\nMamontlar otla qidalanırdılar və sürülər halında yaşayırdılar. Onlar çox sosial heyvanlardır və bir-birilərinə qayğı göstərirdilər.\nBəzi mamontlar buzlaqlarda donmuş vəziyyətdə tapılıb və bu, alimlərə onlar haqqında çox məlumat əldə etməyə imkan verib.',
+        'Mamontlar nəhəng, tüklü fillərə bənzər heyvanlardır, amma artıq nəsli kəsilib. Onlar Buz dövrü zamanı yaşayıblar.\nMamontların uzun, əyri dişləri və bədənlərini örtən qalın, uzun tükləri var idi. Bu tüklər onları soyuqdan qoruyurdu.\nOnlar çox iri heyvanlar idi – boyları 3 metrdən çox, çəkiləri isə 6 tona qədər ola bilərdi!\nMamontlar otla qidalanırdılar və sürülər halında yaşayırdılar. Onlar çox sosial heyvanlar idi və bir-birilərinə qayğı göstərirdilər.\nBəzi mamontlar əbədi donmuş torpaqda tapılıb və bu, alimlərə onlar haqqında çox məlumat əldə etməyə imkan verib.',
     'Maral':
-        'Marallar meşələrdə yaşayan iri boylu heyvanlardır.\nOnların kişi marallarının başında böyük və gözəl buynuzlar olur.\nMarallar sürü halında yaşayırlar və bir-birilərini qoruyurlar.\nOnlar əsasən otlarla və yarpaqlarla qidalanırlar.\nMarallar çox sürətli qaça bilirlər və təhlükə anında sürətlə gizlənirlər.',
+        'Marallar meşələrdə yaşayan iri boylu heyvanlardır.\nErkək maralların başında böyük və gözəl buynuzlar olur.\nMarallar sürü halında yaşayırlar və bir-birilərini qoruyurlar.\nOnlar əsasən otlarla və yarpaqlarla qidalanırlar.\nMarallar çox sürətli qaça bilirlər və təhlükə anında sürətlə gizlənirlər.',
     'Meymun':
         'Meymunlar çox ağıllı və sosial heyvanlardır. Onların əlləri insanların əllərinə bənzəyir və əşyaları tuta bilirlər.\nMeymunların çoxu ağaclarda yaşayır və budaqdan-budağa tullanaraq hərəkət edirlər. Onların quyruqları balansı saxlamağa və bəzi növlərdə hətta budaqlardan asılmağa kömək edir.\nOnlar meyvə, qoz-fındıq, həşərat və kiçik heyvanlarla qidalanırlar. Meymunlar çox maraqlı və öyrənməyi sevən canlılardır.\nOnlar bir-biriləri ilə müxtəlif səslərlə və bədən dili ilə ünsiyyət qururlar. Hətta bəzi meymun növləri sadə alətlər düzəldə və istifadə edə bilirlər!\nMeymunlar ailə qrupları halında yaşayır və balalarına qayğı göstərirlər. Balaca meymunlar çox oynaq və maraqlı olurlar.',
     'Nərə':
-        'Nərə balıqları çox iri və qədim balıq növüdür. Onlar 100 ildən çox yaşaya bilir və 1000 kiloqramdan artıq çəkiyə çata bilirlər!\nNərə balıqlarının bədəni sümük lövhələrlə örtülüdür və bu, onlara qədim görünüş verir. Əslində onlar dinozavrlar dövründən qalan canlılardandır.\nOnlar əsasən çayların dibində yaşayır və kiçik su canlıları ilə qidalanırlar. Nərə balıqları kürü tökmək üçün çayların yuxarı axarlarına üzürlər.\nNərə balıqlarının kürüsü "qara kürü" adlanır və çox dəyərlidir. Təəssüf ki, bu səbəbdən onlar çox ovlanır və sayları azalır.\nOnlar çox güclü balıqlardır və suda çox sürətlə hərəkət edə bilirlər.',
+        'Nərə balıqları çox iri və qədim balıq növüdür. Onlar 100 ildən çox yaşaya bilir və yüz kiloqramlarla çəkiyə çata bilirlər!\nNərə balıqlarının bədəni sümük lövhələrlə örtülüdür və bu, onlara qədim görünüş verir. Əslində onlar dinozavrlar dövründən qalan canlılardandır.\nOnlar əsasən dənizlərin və çayların dibində yaşayır və kiçik su canlıları ilə qidalanırlar. Nərə balıqları kürü tökmək üçün çayların yuxarı axarlarına üzürlər.\nNərə balıqlarının kürüsü "qara kürü" adlanır və çox dəyərlidir. Təəssüf ki, bu səbəbdən onlar çox ovlanır və sayları azalır.\nOnlar çox güclü balıqlardır və suda çox sürətlə hərəkət edə bilirlər.',
     'Orka':
-        'Orkalar (və ya qatil balinalar) dünyanın ən böyük delfinləridir. Onların qara-ağ rəngdə parlaq dəriləri var.\nOrkalar çox ağıllı və sosial heyvanlardır. Onlar ailə qrupları halında yaşayır və bu qruplar nəsildən-nəslə ötürülən öz "mədəniyyətlərinə" malikdir.\nOnlar çox sürətlə üzə bilirlər – saatda 50 kilometrə qədər! Orkalar həm də çox dərinə – 100 metrə qədər dala bilirlər.\nOrkalar yırtıcıdırlar və balıq, suiti, hətta böyük balinalarla qidalanırlar. Onlar çox ağıllı ov strategiyaları qururlar və komanda şəklində hərəkət edirlər.\nBaxmayaraq ki, "qatil balina" adlanırlar, təbiətdə insanlara hücum etmirlər və əsasən çox maraq və dostluq göstərirlər.',
+        'Orkalar (və ya qatil balinalar) dünyanın ən böyük delfinləridir. Onların qara-ağ rəngdə parlaq dəriləri var.\nOrkalar çox ağıllı və sosial heyvanlardır. Onlar ailə qrupları halında yaşayır və bu qruplar nəsildən-nəslə ötürülən öz "mədəniyyətlərinə" malikdir.\nOnlar çox sürətlə üzə bilirlər – saatda 50 kilometrə qədər! Orkalar həm də yüz metrlərlə dərinliyə dala bilirlər.\nOrkalar yırtıcıdırlar və balıq, suiti, hətta böyük balinalarla qidalanırlar. Onlar çox ağıllı ov strategiyaları qururlar və komanda şəklində hərəkət edirlər.\nBaxmayaraq ki, "qatil balina" adlanırlar, təbiətdə insanlara hücum etmirlər və əsasən çox maraq və dostluq göstərirlər.',
     'Ördək':
-        'Ördəklər su quşlarıdır və həm suda, həm quruda, həm də havada yaşaya bilirlər.\nOnların ayaqları pərdəlidir və bu, suda üzməyə kömək edir. Ördəklərin lələkləri su keçirmir və onlar hətta yağışlı havada belə quru qalırlar.\nÖrdəklər "vak-vak" səsi çıxarırlar, amma maraqlısı odur ki, bu səsi əsasən dişi ördəklər çıxarır! Erkək ördəklər daha sakit səslər çıxarır.\nOnlar həm bitkilər, həm də kiçik su canlıları ilə qidalanırlar. Ördəklər suyun dibindən yem çıxarmaq üçün başlarını suya salır və quyruqları yuxarıda qalır.\nÖrdəklər köçəri quşlardır və qışda isti ölkələrə uçurlar. Onlar uçarkən V formasında düzülürlər.',
+        'Ördəklər su quşlarıdır, həm suda üzə, həm quruda gəzə, həm də havada uça bilirlər.\nOnların ayaqları pərdəlidir və bu, suda üzməyə kömək edir. Ördəklərin lələkləri su keçirmir və onlar hətta yağışlı havada belə quru qalırlar.\nÖrdəklər "vak-vak" səsi çıxarırlar, amma maraqlısı odur ki, bu səsi əsasən dişi ördəklər çıxarır! Erkək ördəklər daha sakit səslər çıxarır.\nOnlar həm bitkilər, həm də kiçik su canlıları ilə qidalanırlar. Ördəklər suyun dibindən yem çıxarmaq üçün başlarını suya salır və quyruqları yuxarıda qalır.\nÖrdəklərin çoxu köçəri quşlardır və qışda isti ölkələrə uçurlar. Onlar çox vaxt dəstə ilə, cərgə şəklində uçurlar.',
     'Panda':
-        'Pandalar əsasən Çin meşələrində yaşayır.\nOnlar bambuk yarpaqları ilə qidalanırlar və çox yeməyi sevirlər.\nPandaların tükü ağ və qara rəngdədir, bu onları çox şirin göstərir.\nOnlar günün çox hissəsini yeyərək keçirirlər.\nPandalar sakit və mehriban heyvanlardır, amma nadir hallarda tək yaşaya bilirlər.',
+        'Pandalar əsasən Çin meşələrində yaşayır.\nOnlar bambuk yarpaqları ilə qidalanırlar və çox yeməyi sevirlər.\nPandaların tükü ağ və qara rəngdədir, bu onları çox şirin göstərir.\nOnlar günün çox hissəsini yeyərək keçirirlər.\nPandalar sakit heyvanlardır və əsasən tək yaşayırlar.',
     'Pişik':
-        'Pişiklər insanlar arasında ən sevilən ev heyvanlarından biridir.\nOnlar çox çevik və sürətli hərəkət edə bilirlər.\nPişiklər yaxşı görür və gecə də görmə qabiliyyətləri möhkəmdir.\nOnlar ovlamağı sevir və dilini istifadə edərək oyuncaqları tuturlar.\nPişiklər çox təmiz heyvanlardır və özlərini daim təmizləyirlər.',
+        'Pişiklər insanlar arasında ən sevilən ev heyvanlarından biridir.\nOnlar çox çevik və sürətli hərəkət edə bilirlər.\nPişiklər yaxşı görür və gecə də görmə qabiliyyətləri möhkəmdir.\nOnlar ovlamağı sevir və pəncələri ilə oyuncaqları tuturlar.\nPişiklər çox təmiz heyvanlardır və özlərini daim təmizləyirlər.',
     'Porsuq':
-        'Porsuqlar yeraltı dəliklərdə yaşayırlar və çox yaxşı qazıcıdırlar.\nOnlar gecə aktiv olur və müxtəlif həşəratlarla qidalanırlar.\nPorsuqların bədəni qalın tüklərlə örtülüdür və soyuqdan qoruyur.\nOnlar sakit və ağıllı heyvanlardır.\nPorsuqlar təhlükə anında dərin dəliklərə qaça bilirlər.',
+        'Porsuqlar yeraltı dəliklərdə yaşayırlar və çox yaxşı qazıcıdırlar.\nOnlar gecə aktiv olur və soxulcan, həşərat, meyvə və kiçik heyvanlarla qidalanırlar.\nPorsuqların bədəni qalın tüklərlə örtülüdür, bu da onları soyuqdan qoruyur.\nOnlar sakit və ağıllı heyvanlardır.\nPorsuqlar təhlükə anında dərin dəliklərə qaça bilirlər.',
     'Piton':
         'Pitonlar böyük və güclü ilan növüdür.\nOnlar əsasən tropik meşələrdə yaşayırlar.\nPitonlar ovunu bədənləri ilə sıxaraq tutur və udurlar.\nOnların dərisi müxtəlif naxışlarla bəzənmişdir və bu onlara gizlənməyə kömək edir.\nPitonlar çox yavaş hərəkət etsələr də, çox güclü və təhlükəlidirlər.',
     'Pələng':
         'Pələnglər ən böyük pişikkimilərdən biridir və çox güclü yırtıcılardır. Onların bədənində qara zolaqlı naxışlar var və bu naxışlar hər pələngdə fərqlidir.\nPələnglər çox güclü və çevik heyvanlardır. Onlar 6 metrə qədər uzunluğa tullana bilir və çox sürətli qaçırlar.\nOnlar tək yaşamağı sevir və əsasən gecələr ov edirlər. Pələnglər çox səssiz hərəkət edir və şikarlarına gizlicə yaxınlaşırlar.\nPələnglər Asiyada yaşayırlar və müxtəlif mühitlərə uyğunlaşa bilirlər – həm meşələrdə, həm bataqlıqlarda, həm də dağlarda rast gəlmək olar.\nTəəssüf ki, pələnglər təhlükə altındadır və sayları azalır. Onları qorumaq üçün xüsusi tədbirlər görülür.',
     'Pinqvin':
-        'Pinqvinlər uça bilməyən, amma çox yaxşı üzən quşlardır. Onlar əsasən Cənub yarımkürəsində, xüsusilə Antarktidada yaşayırlar.\nPinqvinlərin bədəni qara-ağ rəngdədir – arxası qara, qarını isə ağdır. Bu rəng onları suda gizlənməyə kömək edir.\nOnlar qanadlarını üzgəc kimi istifadə edirlər və suda çox sürətli və məharətli üzürlər. Pinqvinlər balıqla qidalanır və suya şığıyaraq ov edirlər.\nPinqvinlər çox sosial quşlardır və böyük koloniyalarda yaşayırlar. Soyuq havada bir-birinə sıxılaraq istilik saxlayırlar.\nƏn maraqlısı odur ki, pinqvin ataları yumurtaları ayaqlarının üstündə saxlayır və qoruyurlar – hətta iki ay ac qala bilirlər!',
-    'Rakun':
-        'Rakunlar kiçik, məməli heyvanlardır və gözlərinin ətrafında qara maskaya bənzər naxışları var.\nOnların əlləri çox bacarıqlıdır və əşyaları tuta, açıb-bağlaya bilirlər. Rakunlar yeməklərini yemədən əvvəl adətən suda yuyurlar – sanki təmizləyirlər!\nOnlar gecə heyvanlarıdır və əsasən qaranlıq düşəndən sonra aktiv olurlar. Rakunlar həm ağaclara dırmaşa bilir, həm də yaxşı üzürlər.\nOnlar hər şey yeyən heyvanlardır – meyvə, qoz-fındıq, həşərat, kiçik heyvanlar və hətta zibil qutularında qida tapa bilirlər!\nRakunlar çox ağıllı və maraqlı heyvanlardır, amma vəhşi təbiətdə yaşamalıdırlar, ev heyvanı kimi saxlanmaları düzgün deyil.',
+        'Pinqvinlər uça bilməyən, amma çox yaxşı üzən quşlardır. Onlar əsasən Cənub yarımkürəsində, xüsusilə Antarktidada yaşayırlar.\nPinqvinlərin bədəni qara-ağ rəngdədir – arxası qara, qarnı isə ağdır. Bu rəng onları suda gizlənməyə kömək edir.\nOnlar qanadlarını üzgəc kimi istifadə edirlər və suda çox sürətli və məharətli üzürlər. Pinqvinlər balıqla qidalanır və suya şığıyaraq ov edirlər.\nPinqvinlər çox sosial quşlardır və böyük koloniyalarda yaşayırlar. Soyuq havada bir-birinə sıxılaraq istilik saxlayırlar.\nƏn maraqlısı odur ki, imperator pinqvinlərinin ataları yumurtanı ayaqlarının üstündə saxlayır və qoruyurlar – hətta iki ay ac qala bilirlər!',
+    'Yenot':
+        'Yenotlar kiçik, məməli heyvanlardır və gözlərinin ətrafında qara maskaya bənzər naxışları var.\nOnların əlləri çox bacarıqlıdır və əşyaları tuta, açıb-bağlaya bilirlər. Yenotlar bəzən yeməklərini suda ovuşdururlar – sanki yuyurlar!\nOnlar gecə heyvanlarıdır və əsasən qaranlıq düşəndən sonra aktiv olurlar. Yenotlar həm ağaclara dırmaşa bilir, həm də yaxşı üzürlər.\nOnlar hər şey yeyən heyvanlardır – meyvə, qoz-fındıq, həşərat, kiçik heyvanlar və hətta zibil qutularında qida tapa bilirlər!\nYenotlar çox ağıllı və maraqlı heyvanlardır, amma vəhşi təbiətdə yaşamalıdırlar, ev heyvanı kimi saxlanmaları düzgün deyil.',
     'Siçan':
         'Siçanlar kiçik, gəmirici məməlilərdir və demək olar ki, dünyanın hər yerində yaşayırlar.\nOnların uzun quyruqları və iti dişləri var. Siçanlar çox sürətli hərəkət edir və kiçik deşiklərdən keçə bilirlər.\nOnlar gecə heyvanlarıdır və əsasən qaranlıqda aktiv olurlar. Siçanlar çox yaxşı iybilmə qabiliyyətinə malikdirlər.\nOnlar hər şey yeyə bilirlər və hətta bəzi plastik və taxta materialları belə gəmirə bilirlər! Siçanlar çox sürətlə çoxalırlar.\nBaxmayaraq ki, çox vaxt zərərli hesab olunurlar, siçanlar çox ağıllı heyvanlardır və hətta laboratoriyalarda müxtəlif testlər üçün istifadə olunurlar.',
     'Sincab':
-        'Sincablar kiçik, çevik məməlilərdir və əsasən ağaclarda yaşayırlar.\nOnların uzun, tüklü quyruqları var və bu quyruq həm balans saxlamağa, həm də qışda isti qalmağa kömək edir.\nSincablar qoz-fındıq, toxum və meyvələrlə qidalanırlar. Onlar qış üçün qida ehtiyatı toplayır və torpaqda gizlədirlər.\nƏn maraqlısı odur ki, sincablar min-minlərlə qoz-fındıq gizlədir və sonra iy bilmə qabiliyyətləri ilə onları tapırlar! Amma bəzən unutduqları qozlar cücərib ağac olur.\nSincablar çox cəld və çevikdirlər – ağacdan-ağaca asanlıqla tullana bilirlər və hətta budaqlar arasında baş aşağı qaça bilirlər.',
+        'Sincablar kiçik, çevik məməlilərdir və əsasən ağaclarda yaşayırlar.\nOnların uzun, tüklü quyruqları var və bu quyruq həm balans saxlamağa, həm də qışda isti qalmağa kömək edir.\nSincablar qoz-fındıq, toxum və meyvələrlə qidalanırlar. Onlar qış üçün qida ehtiyatı toplayır və torpaqda gizlədirlər.\nƏn maraqlısı odur ki, sincablar min-minlərlə qoz-fındıq gizlədir və sonra iybilmə qabiliyyətləri ilə onları tapırlar! Amma bəzən unutduqları qozlar cücərib ağac olur.\nSincablar çox cəld və çevikdirlər – ağacdan-ağaca asanlıqla tullana bilirlər və hətta budaqlar arasında baş aşağı qaça bilirlər.',
     'Sərçə':
         'Sərçələr kiçik, qəhvəyi-boz rəngli quşlardır və şəhərlərdə, kəndlərdə geniş yayılıblar.\nOnlar çox sosial quşlardır və adətən dəstələrlə yaşayırlar. Sərçələr cikkildəyərək bir-biri ilə ünsiyyət qururlar.\nOnlar toxum, həşərat və çörək qırıntıları ilə qidalanırlar. Sərçələr insanların yaşadığı yerlərə uyğunlaşıblar və binaların çatlarında, damlarında yuva qururlar.\nSərçələr çimmək üçün torpaqda kiçik çuxurlar tapır və orada "toz vannası" qəbul edirlər – bu, onların lələklərini təmizləməyə kömək edir.\nOnlar çox cəsarətli quşlardır və insanların yaxınlığında belə rahat yaşaya bilirlər.',
     'Sarıköynək':
-        'Sarıköynəklər kiçik və sürətli uçan quşlardır.\nOnların tüyü adətən sarı rəngdə olur və bu, onları fərqləndirir.\nSarıköynəklər meşəlik və bağlarda yaşayırlar.\nOnlar toxumlar və kiçik həşəratlarla qidalanırlar.\nBu quşlar səsli və xoşbəxt səslər çıxararaq danışırlar.',
+        'Sarıköynək qaratoyuq boyda, çox gözəl bir quşdur.\nErkək sarıköynəyin bədəni parlaq sarı, qanadları və quyruğu isə qara rəngdədir.\nSarıköynəklər meşələrdə və bağlarda, ağacların sıx yarpaqları arasında gizlənərək yaşayırlar.\nOnlar böcəklər, tırtıllar və şirəli meyvələrlə qidalanırlar – gilası çox sevirlər!\nSarıköynəyin səsi fleyta kimi gözəl və aydındır, onu görməkdən çox eşitmək asandır.',
     'Suiti':
-        'Suitilər kiçik, sürətli və çevik quşlardır.\nOnlar su yaxınlığında yaşayırlar və tez-tez uçub suya enirlər.\nSuitilər balıq və kiçik həşəratlarla qidalanırlar.\nOnların qanadları uzun və incədir, bu da onları yaxşı uçan edir.\nSuitilər səsli quşlardır və xoş səs çıxarırlar.',
+        'Suitilər dənizdə yaşayan məməlilərdir – onlar nə balıq, nə də quşdur.\nOnların ayaqları üzgəcə çevrilib, qalın piy qatı isə onları soyuqdan qoruyur.\nSuitilər havadan nəfəs alırlar, amma suyun altında uzun müddət qala bilirlər.\nXəzər dənizində Xəzər suitisi yaşayır – onun balaları buzun üstündə ağ xəzlə doğulur.\nSuitilər balıq və xərçəngkimilərlə qidalanır, quruda və ya buzun üstündə dincəlirlər.',
     'Şahin':
-        'Şahinlər yırtıcı quşlardır və çox iti görmə qabiliyyətinə malikdirlər.\nOnlar havada süzərkən kiçik heyvanları görə bilir və sürətlə şığıyaraq ovlayırlar. Şahinlər saatda 320 kilometrə qədər sürətlə şığıya bilirlər!\nOnların caynaqları və dimdiyi çox güclüdür və şikarlarını tutmaq üçün istifadə olunur. Şahinlər əsasən kiçik quşlar və gəmiricilərlə qidalanırlar.\nŞahinlər yuvalarını hündür qayalarda və ya ağaclarda qururlar. Onlar çox qısqanc ərazi sahibləridir və yuvalarını qoruyurlar.\nTarixən şahinlər ov üçün təlim keçirilirdi və bu, "şahinçilik" adlanan bir sənət idi.',
+        'Şahinlər yırtıcı quşlardır və çox iti görmə qabiliyyətinə malikdirlər.\nOnlar havada süzərkən kiçik heyvanları görə bilir və sürətlə şığıyaraq ovlayırlar. Şahinlər saatda 320 kilometrə qədər sürətlə şığıya bilirlər!\nOnların caynaqları və dimdiyi çox güclüdür və şikarlarını tutmaq üçün istifadə olunur. Şahinlər əsasən havada tutduqları quşlarla – göyərçin və sərçə ilə qidalanırlar.\nŞahinlər yumurtalarını hündür qayaların çıxıntılarına və ya başqa quşların köhnə yuvalarına qoyurlar. Onlar çox qısqanc ərazi sahibləridir və yuvalarını qoruyurlar.\nQədim zamanlardan şahinlərə ov üçün təlim keçirilir – bu, "şahinçilik" adlanan sənətdir.',
     'Şir':
-        'Şirlər "heyvanlar aləminin kralı" adlanır və çox güclü, məğrur yırtıcılardır.\nErkək şirlərin böyük yalı olur və bu, onları digər pişikkimilərdən fərqləndirir. Bu yal həm qorxulu görünüş verir, həm də döyüşlərdə boyunu qoruyur.\nŞirlər sürülər halında yaşayırlar və bu sürüyə "pride" deyilir. Maraqlısı odur ki, əsasən dişi şirlər ov edir, erkəklər isə ərazini qoruyur!\nOnlar çox güclü səslə nərildəyə bilirlər və bu səs 8 kilometrə qədər məsafədən eşidilir.\nŞirlər əsasən gecə və səhər tezdən ov edirlər. Gündüz vaxtlarını isə kölgədə dincəlməklə keçirirlər.',
+        'Şirlər "heyvanlar aləminin kralı" adlanır və çox güclü, məğrur yırtıcılardır.\nErkək şirlərin böyük yalı olur və bu, onları digər pişikkimilərdən fərqləndirir. Bu yal həm qorxulu görünüş verir, həm də döyüşlərdə boynunu qoruyur.\nŞirlər ailə dəstələri halında yaşayırlar. Maraqlısı odur ki, əsasən dişi şirlər ov edir, erkəklər isə ərazini qoruyur!\nOnlar çox güclü səslə nərildəyə bilirlər və bu səs 8 kilometrə qədər məsafədən eşidilir.\nŞirlər əsasən gecə və səhər tezdən ov edirlər. Gündüz vaxtlarını isə kölgədə dincəlməklə keçirirlər.',
     'Tısbağa':
         'Tısbağalar bərk çanaqla örtülmüş sürünənlərdir və çox uzun ömürlüdürlər – bəziləri 100 ildən çox yaşaya bilir!\nOnların çanağı həm ev, həm də qalxan rolunu oynayır. Təhlükə zamanı tısbağa başını və ayaqlarını çanağın içinə çəkir.\nTısbağalar çox yavaş hərəkət edirlər, amma dözümlüdürlər və uzun məsafələri qət edə bilirlər. Onlar həm quruda, həm də suda yaşaya bilirlər.\nOnlar əsasən bitkilərlə qidalanır, amma bəzi növləri həşərat və kiçik su canlıları da yeyir.\nTısbağalar yumurta qoyur və bu yumurtaları qumda gizlədirlər. Maraqlısı odur ki, yumurtanın temperaturu balaca tısbağanın cinsini təyin edir!',
     'Tülkü':
         'Tülkülər it ailəsinə aid olan, amma pişik kimi davranışları olan heyvanlardır.\nOnların sivri burnu, üçbucaq qulaqları və qalın, tüklü quyruğu var. Tülkülər çox gözəl və parlaq xəzə malikdirlər.\nOnlar çox ağıllı və hiyləgər heyvanlardır. Tülkülər siçan, dovşan, quş və həşəratlarla qidalanırlar, amma meyvə və giləmeyvələri də sevirlər.\nTülkülər yeraltı yuvalarda yaşayırlar və bu yuvalara "tülkü yuvası" deyilir. Onlar gecə heyvanlarıdır və əsasən qaranlıqda ov edirlər.\nTülkülər çox çevik və sürətlidirlər – bir tullanışla 2 metrə qədər hündürlüyə sıçraya bilirlər!',
     'Timsah':
-        'Timsahlar çox böyük və güclü sürünənlərdir.\nOnlar həm sudan, həm də qurudan yaşaya bilirlər.\nTimsahların dişləri çox sərtdir və ovlarını yaxalamaqda çox kömək edir.\nOnlar suyun altında uzun müddət qala bilirlər.\nTimsahlar sakit görünürlər, amma çox sürətli hərəkət edə bilirlər.',
+        'Timsahlar çox böyük və güclü sürünənlərdir.\nOnlar həm suda, həm də quruda yaşaya bilirlər.\nTimsahların dişləri çox itidir və ovlarını tutmağa kömək edir.\nOnlar suyun altında uzun müddət qala bilirlər.\nTimsahlar sakit görünürlər, amma çox sürətli hərəkət edə bilirlər.',
     'Turac':
-        'Turac çox gözəl və rəngarəng tüyə sahib olan quşdur.\nOnlar əsasən açıq sahələrdə və meşə kənarlarında yaşayırlar.\nTuracın quyruğu çox uzun və rənglidir, bu onu fərqləndirir.\nOnlar əsasən toxumlar və kiçik həşəratlarla qidalanırlar.\nTuraclar öz rəngarəng tükü ilə cüt tapmaq üçün rəqabət aparırlar.',
+        'Turac kəklik boyda, toyuqkimilər dəstəsinə aid gözəl bir quşdur.\nErkək turacın tükləri qaradır, yanağında ağ ləkə, boynunda isə şabalıdı rəngli yaxalıq var.\nTuraclar kolluqlarda, qamışlıqlarda və çay kənarındakı otluqlarda yaşayırlar.\nOnlar yerdə gəzərək toxum, yaşıl yarpaq və böcəklərlə qidalanırlar.\nYazda erkək turac səhər tezdən yüksək səslə oxuyur – onun səsi çox uzaqdan eşidilir!',
     'Ulaq':
-        'Ulaqlar eşşəyə bənzəyən, amma vəhşi təbiətdə yaşayan heyvanlardır.\nOnların uzun qulaqları və qısa, dikduran yalı var. Ulaqlar çox dözümlüdürlər və çətin şəraitdə yaşaya bilirlər.\nOnlar otla qidalanır və az su ilə kifayətlənə bilirlər. Bu xüsusiyyət onları səhra kimi yerlərdə yaşamağa imkan verir.\nUlaqlar çox sürətli qaça bilirlər və dağlıq ərazilərdə belə çevik hərəkət edirlər.\nOnların səsi çox güclüdür və uzaq məsafələrdən eşidilə bilir. Bu səs onlara bir-birini tapmağa və təhlükə barədə xəbərdarlıq etməyə kömək edir.',
+        'Ulaq, yəni eşşək, at ailəsinə aid ev heyvanıdır – insanlar onu min illərdir yük daşımaq üçün saxlayırlar.\nOnların uzun qulaqları və qısa, dikduran yalı var. Ulaqlar çox dözümlüdürlər və çətin şəraitdə yaşaya bilirlər.\nOnlar otla qidalanır və az su ilə kifayətlənə bilirlər. Bu xüsusiyyət onları səhra kimi yerlərdə yaşamağa imkan verir.\nUlaqların ayağı çox möhkəmdir – onlar dağ cığırlarında belə yükü ehtiyatla daşıyırlar.\nOnların səsi çox güclüdür və uzaq məsafələrdən eşidilə bilir. Bu səs onlara bir-birini tapmağa və təhlükə barədə xəbərdarlıq etməyə kömək edir.',
     'Vaşaq':
-        'Vaşaqlar orta ölçülü pişikkimilərdir və əsasən meşəlik ərazilərdə yaşayırlar.\nOnların qulaqlarının ucunda qara tüklü püskülləri var və bu, onların eşitmə qabiliyyətini gücləndirir.\nVaşaqların pəncələri çox böyükdür və bu, onlara qarda rahat hərəkət etməyə imkan verir – sanki təbii qar ayaqqabıları kimi!\nOnlar əsasən dovşan və digər kiçik məməlilərlə qidalanırlar. Vaşaqlar çox yaxşı ov edə bilirlər və şikarlarını 6 metrə qədər məsafədən tuta bilirlər.\nVaşaqlar çox gizli həyat tərzi keçirirlər və insanlardan uzaq durmağa çalışırlar. Onları təbiətdə görmək çox nadir hadisədir.',
+        'Vaşaqlar orta ölçülü pişikkimilərdir və əsasən meşəlik ərazilərdə yaşayırlar.\nOnların qulaqlarının ucunda qara tüklü püskülləri var və bu, onları başqa pişiklərdən asanlıqla fərqləndirir.\nVaşaqların pəncələri çox böyükdür və bu, onlara qarda rahat hərəkət etməyə imkan verir – sanki təbii qar ayaqqabıları kimi!\nOnlar əsasən dovşan və digər kiçik məməlilərlə qidalanırlar. Vaşaqlar çox yaxşı ov edə bilirlər və şikarlarını 6 metrə qədər məsafədən tuta bilirlər.\nVaşaqlar çox gizli həyat tərzi keçirirlər və insanlardan uzaq durmağa çalışırlar. Onları təbiətdə görmək çox nadir hadisədir.',
     'Yarasa':
         'Yarasalar uça bilən yeganə məməlilərdir! Onların qanadları əslində dəri ilə örtülmüş uzun barmaqlardır.\nOnların çoxu gecə aktiv olur və ultrasəs vasitəsilə ətrafı "görürlər" – bu, exolokasiya adlanır. Yarasalar səs dalğaları göndərir və onların əks-sədasını eşidərək qaranlıqda belə mükəmməl naviqasiya edirlər.\nOnların əksəriyyəti həşəratlarla qidalanır və bir yarasa gecədə minlərlə ağcaqanad yeyə bilir! Bəzi növləri isə meyvə, nektar və hətta qanla qidalanır.\nYarasalar başı aşağı asılı vəziyyətdə yatırlar və bu, onların qan dövranına uyğunlaşmış bədən quruluşuna görə mümkündür.\nOnlar çox faydalı heyvanlardır, çünki həm həşəratları məhv edir, həm də bitkilərin tozlanmasına kömək edirlər.',
     'Zürafə':
-        'Zürafələr dünyanın ən hündür heyvanlarıdır – boyları 5-6 metrə çatır!\nOnların çox uzun boyunları var, amma maraqlısı odur ki, zürafələrin boyunlarında da digər məməlilər kimi cəmi 7 fəqərə var – sadəcə bu fəqərələr çox uzundur.\nZürafələrin bədənində qəhvəyi naxışlar var və bu naxışlar hər zürafədə fərqlidir – elə bil barmaq izi kimidir!\nOnlar əsasən ağacların yüksək budaqlarındakı yarpaqlarla qidalanırlar və buna görə uzun boyunları çox faydalıdır.\nZürafələr çox az yatırlar – gündə cəmi 2 saat! Və onlar yatarkən belə ayaq üstə qalırlar.',
-    'Zebra':
-        'Zebralar at ailəsinə aid olan, qara-ağ zolaqlı heyvanlardır.\nHər zebranın zolaqlı naxışı unikaldır – elə bil barmaq izi kimidir! Bu naxışlar onlara həm gizlənməyə, həm də milçəklərdən qorunmağa kömək edir.\nZebralar sürülər halında yaşayır və bir-birinə kömək edirlər. Onlar təhlükə zamanı qaçır və ziqzaqlarla hərəkət edərək yırtıcıları çaşdırırlar.\nOnlar otla qidalanır və gündə 16-18 saat otlamaqla keçirirlər. Zebralar çox yaxşı görmə və eşitmə qabiliyyətinə malikdirlər.\nBalaca zebralara "zebra dayça" deyilir və onlar doğulduqdan bir neçə dəqiqə sonra ayağa qalxa və qaça bilirlər!',
+        'Zürafələr dünyanın ən hündür heyvanlarıdır – boyları 5-6 metrə çatır!\nOnların çox uzun boyunları var, amma maraqlısı odur ki, zürafələrin boyunlarında da digər məməlilər kimi cəmi 7 fəqərə var – sadəcə bu fəqərələr çox uzundur.\nZürafələrin bədənində qəhvəyi naxışlar var və bu naxışlar hər zürafədə fərqlidir – elə bil barmaq izi kimidir!\nOnlar əsasən ağacların yüksək budaqlarındakı yarpaqlarla qidalanırlar və buna görə uzun boyunları çox faydalıdır.\nZürafələr çox az yatırlar – gündə cəmi 2 saat! Onlar çox vaxt ayaq üstə mürgüləyirlər.',
+    'Zebr':
+        'Zebrlər at ailəsinə aid olan, qara-ağ zolaqlı heyvanlardır.\nHər zebrin zolaqlı naxışı unikaldır – elə bil barmaq izi kimidir! Bu naxışlar onlara həm gizlənməyə, həm də milçəklərdən qorunmağa kömək edir.\nZebrlər sürülər halında yaşayır və bir-birinə kömək edirlər. Onlar təhlükə zamanı qaçır və ziqzaqlarla hərəkət edərək yırtıcıları çaşdırırlar.\nOnlar otla qidalanır və gündə 16-18 saat otlamaqla keçirirlər. Zebrlər çox yaxşı görmə və eşitmə qabiliyyətinə malikdirlər.\nZebr balasına "qulun" deyilir və o, doğulduqdan təxminən iyirmi dəqiqə sonra ayağa qalxa və tezliklə qaça bilir!',
   };
 
   static const Map<String, List<String>> animalFoods = {
@@ -417,63 +414,62 @@ class AppConfig {
     'Ağcaqanad': ['Qan', 'Nektar'],
     'Alpaka': ['Ot', 'Yarpaqlar'],
     'Ağacdələn': ['Qurd', 'Böcək', 'Toxum', 'Meyvə'],
-    'Bülbül': ['Qurd', 'Böcək', 'Meyvə', 'Toxum'],
+    'Bülbül': ['Qurd', 'Böcək', 'Giləmeyvə'],
     'Bəbir': ['Ceyran', 'Donuz', 'Dovşan', 'Antilop'],
     'Balıq': ['Plankton', 'Kiçik balıqlar'],
-    'Bayquş': ['Siçan', 'Cücə', 'Böcək'],
+    'Bayquş': ['Siçan', 'Sərçə', 'Böcək'],
     'Buqələmun': ['Böcək', 'Milçək'],
     'Bizon': ['Ot'],
-    'Begemot': ['Ot', 'Su yosunu'],
-    'Baltadimdik': ['Balıq', 'Qurbağa', 'Körpə timsah'],
+    'Begemot': ['Ot', 'Yabanı otlar'],
+    'Baltadimdik': ['Toxum', 'Meyvə', 'Böcək'],
     'Camış': ['Ot', 'Su yosunu'],
     'Cücə': ['Dən', 'Toxum', 'Böcək'],
     'Ceyran': ['Ot', 'Yarpaqlar'],
     'Çaqqal': ['Kiçik məməlilər', 'Quş', 'Meyvə', 'Cəsəd'],
-    'Çalağan': ['Siçan', 'Sərçə', 'Kərtənkələ'],
-    'Çita': ['Ceyran', 'Antilop', 'Dovşan'],
+    'Çalağan': ['Siçan', 'Balıq', 'Böcək'],
+    'Hepard': ['Ceyran', 'Antilop', 'Dovşan'],
     'Çəyirtkə': ['Ot', 'Yarpaqlar', 'Buğda', 'Qarğıdalı'],
-    'Dənizatı': ['Balıq sürfəsi', 'Plankton'],
+    'Dənizatı': ['Kiçik xərçəng', 'Plankton'],
     'Donuz': ['Alma', 'Kök', 'Kartof', 'Fındıq'],
     'Dovşan': ['Ot', 'Kök', 'Yerkökü', 'Yarpaqlar'],
-    'Dovdaq': ['Ot', 'Yarpaqlar', 'Kök'],
-    'Dələ': ['Fındıq', 'Toxum', 'Meyvə', 'Göbələk'],
+    'Dovdaq': ['Ot', 'Yarpaqlar', 'Böcək'],
+    'Dələ': ['Siçan', 'Yumurta', 'Meyvə', 'Bal'],
     'Dəvə': ['Ot', 'Yarpaqlar', 'Quru budaq', 'Taxıl'],
     'Eşşək': ['Ot', 'Saman', 'Yarpaqlar'],
-    'Eland': ['Ot', 'Yarpaqlar', 'Yabanı otlar'],
-    'Echidna': ['Qarışqa', 'Termit', 'Böcək'],
-    'Ərincək': ['Yarpaqlar', 'Banan'],
+    'Maralöküz': ['Ot', 'Yarpaqlar', 'Yabanı otlar'],
+    'Yexidna': ['Qarışqa', 'Termit', 'Böcək'],
+    'Ərincək': ['Yarpaqlar', 'Nazik budaq'],
     'Əqrəb': ['Çəyirtkə', 'Qarışqa'],
     'Fil': ['Ot', 'Yarpaqlar', 'Banan', 'Nazik budaq'],
-    'Flamingo': ['Kiçik xərçəng', 'Yosun', 'Qurd'],
-    'Gürzə': ['Siçan', 'Dovşan'],
-    'Gəlincik': ['Siçan', 'Dələ'],
-    'Hamster': ['Toxum', 'Buğda dənəsi', 'Alma', 'Yerkökü'],
+    'Qızılqaz': ['Kiçik xərçəng', 'Yosun', 'Qurd'],
+    'Gürzə': ['Siçan', 'Kərtənkələ', 'Sərçə'],
+    'Gəlincik': ['Siçan', 'Yumurta', 'Quş balası'],
+    'Dağsiçanı': ['Toxum', 'Buğda dənəsi', 'Alma', 'Yerkökü'],
     'Xərçəng': ['Balıq balası', 'Yarpaqlı bitki', 'Kiçik molyusk'],
     'İlan': ['Siçan', 'Sərçə', 'Kərtənkələ', 'Yumurta'],
     'İlbiz': ['Yarpaqlar', 'Meyvə', 'Tərəvəz', 'Çürük bitki'],
     'İnək': ['Ot', 'Yonca', 'Saman'],
     'İt': ['Ət', 'Sümük', 'Quru yem', 'Tərəvəz'],
-    'Jaquar': ['Balıq', 'Dovşan', 'İlan'],
+    'Yaquar': ['Balıq', 'Dovşan', 'İlan'],
     'Kəpənək': ['Nektar', 'Şirin meyvə şirəsi'],
-    'Kirpi': ['Milçək', 'Soxulcan', 'Banan', 'Göbələk'],
+    'Kirpi': ['Böcək', 'Soxulcan', 'Salyangoz', 'Göbələk'],
     'Kərtənkələ': ['Milçək', 'Kiçik böcək'],
     'Kəklik': ['Buğda dənəsi', 'Üzüm', 'Qarışqa'],
     'Kərgədan': ['Ot', 'Yarpaqlar', 'Budaq', 'Meyvə'],
     'Koala': ['Evkalipt yarpağı'],
-    'Köstəbək': ['Qurd', 'Böcək', 'Qarışqa', 'Torpaq'],
+    'Köstəbək': ['Soxulcan', 'Böcək', 'Qarışqa', 'Salyangoz'],
     'Qaranquş': ['Milçək', 'Ağcaqanad', 'Qarışqa'],
     'Qartal': ['Siçan', 'Balıq', 'Göyərçin'],
-    'Qaz': ['Ot', 'Buğda dənəsi', 'Salyangoz'],
+    'Qaz': ['Ot', 'Buğda dənəsi', 'Yonca'],
     'Qoyun': ['Ot', 'Yarpaqlar', 'Yonca'],
     'Qurd': ['Ceyran', 'Dovşan', 'Siçan'],
     'Qarışqayeyən': ['Qarışqa', 'Termit'],
     'Qırqovul': ['Toxum', 'Böcək', 'Meyvə', 'Yarpaqlar'],
-    'Qorilla': ['Meyvə', 'Yarpaqlar', 'Budaq', 'Qurd'],
+    'Qorilla': ['Meyvə', 'Yarpaqlar', 'Budaq', 'Termit'],
     'Qunduz': ['Ağac qabığı', 'Yarpaqlar', 'Budaq'],
     'Qurbağa': ['Böcək', 'Qurd', 'Kiçik balıq'],
     'Lama': ['Ot', 'Yarpaqlar', 'Dağ otu'],
-    'Leopard': ['Antilop', 'Ceyran', 'Meymun', 'Dovşan'],
-    'Leylek': ['Qurbağa', 'İlan', 'Balıq', 'Çəyirtkə'],
+    'Leylək': ['Qurbağa', 'İlan', 'Balıq', 'Çəyirtkə'],
     'Maral': ['Ot', 'Yarpaqlar', 'Budaq', 'Meyvə'],
     'Mamont': ['Ot', 'Kollar', 'Budaq'],
     'Meymun': ['Banan', 'Fındıq', 'Qarışqa', 'Quş balası'],
@@ -481,19 +477,19 @@ class AppConfig {
     'Orka': ['Balıq', 'Suiti', 'Balina balası'],
     'Ördək': ['Su yosunu', 'Toxum', 'Qurd'],
     'Pələng': ['Maral', 'Ceyran', 'Donuz', 'Dovşan'],
-    'Pinqvin': ['Balıq', 'Kalamar', 'Xərçəng'],
-    'Panda': ['Bambuk', 'Meyvə', 'Kiçik heyvanlar'],
+    'Pinqvin': ['Balıq', 'Kalmar', 'Xərçəng'],
+    'Panda': ['Bambuk', 'Yarpaqlar', 'Meyvə'],
     'Pişik': ['Siçan', 'Quş', 'Balıq', 'Quru yem'],
     'Porsuq': ['Qurd', 'Böcək', 'Meyvə', 'Kiçik məməlilər'],
     'Piton': ['Siçan', 'Quş', 'Dovşan', 'Kərtənkələ'],
-    'Rakun': ['Alma', 'Fındıq', 'Çəyirtkə', 'Dovşan balası'],
+    'Yenot': ['Alma', 'Fındıq', 'Çəyirtkə', 'Dovşan balası'],
     'Siçan': ['Buğda dənəsi', 'Toxum', 'Alma', 'Yerkökü', 'Milçək'],
     'Sincab': ['Fındıq', 'Toxum', 'Alma', 'Göbələk'],
     'Sərçə': ['Toxum', 'Milçək', 'Çörək qırıntısı'],
-    'Sarıköynək': ['Qurd', 'Böcək', 'Toxum'],
+    'Sarıköynək': ['Böcək', 'Meyvə', 'Giləmeyvə'],
     'Suiti': ['Balıq', 'Kalmar', 'Xərçəng'],
-    'Şahin': ['Sərçə', 'Siçan', 'Çəyirtkə'],
-    'Şir': ['Antilop', 'Zebra', 'Donuz', 'Maral'],
+    'Şahin': ['Sərçə', 'Göyərçin', 'Siçan'],
+    'Şir': ['Antilop', 'Zebr', 'Donuz', 'Maral'],
     'Timsah': ['Balıq', 'Quş', 'Məməli', 'Qurbağa'],
     'Turac': ['Toxum', 'Böcək', 'Yarpaqlar'],
     'Tısbağa': ['Yarpaqlı ot', 'Yosun', 'Çəyirtkə', 'Salyangoz'],
@@ -501,58 +497,59 @@ class AppConfig {
     'Ulaq': ['Ot', 'Yonca', 'Yarpaqlar'],
     'Vaşaq': ['Dovşan', 'Siçan', 'Sərçə'],
     'Yarasa': ['Milçək', 'Banan', 'Nektar', 'Qan'],
-    'Zürafə': ['Yarpaqlar', 'Nazik budaq', 'Mango'],
-    'Zebra': ['Ot', 'Yonca', 'Yarpaqlar'],
+    'Zürafə': ['Yarpaqlar', 'Nazik budaq', 'Kollar'],
+    'Zebr': ['Ot', 'Yonca', 'Yarpaqlar'],
   };
 
   static const Map<String, bool> animalHasSound = {
     'At': true,
     'Ayı': true,
-    'Ağcaqanad': false,
-    'Alpaka': false,
+    'Ağcaqanad': true,
+    'Alpaka': true,
     'Ağacdələn': true,
     'Bəbir': false,
     'Bülbül': true,
     'Balıq': false,
     'Bayquş': true,
     'Buqələmun': false,
-    'Bizon': false,
-    'Begemot': false,
-    'Baltadimdik': false,
-    'Camış': false,
+    'Bizon': true,
+    'Begemot': true,
+    'Baltadimdik': true,
+    'Camış': true,
     'Cücə': true,
-    'Ceyran': false,
-    'Çalağan': false,
-    'Çita': false,
-    'Çaqqal': false,
+    'Ceyran': true,
+    'Çalağan': true,
+    'Hepard': true,
+    'Çaqqal': true,
+    'Çəyirtkə': true,
     'Dənizatı': false,
     'Donuz': true,
-    'Dovşan': false,
+    'Dovşan': true,
     'Dovdaq': false,
-    'Dələ': false,
-    'Dəvə': false,
+    'Dələ': true,
+    'Dəvə': true,
     'Eşşək': true,
-    'Eland': false,
-    'Echidna': false,
+    'Maralöküz': false,
+    'Yexidna': false,
     'Ərincək': false,
     'Əqrəb': false,
     'Fil': true,
-    'Flamingo': false,
-    'Gürzə': false,
+    'Qızılqaz': true,
+    'Gürzə': true,
     'Gəlincik': false,
-    'Hamster': false,
+    'Dağsiçanı': true,
     'Xərçəng': false,
-    'İlan': false,
+    'İlan': true,
     'İlbiz': false,
     'İnək': true,
     'İt': true,
-    'Jaquar': false,
+    'Yaquar': true,
     'Kəpənək': false,
-    'Kirpi': false,
+    'Kirpi': true,
     'Kərtənkələ': false,
-    'Kəklik': false,
-    'Kərgədan': false,
-    'Koala': false,
+    'Kəklik': true,
+    'Kərgədan': true,
+    'Koala': true,
     'Köstəbək': false,
     'Qaranquş': true,
     'Qartal': true,
@@ -565,8 +562,7 @@ class AppConfig {
     'Qunduz': false,
     'Qurbağa': true,
     'Lama': false,
-    'Leopard': false,
-    'Leylek': true,
+    'Leylək': true,
     'Maral': true,
     'Mamont': false,
     'Meymun': true,
@@ -574,28 +570,28 @@ class AppConfig {
     'Orka': true,
     'Ördək': true,
     'Pələng': true,
-    'Pinqvin': false,
-    'Panda': false,
+    'Pinqvin': true,
+    'Panda': true,
     'Pişik': true,
     'Porsuq': false,
-    'Piton': false,
-    'Rakun': true,
+    'Piton': true,
+    'Yenot': true,
     'Siçan': true,
     'Sincab': true,
     'Sərçə': true,
-    'Sarıköynək': false,
+    'Sarıköynək': true,
     'Suiti': true,
     'Şahin': true,
     'Şir': true,
     'Tısbağa': false,
-    'Tülkü': false,
-    'Timsah': false,
-    'Turac': false,
+    'Tülkü': true,
+    'Timsah': true,
+    'Turac': true,
     'Ulaq': true,
-    'Vaşaq': false,
-    'Yarasa': false,
-    'Zürafə': false,
-    'Zebra': false,
+    'Vaşaq': true,
+    'Yarasa': true,
+    'Zürafə': true,
+    'Zebr': true,
   };
 
   static const Map<String, bool> animalHasPuzzle = {
@@ -623,7 +619,7 @@ class AppConfig {
     'Ceyran': true,
     'Çalağan': true,
     'Çaqqal': true,
-    'Çita': true,
+    'Hepard': true,
     'Çəyirtkə': true,
     'Dənizatı': true,
     'Donuz': true,
@@ -632,19 +628,19 @@ class AppConfig {
     'Dələ': true,
     'Dəvə': true,
     'Eşşək': true,
-    'Eland': true,
-    'Echidna': true,
+    'Maralöküz': true,
+    'Yexidna': true,
     'Ərincək': true,
-    'Flamingo': true,
+    'Qızılqaz': true,
     'Gürzə': true,
     'Gəlincik': true,
-    'Hamster': true,
+    'Dağsiçanı': true,
     'Xərçəng': true,
     'İlan': true,
     'İlbiz': true,
     'İnək': true,
     'İt': true,
-    'Jaquar': true,
+    'Yaquar': true,
     'Kəpənək': true,
     'Kirpi': true,
     'Kərtənkələ': true,
@@ -663,8 +659,7 @@ class AppConfig {
     'Qunduz': true,
     'Qurbağa': true,
     'Lama': true,
-    'Leopard': true,
-    'Leylek': true,
+    'Leylək': true,
     'Mamont': true,
     'Maral': true,
     'Meymun': true,
@@ -675,7 +670,7 @@ class AppConfig {
     'Pişik': true,
     'Porsuq': true,
     'Piton': true,
-    'Rakun': true,
+    'Yenot': true,
     'Sarıköynək': true,
     'Siçan': true,
     'Sincab': true,
@@ -689,7 +684,7 @@ class AppConfig {
     'Ulaq': true,
     'Vaşaq': true,
     'Yarasa': true,
-    'Zebra': true,
+    'Zebr': true,
   };
 
   static LetterConfig? findLetter(String letter) {

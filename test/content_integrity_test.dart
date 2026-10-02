@@ -29,7 +29,10 @@ const Set<String> kAnimalsWithoutInfoAudio = {'Qarışqayeyən', 'Qırqovul'};
 const Set<String> kAnimalsWithoutInfoText = {'Qarışqayeyən', 'Qırqovul'};
 
 /// Heç bir heyvanı olmayan hərflər — siyahı səhifəsi boş açılır.
-const Set<String> kLettersWithoutAnimals = {'Ğ', 'I', 'Ü'};
+///
+/// `J` və `R` heyvanların adları düzgün yazılandan sonra boşaldı: Jaquar →
+/// Yaquar, Rakun → Yenot (hər ikisi indi `Y` hərfindədir).
+const Set<String> kLettersWithoutAnimals = {'Ğ', 'I', 'Ü', 'J', 'R'};
 
 /// Hərf kartı şəkli (`<hərf>.webp`) olmayan hərflər.
 ///
