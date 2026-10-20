@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launch screen: the brand's sky colour (skyTop, Claude Design system). The
+         same colour in light and dark mode, because the app has no dark theme. -->
+    <color name="splash_background">#E4DEFF</color>
+</resources>

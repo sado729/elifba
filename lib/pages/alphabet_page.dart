@@ -4,6 +4,7 @@ import 'settings_page.dart';
 import '../core/config.dart';
 import '../core/progress.dart';
 import '../core/sound.dart';
+import '../widgets/elifba_wordmark.dart';
 import '../widgets/mute_button.dart';
 import '../widgets/parental_gate.dart';
 import '../widgets/star_row.dart';
@@ -124,19 +125,13 @@ class _AlphabetPageState extends State<AlphabetPage> {
                 child: Row(
                   children: [
                     _TotalStarsBadge(),
+                    // Başlıq yazı deyil, brendin konturlu loqosudur. Fon
+                    // bənövşəyi olduğu üçün lavanda variantı işlədilir.
                     const Expanded(
                       child: Center(
-                        child: Text(
-                          'Əlifba',
-                          style: TextStyle(
-                            fontSize: 38,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 2,
-                            shadows: [
-                              Shadow(color: Colors.black26, blurRadius: 8),
-                            ],
-                          ),
+                        child: ElifbaWordmark(
+                          height: 50,
+                          colors: ElifbaWordmarkColors.lavender,
                         ),
                       ),
                     ),

@@ -1,11 +1,11 @@
 {
-    "name": "elifba",
-    "short_name": "elifba",
+    "name": "Əlifba",
+    "short_name": "Əlifba",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#E4DEFF",
+    "theme_color": "#8F78E6",
+    "description": "Uşaqlar üçün Azərbaycan əlifbasını öyrədən tətbiq: hərflər, heyvanlar, səsli izahlar, pazl və oyunlar.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

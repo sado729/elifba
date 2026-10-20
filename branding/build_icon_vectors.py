@@ -1,0 +1,184 @@
+"""Write the three adaptive-icon VectorDrawables from the design's icon geometry.
+
+Source: Claude Design, "Əlifba Brand Assets" 4.2 / ElifbaIcon (glyph "Ə + günəş").
+This script owns the geometry; it writes
+
+  android/app/src/main/res/drawable/ic_launcher_background.xml
+  android/app/src/main/res/drawable/ic_launcher_foreground.xml
+  android/app/src/main/res/drawable/ic_launcher_monochrome.xml
+
+Edit the constants below, never the XML, then re-run this and render_icons.py.
+
+The monochrome (themed icon) layer cannot simply reuse the foreground: the design
+cuts the sun free of the letter with a ring painted in the background colour, and
+a one-colour layer has no background colour. So its silhouette is computed with
+skia-pathops as  ((letter U rays) - disk r8.8) U disk r6.4  around the sun, which
+is exactly what the design paints in mono mode (ring 2.4 wide, centred on r7.6).
+No renderer has to support clip-path holes.
+
+Usage:  python branding/build_icon_vectors.py
+Needs:  pip install skia-pathops fonttools
+"""
+
+import math
+import re
+from pathlib import Path
+
+import pathops
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.svgLib.path import parse_path
+
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "android" / "app" / "src" / "main" / "res" / "drawable"
+
+# Comfortaa Bold "Ə", outlined, in the 108x108 canvas (ElifbaIcon.dc.html).
+LETTER = (
+    "M52.62 75.97L52.62 75.97Q48.46 75.97 44.93 74.49Q41.39 73.00 38.77 70.30Q36.14 67.60 34.68 63.98"
+    "Q33.23 60.37 33.23 56.10L33.23 56.10Q33.23 54.65 34.22 53.74Q35.20 52.83 36.71 52.83L36.71 52.83"
+    "L65.57 52.83Q65.16 49.66 63.70 47.06L63.70 47.06Q61.62 43.42 58.03 41.36Q54.44 39.31 49.92 39.31"
+    "L49.92 39.31Q47.32 39.31 44.95 40.09Q42.59 40.87 40.56 42.22L40.56 42.22Q39.73 42.79 38.84 42.69"
+    "Q37.96 42.58 37.34 41.91L37.34 41.91Q36.71 41.18 36.74 40.27Q36.76 39.36 37.49 38.79L37.49 38.79"
+    "Q40.14 36.66 43.32 35.54Q46.49 34.42 50.44 34.42L50.44 34.42Q54.76 34.42 58.47 35.98Q62.19 37.54 64.97 40.37"
+    "Q67.76 43.21 69.29 47.03Q70.82 50.85 70.82 55.43L70.82 55.43Q70.82 59.80 69.45 63.54Q68.07 67.28 65.60 70.07"
+    "Q63.13 72.85 59.83 74.41Q56.52 75.97 52.62 75.97Z"
+    "M65.62 57.61L65.62 57.61L38.58 57.61Q38.90 61.20 40.56 64.06L40.56 64.06Q42.43 67.34 45.60 69.23"
+    "Q48.78 71.13 52.62 71.13L52.62 71.13Q56.37 71.13 59.33 69.08Q62.30 67.02 64.01 63.44L64.01 63.44"
+    "Q65.31 60.78 65.62 57.61Z"
+)
+SHADOW_DY = 3
+
+# The sun: 8 rays (rect x=-1.7 y=-12.5 w=3.4 h=5 rx=1.7, every 45°), a disc and its ring.
+SUN_CX, SUN_CY = 68.0, 40.0
+RAY_HALF_WIDTH, RAY_INNER, RAY_OUTER = 1.7, 7.5, 12.5
+SUN_RADIUS, RING_WIDTH = 7.6, 2.4
+
+SKY, HILL, CLOUD = "#8F78E6", "#7C63D9", "#FFFDFB"
+LETTER_FILL, LETTER_SHADOW = "#FFFDFB", "#5C45B5"
+SUN_FILL, RAY_FILL = "#FFC547", "#FFA62B"
+
+
+def fmt(v):
+    s = f"{v:.3f}".rstrip("0").rstrip(".")
+    return "0" if s in ("-0", "") else s
+
+
+def strip_zero_lines(d):
+    """Drop "L x y" segments that only repeat the current point (font-outline noise)."""
+    out, cur = [], None
+    for cmd, args in re.findall(r"([MLQZ])([^MLQZ]*)", d):
+        nums = [float(n) for n in args.split()]
+        if cmd == "L" and cur is not None and (nums[0], nums[1]) == cur:
+            continue
+        out.append(cmd + " ".join(args.split()))
+        if nums:
+            cur = (nums[-2], nums[-1])
+    return "".join(out)
+
+
+def circle(cx, cy, r):
+    return (f"M{fmt(cx - r)},{fmt(cy)}A{fmt(r)},{fmt(r)} 0 1,1 {fmt(cx + r)},{fmt(cy)}"
+            f"A{fmt(r)},{fmt(r)} 0 1,1 {fmt(cx - r)},{fmt(cy)}Z")
+
+
+def ellipse(cx, cy, rx, ry):
+    return (f"M{fmt(cx - rx)},{fmt(cy)}A{fmt(rx)},{fmt(ry)} 0 1,1 {fmt(cx + rx)},{fmt(cy)}"
+            f"A{fmt(rx)},{fmt(ry)} 0 1,1 {fmt(cx - rx)},{fmt(cy)}Z")
+
+
+def rays():
+    """Each ray is a stadium: two semicircles joined by straight sides."""
+    w, r = RAY_HALF_WIDTH, RAY_HALF_WIDTH
+    subs = []
+    for k in range(8):
+        a = math.radians(k * 45)
+        c, s = math.cos(a), math.sin(a)
+
+        def p(x, y):
+            return f"{fmt(SUN_CX + x * c - y * s)},{fmt(SUN_CY + x * s + y * c)}"
+
+        top, bottom = -(RAY_OUTER - r), -(RAY_INNER + r)
+        subs.append(f"M{p(-w, top)}A{fmt(r)},{fmt(r)} 0 0,1 {p(w, top)}L{p(w, bottom)}"
+                    f"A{fmt(r)},{fmt(r)} 0 0,1 {p(-w, bottom)}Z")
+    return "".join(subs)
+
+
+def to_skia(d):
+    path = pathops.Path()
+    parse_path(d, path.getPen())
+    return path
+
+
+def mono_silhouette(letter, sun_rays):
+    union, diff = pathops.PathOp.UNION, pathops.PathOp.DIFFERENCE
+    shape = pathops.op(to_skia(letter), to_skia(sun_rays), union)
+    shape = pathops.op(shape, to_skia(circle(SUN_CX, SUN_CY, SUN_RADIUS + RING_WIDTH / 2)), diff)
+    shape = pathops.op(shape, to_skia(circle(SUN_CX, SUN_CY, SUN_RADIUS - RING_WIDTH / 2)), union)
+    pen = SVGPathPen(None, ntos=lambda v: fmt(round(v, 2)))
+    shape.draw(pen)
+    return pen.getCommands()
+
+
+HEAD = (
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+    "<!-- Generated by branding/build_icon_vectors.py. Do not edit by hand. -->\n"
+    '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
+    '    android:width="108dp"\n'
+    '    android:height="108dp"\n'
+    '    android:viewportWidth="108"\n'
+    '    android:viewportHeight="108">\n'
+)
+
+
+def path(d, fill, alpha=None, stroke=None, width=None, indent="    "):
+    attrs = [f'android:fillColor="{fill}"']
+    if alpha is not None:
+        attrs.append(f'android:fillAlpha="{alpha}"')
+    if stroke:
+        attrs += [f'android:strokeColor="{stroke}"', f'android:strokeWidth="{width}"']
+    attrs.append(f'android:pathData="{d}"')
+    inner = f"\n{indent}    ".join(attrs)
+    return f"{indent}<path\n{indent}    {inner} />\n"
+
+
+def main():
+    letter, sun_rays = strip_zero_lines(LETTER), rays()
+    background = (
+        HEAD
+        + "    <!-- Lavender sky, a darker hill, three soft clouds. Opaque, full canvas. -->\n"
+        + path("M0,0H108V108H0Z", SKY)
+        + path(ellipse(54, 130, 84, 46), HILL)
+        + path(ellipse(20, 86, 20, 8), CLOUD, "0.18")
+        + path(circle(28, 80, 9), CLOUD, "0.18")
+        + path(ellipse(92, 28, 14, 5.5), CLOUD, "0.16")
+        + "</vector>\n"
+    )
+    foreground = (
+        HEAD
+        + "    <!-- The outlined \"Ə\" with its drop shadow, and the sun. The sun's ring is\n"
+        "         painted in the sky colour to cut it free of the letter, as the design\n"
+        "         does. Everything sits inside the 66dp safe circle. -->\n"
+        + f'    <group android:translateY="{SHADOW_DY}">\n'
+        + path(letter, LETTER_SHADOW, indent="        ")
+        + "    </group>\n"
+        + path(letter, LETTER_FILL)
+        + path(sun_rays, RAY_FILL)
+        + path(circle(SUN_CX, SUN_CY, SUN_RADIUS), SUN_FILL, stroke=SKY, width=fmt(RING_WIDTH))
+        + "</vector>\n"
+    )
+    monochrome = (
+        HEAD
+        + "    <!-- Themed icon layer (Android 13+): one colour, tinted by the system. The\n"
+        "         foreground's silhouette without the shadow, with the sun's ring cut\n"
+        "         out: ((Ə + rays) - disk r8.8) + disk r6.4. -->\n"
+        + path(mono_silhouette(letter, sun_rays), "#FFFFFF")
+        + "</vector>\n"
+    )
+    for name, text in [("background", background), ("foreground", foreground),
+                       ("monochrome", monochrome)]:
+        target = OUT / f"ic_launcher_{name}.xml"
+        target.write_text(text, encoding="utf-8", newline="\n")
+        print(f"  {target.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+    main()

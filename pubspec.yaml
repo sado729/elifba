@@ -164,6 +164,19 @@ flutter:
 
     - assets/foods/
   fonts:
+    # Rebrend şriftləri (SIL OFL 1.1, lisenziya mətnləri assets/fonts/OFL-*.txt).
+    # Hər ikisində 32 hərfin böyük və kiçik forması var, a və g tək mərtəbəlidir.
+    # Reserved Font Name olduğu üçün fayllar dəyişdirilmədən (subset edilmədən)
+    # saxlanılır.
+    - family: Andika
+      fonts:
+        - asset: assets/fonts/Andika-Regular.ttf
+        - asset: assets/fonts/Andika-Bold.ttf
+          weight: 700
+    - family: Comfortaa
+      fonts:
+        - asset: assets/fonts/Comfortaa-Bold.ttf
+          weight: 700
     - family: NotoSans
       fonts:
         - asset: assets/fonts/NotoSans-Regular.ttf
@@ -175,9 +188,9 @@ flutter:
         - asset: assets/fonts/Baloo2-Bold.ttf
           weight: 700
 
-flutter_launcher_icons:
-  android: true
-  ios: true
-  # Launcher ikonu yalnız build zamanı istifadə olunur — assets/ altında deyil ki,
-  # tətbiq paketinə (bundle) düşməsin.
-  image_path: "branding/logo.png"
+# Launcher ikonu flutter_launcher_icons ilə YOX, adaptive icon vektorlarından
+# gəlir (android/app/src/main/res/drawable/ic_launcher_*.xml). Vektorları
+# `python branding/build_icon_vectors.py` yazır, PNG-ləri (köhnə Android, iOS,
+# web) isə `python branding/render_icons.py` həmin vektorlardan çəkir.
+# flutter_launcher_icons-u bura qaytarmayın: o, vektor ikonu tək PNG-dən
+# düzəlmiş ikonla əvəz edərdi.

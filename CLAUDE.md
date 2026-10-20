@@ -57,6 +57,7 @@ lib/
     tracing_canvas.dart      # the tracing game's draw surface
     parental_gate.dart       # showParentalGate(): 3-second press-and-hold before the parent area
     mute_button.dart         # the quick master-mute button in the book header
+    elifba_wordmark.dart     # the outlined "Əlifba" logo (CustomPainter), 4 colour variants
 test/
   widget_test.dart               # smoke tests for the alphabet book
   content_integrity_test.dart    # config maps vs. the files actually on disk
@@ -66,11 +67,12 @@ test/
   settings_test.dart             # AppSettings: isOn() logic, JSON round-trip, corrupt input
   settings_page_test.dart        # parent area UI + the quick mute button
   parental_gate_test.dart        # the hold gate: full hold, early release, no accumulation
+  wordmark_test.dart             # the Dart logo path/colours vs. branding/wordmark/*.svg
 ```
 
 Dependencies are deliberately minimal, one per capability: **`just_audio`** (audio),
 **`confetti`** (celebration), **`shared_preferences`** (star progress) and
-**`path_drawing`** (letter tracing), plus `flutter_lints`. `shared_preferences` now
+**`path_drawing`** (letter tracing, and the wordmark's outline), plus `flutter_lints`. `shared_preferences` now
 backs two stores — star progress and user settings. `flutter_tts`, `turn_page_transition`, `collection`, `cupertino_icons`
 and `webview_flutter` were all declared but never used, and have been removed — do not
 re-add a package without a call site. Keep `uses-material-design: true`; the Material icon
@@ -237,6 +239,64 @@ is deliberately left as JPEG. Everything that used to be PNG is now `.webp`.
 the **normalized** name via `getFirstLetter()`, which yields the wrong folder for
 diacritic letters. See Gotchas.
 
+### Brand assets (2026-10-20 rebrand)
+
+The brand comes from a Claude Design project ("Mobile app brand directions"), file
+**"Əlifba Brand Assets"**, built from the brief in `docs/design/claude-design-rebrand-prompt.md`.
+Direction "Lavanda buludu": an orange sun in a lavender sky. Only the brand assets are
+applied so far; the app's screens are still the old dark-purple UI. The project's
+"Design System" and "Screens" files are the next steps.
+
+- **Launcher icon = three VectorDrawables**:
+  `res/drawable/ic_launcher_{background,foreground,monochrome}.xml`, wired up by
+  `res/mipmap-anydpi-v26/ic_launcher{,_round}.xml`. They are **generated** by
+  `python branding/build_icon_vectors.py` (needs `pip install skia-pathops fonttools`).
+  That script holds the design's geometry and colours as constants. **Edit the constants,
+  never the XML**, then run it and `render_icons.py`. The pipeline is: design geometry →
+  VectorDrawables → bitmaps.
+  - **Background:** `#8F78E6` sky, a `#7C63D9` hill and three clouds at 16–18 %.
+  - **Foreground:** the outlined Comfortaa Bold "Ə" (`#FFFDFB`) with a `#5C45B5` shadow
+    offset 3 units, and the sun (`#FFC547`, rays `#FFA62B`). The sun's ring is *painted*
+    in the background colour `#8F78E6`, as in the design.
+  - **Monochrome** (Android 13+ themed icons): one path, `((Ə ∪ rays) − disk r8.8) ∪ disk
+    r6.4` around the sun at (68, 40). The generator derives it from the same constants
+    with skia-pathops, so it follows any change to the letter or the sun. No renderer
+    has to support clip-path holes.
+- **Bitmaps are rendered from those vectors** by `python branding/render_icons.py`
+  (Pillow plus headless Chrome or Edge). It writes:
+  - the legacy `mipmap-*/ic_launcher.png` (rounded square) and `ic_launcher_round.png`
+    (circle); minSdk is 21, so API 21–25 uses them;
+  - every iOS `AppIcon` PNG (opaque);
+  - the web icons, favicon included.
+
+  Its VectorDrawable→SVG converter knows only literal `#hex` colours and plain
+  path/group attributes, and **exits on anything else** rather than render it wrong. Its
+  square render matches the design's own `ic_play_512.png` export to within
+  anti-aliasing.
+  `flutter_launcher_icons` was removed from `pubspec.yaml` on purpose: it would replace the
+  vector icon with one built from a single PNG.
+- **Store art** (`docs/store/`) is the design's own export, not rendered here:
+  - `ic_play_512.png`: 512×512, no mask or shadow; Play adds them.
+  - `feature_graphic_1024x500.png`: flattened to RGB, because Play rejects alpha.
+
+  `branding/logo.png` is a copy of the Play icon (the old LinkedIn templates use it).
+- **Wordmark:** `branding/wordmark/elifba_wordmark_{light,lavender,mono,dark}.svg`, one per
+  background. The dot of the dotless **ı** is the sun. In the app it is
+  `ElifbaWordmark` (`widgets/elifba_wordmark.dart`): the same path drawn with
+  `path_drawing`, never a `Text`. The brand forbids another font, a plain dot, coloured
+  letters and stretching, so the painter scales uniformly. `wordmark_test.dart` fails if
+  the Dart path, viewBox, sun position/radii or colours drift from the SVGs. The book header uses the `lavender`
+  variant, because the page is still purple.
+- **Launch screen:** `@color/splash_background` = `#E4DEFF` (the design's `skyTop`), in
+  light and dark mode alike, because the app has no dark theme. The design names no
+  splash colour, so this is a choice. On Android 12+ the colour is set explicitly through
+  `windowSplashScreenBackground` in `values-v31` and `values-night-v31`. Without it, the
+  system would estimate the colour from the layer-list's bottom layer, which happens to
+  be the same. Those folders **redefine the whole `LaunchTheme`**, so all four copies
+  (`values`, `values-night`, `-v31`, `-night-v31`) must change together.
+- **App name** under the icon is **"Əlifba"** (Android label, iOS display name, web
+  manifest). It used to be lowercase "əlifba".
+
 ## Conventions
 
 - State management is plain `StatefulWidget` + `setState`. No Provider/Bloc/Riverpod.
@@ -298,8 +358,8 @@ diacritic letters. See Gotchas.
    `ProcessingState.completed` event that clears the flag never arrives.
 7. **Asset bloat.** The whole `assets/` tree is declared in `pubspec.yaml`, so anything
    dropped in there ships to every user. Store/branding art lives **outside** `assets/`
-   on purpose: `docs/store/feature.png`, `branding/logo.png` (the latter is
-   `flutter_launcher_icons.image_path`). Two cleanups so far: 2026-07-30 removed 66
+   on purpose: `docs/store/` (Play icon, feature graphic) and `branding/` (icon renderer,
+   wordmark SVGs, `logo.png`; see Brand assets). Two cleanups so far: 2026-07-30 removed 66
    duplicate `*.mp3` (10.8 MB) and web junk; 2026-09-08 converted all PNG art to WebP and
    re-encoded the oversized sound effects.
    ⚠️ The per-letter card images (`assets/images/<letter>/<letter>*.webp`) are **never

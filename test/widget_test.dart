@@ -62,7 +62,8 @@ void main() {
   testWidgets('kitab açılır və ilk səhifədə A ilə B görünür', (tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('Əlifba'), findsOneWidget);
+    // Başlıq mətn yox, konturlu loqodur — etiketinə görə tapılır.
+    expect(find.bySemanticsLabel('Əlifba'), findsOneWidget);
     expect(find.byType(AlphabetPage), findsOneWidget);
     expect(find.byType(PageView), findsOneWidget);
     expect(find.text('A'), findsOneWidget);
