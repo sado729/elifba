@@ -8,7 +8,9 @@
 // Consolas «monospace» kimi) yükləyir, səhifəni hər dizayn vəziyyətində
 // 360 × 640 və 412 × 915 dp-də qurur və PNG-ləri `SCREENS_OUT` qovluğuna
 // (yoxdursa `build/settings_screens/`) yazır. Maketdəki kimi yuxarıda 24 dp
-// status bar, aşağıda 24 dp jest nav bar-ı inseti verilir.
+// status bar, aşağıda 24 dp jest nav bar-ı inseti verilir. Əlavə olaraq
+// landşaft (640 × 360 jest / 3 düyməli nav bar, 568 × 320) şrift 1.0, 1.15
+// və 1.3-də: maketi yoxdur, daşma və düymələrin görünməsi yoxlanır.
 //
 // Ayarlar səhifəsi `GatedPlayer` qurmur, ona görə `tester.runAsync`
 // təhlükəsizdir (just_audio platformasını saxtalaşdırmaq lazım deyil).
@@ -99,6 +101,13 @@ void _seedStars(ProgressStore store, int target) {
   }
 }
 
+/// Portret və jest nav bar-lı landşaft: yuxarıda 24 dp status bar, aşağıda
+/// 24 dp jest zolağı (maketdəki kimi).
+const _kGestureInsets = FakeViewPadding(top: 24, bottom: 24);
+
+/// 3 düyməli nav bar-lı landşaft: nav bar sağdadır (48 dp).
+const _kThreeButtonLandscapeInsets = FakeViewPadding(top: 24, right: 48);
+
 /// [elifbaTheme] `false` → testlərdəki kimi defolt tema (səhifə ondan
 /// asılı olmamalıdır). [textScale] → tətbiqin ən böyük icazəli şrifti 1.3.
 Future<void> _pumpPage(
@@ -106,10 +115,10 @@ Future<void> _pumpPage(
   Size size, {
   bool elifbaTheme = true,
   double textScale = 1,
+  FakeViewPadding insets = _kGestureInsets,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
-  const insets = FakeViewPadding(top: 24, bottom: 24);
   tester.view.padding = insets;
   tester.view.viewPadding = insets;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
@@ -157,6 +166,10 @@ ScrollPosition _pagePosition(WidgetTester tester) =>
 /// Sətrə qədər sürüşdürüb toxunur, sonra siyahını yenidən yuxarı qaytarır
 /// (maketlərdə dialoqlar sürüşdürülməmiş siyahının üstündədir).
 Future<void> _openFromRow(WidgetTester tester, String row) async {
+  // `scrollUntilVisible` yalnız aşağı sürüşdürür; siyahı sonda olanda
+  // yuxarıdakı sətir (kiçik landşaftda) heç qurulmamış ola bilər.
+  _pagePosition(tester).jumpTo(0);
+  await tester.pump();
   await tester.scrollUntilVisible(find.text(row), 200);
   await tester.ensureVisible(find.text(row));
   await tester.pumpAndSettle();
@@ -292,5 +305,58 @@ void main() {
       await _openFromRow(tester, 'Tətbiq haqqında');
       await _capture(tester, '${tag}_06_about-dialog');
     });
+  }
+
+  // Landşaft (oriyentasiya kilidlənməyib) və böyük şrift: maket yoxdur, amma
+  // heç nə daşmamalı, sıfırlama dialoqunun düymələri ekranda qalmalıdır.
+  // `_capture` hər addımda `takeException()`-in boş olduğunu yoxlayır.
+  for (final (size, insets, tag) in const [
+    (Size(640, 360), _kGestureInsets, 'land640_gesture'),
+    (Size(640, 360), _kThreeButtonLandscapeInsets, 'land640_3btn'),
+    (Size(568, 320), _kGestureInsets, 'land568_gesture'),
+  ]) {
+    for (final scale in const [1.0, 1.15, 1.3]) {
+      final name = '${tag}_t${(scale * 100).round()}';
+      testWidgets(name, (tester) async {
+        _seedStars(store, 41);
+        await _pumpPage(tester, size, textScale: scale, insets: insets);
+        await _capture(tester, '${name}_01_list');
+        _pagePosition(tester).jumpTo(_pagePosition(tester).maxScrollExtent);
+        await tester.pumpAndSettle();
+        await _capture(tester, '${name}_01b_list-end');
+
+        await _openFromRow(tester, 'Progresi sıfırla');
+        await _capture(tester, '${name}_03_reset-confirm');
+        // Hər iki düymə təhlükəsiz sahənin içindədir.
+        final safeBottom = size.height - insets.bottom;
+        for (final label in const ['Ləğv et', 'Bəli, sil']) {
+          final rect = tester.getRect(find.text(label));
+          expect(rect.top, greaterThanOrEqualTo(insets.top), reason: label);
+          expect(rect.bottom, lessThanOrEqualTo(safeBottom), reason: label);
+        }
+        await tester.tap(find.text('Ləğv et'));
+        await tester.pumpAndSettle();
+        expect(store.totalStars, 41);
+
+        await _openFromRow(tester, 'Səs mənbələri');
+        await _capture(tester, '${name}_05_sound-credits-dialog');
+        await tester.tap(find.text('Bağla'));
+        await tester.pumpAndSettle();
+
+        await _openFromRow(tester, 'Tətbiq haqqında');
+        await _capture(tester, '${name}_06_about-dialog');
+        await tester.tap(find.text('Bağla'));
+        await tester.pumpAndSettle();
+
+        // Təsdiq də işləyir (düymə görünür və toxunuş ona çatır).
+        await _openFromRow(tester, 'Progresi sıfırla');
+        await tester.tap(find.text('Bəli, sil'));
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+        expect(store.totalStars, 0);
+        await _capture(tester, '${name}_04_snackbar-progress-reset');
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+      });
+    }
   }
 }

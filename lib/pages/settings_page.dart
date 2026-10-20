@@ -15,18 +15,29 @@ import '../widgets/sky_background.dart';
 // ayarlar testləri səhifəni defolt temalı çılpaq `MaterialApp` ilə qurur,
 // orada `ElifbaTheme` yoxdur və nəticə temadan asılı olmamalıdır.
 
-/// Sətirlərin ortaq ölçüləri (maket: min 64 dp, 10/16 boşluq, 22 dp ikon,
-/// 14 dp aralıq). İki sətirli `ListTile` hündürlüyü `2 × 11 + 22 + 20 = 64`
-/// verir; 10 olsa sətir 62 dp olardı.
+/// Sətirlərin ortaq ölçüləri (maket: 10/16 boşluq, 22 dp ikon, 14 dp aralıq,
+/// başlıq 22 + 1 dp aralıq + altyazı 20). Altyazılı `ListTile` həmişə kompakt
+/// düzülüşdədir: hündürlüyü `2 × 10 + 22 + (1 + 20) = 63`, iki sətirli
+/// altyazıyla 83 — maketin özü kimi. Minimum hündürlük sətrin yerindən
+/// asılıdır və [_RowSlot]-dan gəlir.
 const ListTileThemeData _kRowTileTheme = ListTileThemeData(
   contentPadding: EdgeInsets.symmetric(horizontal: 16),
   minTileHeight: 64,
-  minVerticalPadding: 11,
+  minVerticalPadding: 10,
   horizontalTitleGap: 14,
   minLeadingWidth: 22,
   titleAlignment: ListTileTitleAlignment.center,
   visualDensity: VisualDensity.standard,
 );
+
+/// Maketdə başlıqla altyazı arasındakı `gap: 1px`.
+const EdgeInsets _kSubtitleGap = EdgeInsets.only(top: 1);
+
+/// Bölmə başlığının sətir qutusu: maket `line-height` vermir (`normal`).
+/// Brauzer onu Andika-nın ascent/descent-indən, ikisini AYRI-AYRI
+/// yuvarlaqlaşdıraraq qurur: 14 px-də 17.09 → 17 və 5.47 → 5, cəmi 22 dp
+/// (renderlərdə ölçülüb). Fondasiyanın `sectionLabel`-i 14/20-dir.
+const double _kGroupHeaderHeight = 22 / 14;
 
 /// Sıfırlama dialoqunun eni (maket: `max-width: 312px`).
 const double _kResetDialogMaxWidth = 312;
@@ -51,32 +62,38 @@ final TextStyle _kCreditBody = ElifbaTextStyles.listSubtitle.copyWith(
   color: ElifbaPalette.onSurfaceVariant,
 );
 
-/// «Versiya 1.4.0»: Andika 15/20, #5E5888.
+// «Tətbiq haqqında» dialoqunun üç sətri maketdə `line-height` vermir
+// (`normal`): brauzer qutunu şriftin ascent/descent-indən, ikisini ayrı-ayrı
+// yuvarlaqlaşdıraraq qurur. Andika 15 → 18 + 6 = 24, Andika 16 → 20 + 6 = 26,
+// 13 px monospace (renderdə Consolas) → 12 + 3 = 15. Renderlərdə ölçülüb.
+
+/// «Versiya 1.4.0»: Andika 15/24, #5E5888.
 const TextStyle _kAboutVersion = TextStyle(
   fontFamily: ElifbaTypography.body,
   fontWeight: FontWeight.w400,
   fontSize: 15,
-  height: 20 / 15,
+  height: 24 / 15,
   letterSpacing: 0,
   leadingDistribution: TextLeadingDistribution.even,
   color: ElifbaPalette.onSurfaceVariant,
 );
 
-/// Paket adı: sistemin monospace şrifti 13/18 (bir sətir üçün şrift
+/// Paket adı: sistemin monospace şrifti 13/15 (bir sətir üçün şrift
 /// gətirmirik; Android-də `'monospace'` sistem mono şriftinə açılır).
 const TextStyle _kAboutPackage = TextStyle(
   fontFamily: 'monospace',
   fontWeight: FontWeight.w400,
   fontSize: 13,
-  height: 18 / 13,
+  height: 15 / 13,
   letterSpacing: 0,
   leadingDistribution: TextLeadingDistribution.even,
   color: ElifbaPalette.onSurfaceVariant,
 );
 
-/// «Məxfilik»: Andika 700 16/22.
+/// «Məxfilik»: Andika 700 16/26.
 final TextStyle _kAboutHeading = ElifbaTextStyles.listTitle.copyWith(
   color: ElifbaPalette.onSurface,
+  height: 26 / 16,
 );
 
 /// Məxfilik mətni: Andika 15/22, `onSurface` (`onSurfaceVariant` YOX).
@@ -95,9 +112,10 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     // CLAUDE.md gotcha #10: Android 16 edge-to-edge rejimini məcbur edir, sistem
     // panelləri `body`-nin üstünə düşür. Düz fon (`Scaffold`-un rəngi) hər iki
-    // panelin arxasını boyayır; üst panel `SafeArea`-dadır, alt inset isə
-    // yalnız siyahının alt boşluğuna əlavə olunur.
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    // panelin arxasını boyayır; üst panel `SafeArea`-dadır, alt və yan
+    // insetlər isə siyahının boşluğuna əlavə olunur (landşaftda yan nav bar
+    // və ya kəsik kartları örtməsin, toolbar-la bir xətdə qalsınlar).
+    final insets = MediaQuery.viewPaddingOf(context);
     final settings = AppSettings.instance;
 
     // AppBar yoxdur, ona görə sistem panellərinin tünd ikonlarını səhifə özü
@@ -129,7 +147,7 @@ class SettingsPage extends StatelessWidget {
                             animation: settings,
                             builder:
                                 (context, _) =>
-                                    _buildList(context, settings, bottomInset),
+                                    _buildList(context, settings, insets),
                           ),
                         ),
                       ),
@@ -151,18 +169,23 @@ class SettingsPage extends StatelessWidget {
   Widget _buildList(
     BuildContext context,
     AppSettings settings,
-    double bottomInset,
+    EdgeInsets insets,
   ) {
     final master = settings.masterSound;
     // Maketdə başlıqlar və kartlar `gap: 8px`-lik şəbəkədədir.
     const gap = SizedBox(height: 8);
     return ListView(
-      padding: EdgeInsets.fromLTRB(16, 4, 16, 16 + bottomInset),
+      padding: EdgeInsets.fromLTRB(
+        16 + insets.left,
+        4,
+        16 + insets.right,
+        16 + insets.bottom,
+      ),
       children: [
-        const ParentSectionHeader('Səs', first: true),
+        const _GroupHeader('Səs', first: true),
         gap,
-        ParentGroup(
-          children: [
+        _group(
+          [
             _switchRow(
               icon: master ? Icons.volume_up_rounded : Icons.volume_off_rounded,
               title: 'Bütün səslər',
@@ -196,10 +219,10 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         gap,
-        const ParentSectionHeader('Oyun'),
+        const _GroupHeader('Oyun'),
         gap,
-        ParentGroup(
-          children: [
+        _group(
+          [
             _switchRow(
               icon: Icons.vibration_rounded,
               title: 'Titrəmə',
@@ -218,10 +241,10 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         gap,
-        const ParentSectionHeader('Valideyn'),
+        const _GroupHeader('Valideyn'),
         gap,
-        ParentGroup(
-          children: [
+        _group(
+          [
             _navRow(
               icon: Icons.restart_alt_rounded,
               iconColor: ElifbaPalette.error,
@@ -233,10 +256,10 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         gap,
-        const ParentSectionHeader('Məlumat'),
+        const _GroupHeader('Məlumat'),
         gap,
-        ParentGroup(
-          children: [
+        _group(
+          [
             _navRow(
               icon: Icons.library_music_rounded,
               title: 'Səs mənbələri',
@@ -250,6 +273,16 @@ class SettingsPage extends StatelessWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  /// Kart: hər sətir öz yerinə görə minimum hündürlük alır ([_RowSlot]).
+  static Widget _group(List<Widget> rows) {
+    return ParentGroup(
+      children: [
+        for (var i = 0; i < rows.length; i++)
+          _RowSlot(first: i == 0, child: rows[i]),
       ],
     );
   }
@@ -291,15 +324,18 @@ class SettingsPage extends StatelessWidget {
       subtitle:
           subtitle == null
               ? null
-              : Text(
-                subtitle,
-                style: ElifbaTextStyles.listSubtitle.copyWith(
-                  color:
-                      enabled
-                          ? ElifbaPalette.onSurfaceVariant
-                          : ElifbaPalette.onSurfaceVariant.withAlpha(
-                            (0.5 * 255).toInt(),
-                          ),
+              : Padding(
+                padding: _kSubtitleGap,
+                child: Text(
+                  subtitle,
+                  style: ElifbaTextStyles.listSubtitle.copyWith(
+                    color:
+                        enabled
+                            ? ElifbaPalette.onSurfaceVariant
+                            : ElifbaPalette.onSurfaceVariant.withAlpha(
+                              (0.5 * 255).toInt(),
+                            ),
+                  ),
                 ),
               ),
       value: value,
@@ -325,10 +361,13 @@ class SettingsPage extends StatelessWidget {
       subtitle:
           subtitle == null
               ? null
-              : Text(
-                subtitle,
-                style: ElifbaTextStyles.listSubtitle.copyWith(
-                  color: ElifbaPalette.onSurfaceVariant,
+              : Padding(
+                padding: _kSubtitleGap,
+                child: Text(
+                  subtitle,
+                  style: ElifbaTextStyles.listSubtitle.copyWith(
+                    color: ElifbaPalette.onSurfaceVariant,
+                  ),
                 ),
               ),
       trailing: const Icon(
@@ -351,30 +390,9 @@ class SettingsPage extends StatelessWidget {
     // `await`-dən əvvəl tutulur: dialoq bağlananda `context` artıq etibarlı
     // olmaya bilər. Kök messenger snackbar-ı kitaba da daşıyır.
     final messenger = ScaffoldMessenger.of(context);
-    final stars = store.totalStars;
     final confirmed = await showParentDialog<bool>(
       context,
-      builder:
-          (context) => ParentDialog(
-            title: 'Bütün ulduzlar silinsin?',
-            icon: Icons.warning_rounded,
-            body:
-                'Yığılmış $stars ulduz və tamamlanmış bütün bölmələr '
-                'silinəcək. Bu addımı geri qaytarmaq mümkün deyil.',
-            maxWidth: _kResetDialogMaxWidth,
-            actions: [
-              TextButton(
-                style: ParentButtonStyles.textCompact,
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Ləğv et'),
-              ),
-              FilledButton(
-                style: ParentButtonStyles.destructive,
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Bəli, sil'),
-              ),
-            ],
-          ),
+      builder: (context) => _ResetConfirmDialog(stars: store.totalStars),
     );
     // Ləğv, scrim-ə toxunuş və sistem "geri"si (`false` / `null`) heç nəyi
     // dəyişmir.
@@ -390,6 +408,15 @@ class SettingsPage extends StatelessWidget {
           (context) => ParentDialog(
             title: 'Səs mənbələri',
             scrollableContent: true,
+            // Maketin `padding: 40px 20px`-i fiziki ekran kənarından ölçülür
+            // (24 dp status bar + 16). `showDialog` isə onsuz da təhlükəsiz
+            // sahənin içindədir, ona görə burada yalnız 16 qalır: 24 dp
+            // panellərdə dialoq maketdəki kimi 40-dan 600-ə çatır və heç vaxt
+            // panellərin altına düşmür.
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
             content: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -436,8 +463,14 @@ class SettingsPage extends StatelessWidget {
                         children: [
                           // Ad heç vaxt `Text` kimi yazılmır (brend qaydası):
                           // günəşli «ı» ilə kontur loqo. 40 = maketin 30 dp
-                          // sətri + günəş üçün 10 dp.
-                          const ElifbaWordmark(height: 40),
+                          // sətri + günəş üçün 10 dp. Loqo günəşin halqasını
+                          // da bu 40-ın içində çəkir, maketdə isə halqa
+                          // qutudan yuxarı daşır: rəsm 2 dp yuxarı
+                          // sürüşdürülür (yalnız rəsm, düzülüş dəyişmir).
+                          Transform.translate(
+                            offset: const Offset(0, -2),
+                            child: const ElifbaWordmark(height: 40),
+                          ),
                           const SizedBox(height: 12),
                           const Text(
                             'Versiya $kAppVersion',
@@ -486,6 +519,13 @@ class _SettingsToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Köhnə `AppBar` başlığı kimi: Android-də TalkBack marşrut açılanda
+    // ekranın adını bu başlıqdan oxuyur (`namesRoute`). `AppBar` onu
+    // iOS/macOS-da qoymur — eyni qayda.
+    final namesRoute = switch (Theme.of(context).platform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => null,
+      _ => true,
+    };
     return SizedBox(
       height: ElifbaSize.toolbar,
       child: Padding(
@@ -497,6 +537,7 @@ class _SettingsToolbar extends StatelessWidget {
             Flexible(
               child: Semantics(
                 header: true,
+                namesRoute: namesRoute,
                 child: Text(
                   'Ayarlar',
                   style: _kToolbarTitle,
@@ -507,6 +548,59 @@ class _SettingsToolbar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Bölmə başlığı: `ParentSectionHeader`-in eynisi (cümlə registri, Andika
+/// 700 14 #5C45B5, 12/16 üst və 4 alt boşluq), bircə fərqlə — sətir qutusu
+/// maketdəki kimi 22 dp-dir, fondasiyanın `sectionLabel`-indəki 20 deyil.
+/// 20 hər başlığı 2 dp qısaldır və kartlar maketdən getdikcə yuxarı sürüşür
+/// (412-də «Məlumat» 8 dp).
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader(this.title, {this.first = false});
+
+  final String title;
+
+  /// Siyahının ilk başlığı yuxarıda 12, qalanları 16 dp boşluq alır.
+  final bool first;
+
+  static final TextStyle _style = ElifbaTextStyles.sectionLabel.copyWith(
+    height: _kGroupHeaderHeight,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(4, first ? 12 : 16, 4, 4),
+      child: Semantics(header: true, child: Text(title, style: _style)),
+    );
+  }
+}
+
+/// Kartdakı bir sətrin yeri. Maketdə sətir `min-height: 64px;
+/// box-sizing: border-box`-dur və sonrakı sətirlərin 1 px `border-top`-u
+/// həmin 64-ün İÇİNDƏDİR. `ParentGroup` isə sətirlərin ARASINA ayrıca 1 dp
+/// `Divider` qoyur, ona görə xəttdən sonrakı sətir 63 dp-dən başlayır:
+/// xətt + sətir = maketin 64-ü (və iki sətirli altyazıda 1 + 83 = 84).
+class _RowSlot extends StatelessWidget {
+  const _RowSlot({required this.first, required this.child});
+
+  final bool first;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final minHeight = first ? 64.0 : 63.0;
+    return ListTileTheme.merge(
+      // Altyazısız sətir bu hündürlükdə ortalanır…
+      minTileHeight: minHeight,
+      // …altyazılı sətir isə kompakt düzülüşdədir və `minTileHeight`-a
+      // baxmır (63 dp); alt hədd buradan gəlir.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: child,
       ),
     );
   }
@@ -563,32 +657,277 @@ class _PuzzleSizeBlock extends StatelessWidget {
           Padding(
             // 22 ikon + 14 aralıq: seqmentlər mətnlə bir xətdə başlayır.
             padding: const EdgeInsets.only(left: 36),
-            child: SegmentedButton<int>(
-              segments: [
-                for (final n in AppSettings.puzzleGridSizes)
-                  ButtonSegment(value: n, label: Text('$n × $n')),
-              ],
-              selected: {settings.puzzleGridSize},
-              onSelectionChanged: (s) => settings.puzzleGridSize = s.first,
-              // Seqmentlər eni bərabər bölür.
-              expandedInsets: EdgeInsets.zero,
-              // `SegmentedButton` temadakı `minimumSize`-ı seqmentlərə
-              // ötürmür (Flutter 3.32 `segmentStyleFor`): seqment 40 dp
-              // çəkilir, `padded` isə yalnız layout-u 48-ə çatdırır. 48 dp
-              // pill üçün hündürlük boşluqdan gəlir: 20 dp sətir + 2 × 14.
-              // `shrinkWrap` olmasa kontur `fontSize`-a görə hesablanıb 43 dp
-              // çəkilərdi.
-              style: const ButtonStyle(
-                padding: WidgetStatePropertyAll(
-                  EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+            // Maketdə 1.5 px kontur konteynerin `inset box-shadow`-udur,
+            // yəni seqmentlərin ALTINDADIR: seçilmiş seqmentin #E4DEFF fonu
+            // onu kənara qədər örtür. M3 `SegmentedButton` konturu isə
+            // seqmentlərin ÜSTÜNDƏ, hamısı üçün eyni çəkir. Ona görə öz
+            // konturu söndürülür (`side: none`, kəsik yolu da tam pill olur),
+            // kontur altda, ayırıcılar (maketin `border-left`-i, seçilmiş
+            // seqmentin üstündə də görünür) üstdə əl ilə çəkilir.
+            child: CustomPaint(
+              painter: const _SegmentOutlinePainter(),
+              foregroundPainter: _SegmentDividerPainter(
+                AppSettings.puzzleGridSizes.length,
+              ),
+              child: SegmentedButton<int>(
+                // ✓ etiketin içindədir: maketdə ✓ ilə mətn arası 6 dp,
+                // `TextButton.icon`-unku isə 8-dir.
+                showSelectedIcon: false,
+                segments: [
+                  for (final n in AppSettings.puzzleGridSizes)
+                    ButtonSegment(
+                      value: n,
+                      label: _SegmentLabel(
+                        '$n × $n',
+                        selected: n == settings.puzzleGridSize,
+                      ),
+                    ),
+                ],
+                selected: {settings.puzzleGridSize},
+                onSelectionChanged: (s) => settings.puzzleGridSize = s.first,
+                // Seqmentlər eni bərabər bölür.
+                expandedInsets: EdgeInsets.zero,
+                // `SegmentedButton` temadakı `minimumSize`-ı seqmentlərə
+                // ötürmür (Flutter 3.32 `segmentStyleFor`): seqment 40 dp
+                // çəkilir, `padded` isə yalnız layout-u 48-ə çatdırır. 48 dp
+                // pill üçün hündürlük boşluqdan gəlir: 20 dp sətir + 2 × 14.
+                // `shrinkWrap` olmasa kontur `fontSize`-a görə hesablanıb
+                // 43 dp çəkilərdi.
+                style: const ButtonStyle(
+                  side: WidgetStatePropertyAll(BorderSide.none),
+                  padding: WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+/// Seqmentin etiketi: seçiləndə solda ✓ (18 dp), 6 dp aralıq, mətn. Rəng və
+/// şrift düymənin özündən gəlir (`ElifbaSegmentedTheme`).
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel(this.label, {required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (selected) ...[
+          const Icon(
+            Icons.check_rounded,
+            size: 18,
+            color: ElifbaPalette.onSurface,
+          ),
+          const SizedBox(width: 6),
+        ],
+        Flexible(child: Text(label)),
+      ],
+    );
+  }
+}
+
+/// Seqment konturunun və ayırıcılarının eni (maket: `1.5px #A9A2C6`, rəng
+/// `ElifbaPalette.onMuted`).
+const double _kSegmentLine = 1.5;
+
+/// Pill konturu — seqmentlərin ALTINDA (maketin `inset box-shadow`-u).
+class _SegmentOutlinePainter extends CustomPainter {
+  const _SegmentOutlinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(_kSegmentLine / 2);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(rect.shortestSide / 2)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _kSegmentLine
+        ..color = ElifbaPalette.onMuted,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SegmentOutlinePainter oldDelegate) => false;
+}
+
+/// Seqmentlər arası ayırıcılar — seqmentlərin ÜSTÜNDƏ. `expandedInsets`
+/// seqmentləri bərabər bölür, sərhədlər `en × i / say`-dadır.
+class _SegmentDividerPainter extends CustomPainter {
+  const _SegmentDividerPainter(this.count);
+
+  final int count;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..strokeWidth = _kSegmentLine
+          ..color = ElifbaPalette.onMuted;
+    for (var i = 1; i < count; i++) {
+      final x = size.width * i / count;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SegmentDividerPainter oldDelegate) =>
+      oldDelegate.count != count;
+}
+
+/// Sıfırlama təsdiqi (maket: en 312, boşluq 24/20/12, ikon, başlıq, mətn,
+/// sağda düymələr).
+///
+/// Fondasiyanın `ParentDialog`-u deyil: onun sürüşməyən variantı adi
+/// `Column`-dur və hündürlük çatmayanda (landşaft + böyük şrift) düymələri
+/// ekrandan itələyir — valideyn nə təsdiqləyə, nə də «Ləğv et»-ə toxuna
+/// bilir. Burada düymələr HƏMİŞƏ görünür: yer çatmayanda mətn sığan qədər
+/// TAM sətir göstərir və «…» ilə bitir (köhnə `AlertDialog` isə onu sətrin
+/// ortasından kəsirdi). `Scrollable` yoxdur (B11). Mətn qısalsa da
+/// semantikada tam qalır.
+class _ResetConfirmDialog extends StatelessWidget {
+  const _ResetConfirmDialog({required this.stars});
+
+  final int stars;
+
+  static const String _title = 'Bütün ulduzlar silinsin?';
+
+  /// Maketin 32 px Material Symbols ikonunun sətri ~38 dp-dir və qlif
+  /// dialoqun 31-ci dp-sindən başlayır; çılpaq 32 dp `Icon` dialoqu 6 dp
+  /// qısaldırdı.
+  static const EdgeInsets _iconPadding = EdgeInsets.only(top: 2, bottom: 4);
+  static const double _gap = 14;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = ElifbaTextStyles.dialogTitle.copyWith(
+      color: ElifbaPalette.onSurface,
+    );
+    final bodyStyle = ElifbaTextStyles.dialogBody.copyWith(
+      color: ElifbaPalette.onSurfaceVariant,
+    );
+    return ParentDialogFrame(
+      maxWidth: _kResetDialogMaxWidth,
+      semanticLabel: _title,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              child: LayoutBuilder(
+                builder:
+                    (context, constraints) => UnconstrainedBox(
+                      // Uşaq öz təbii hündürlüyündədir; o da sığmasa
+                      // (kiçik landşaft, 1.3) səssizcə kəsilir — `Clip.none`
+                      // olmadığı üçün daşma xətası yoxdur.
+                      constrainedAxis: Axis.horizontal,
+                      alignment: Alignment.topCenter,
+                      clipBehavior: Clip.hardEdge,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Padding(
+                            padding: _iconPadding,
+                            child: Center(
+                              child: Icon(
+                                Icons.warning_rounded,
+                                size: 32,
+                                color: ElifbaPalette.error,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: _gap),
+                          Text(
+                            _title,
+                            textAlign: TextAlign.center,
+                            style: titleStyle,
+                          ),
+                          const SizedBox(height: _gap),
+                          Text(
+                            'Yığılmış $stars ulduz və tamamlanmış bütün '
+                            'bölmələr silinəcək. Bu addımı geri qaytarmaq '
+                            'mümkün deyil.',
+                            style: bodyStyle,
+                            maxLines: _bodyMaxLines(
+                              context,
+                              constraints,
+                              titleStyle,
+                              bodyStyle,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+              ),
+            ),
+            // Maketin 14 dp `gap`-ı + düymələrin `padding-top: 6`-sı.
+            const SizedBox(height: 20),
+            // Böyük şriftdə daşmır, düymələr alt-alta düzülür.
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              overflowAlignment: OverflowBarAlignment.end,
+              spacing: 6,
+              children: [
+                TextButton(
+                  style: ParentButtonStyles.textCompact,
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Ləğv et'),
+                ),
+                FilledButton(
+                  style: ParentButtonStyles.destructive,
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Bəli, sil'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Mətnin [constraints]-ə sığan TAM sətir sayı (ən azı 1); hündürlük
+  /// məhdud deyilsə `null` (məhdudiyyət yoxdur). İkon, aralıqlar və başlıq
+  /// `Text`-in özü kimi ölçülür — eyni üslub, en və şrift miqyası.
+  static int? _bodyMaxLines(
+    BuildContext context,
+    BoxConstraints constraints,
+    TextStyle titleStyle,
+    TextStyle bodyStyle,
+  ) {
+    if (!constraints.hasBoundedHeight) return null;
+    final scaler = MediaQuery.textScalerOf(context);
+    final title = TextPainter(
+      text: TextSpan(text: _title, style: titleStyle),
+      textAlign: TextAlign.center,
+      textDirection: Directionality.of(context),
+      textScaler: scaler,
+    )..layout(maxWidth: constraints.maxWidth);
+    final titleHeight = title.height;
+    title.dispose();
+    final room =
+        constraints.maxHeight -
+        (_iconPadding.vertical + 32) -
+        _gap -
+        titleHeight -
+        _gap;
+    final lineHeight = scaler.scale(bodyStyle.fontSize!) * bodyStyle.height!;
+    // +0.5: üz-üzə sığan sətir yuvarlaqlaşma ucbatından itməsin.
+    final lines = ((room + 0.5) / lineHeight).floor();
+    return lines < 1 ? 1 : lines;
   }
 }
 

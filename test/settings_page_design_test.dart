@@ -12,7 +12,9 @@ import 'package:elifba/core/progress.dart';
 import 'package:elifba/core/settings.dart';
 import 'package:elifba/pages/settings_page.dart';
 import 'package:elifba/widgets/elifba_wordmark.dart';
+import 'package:elifba/widgets/parent_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -56,17 +58,34 @@ void main() {
       expect(back.center.dy, 32);
     });
 
-    testWidgets('açar sətirləri 64 dp, pazl seqmentləri 48 dp', (tester) async {
+    testWidgets('sətir yeri 64 dp (xətt daxil), pazl seqmentləri 48 dp', (
+      tester,
+    ) async {
       await pumpSettings(tester);
 
-      // 800 dp endə alt mətnlər sarılmır: iki sətirli sətir 2 × 11 + 22 + 20.
-      for (final title in const ['Bütün səslər', 'Heyvan səsləri', 'Titrəmə']) {
+      // Maket: `min-height: 64px; box-sizing: border-box`, sonrakı sətirlərin
+      // 1 px `border-top`-u 64-ün içindədir. 800 dp endə alt mətnlər sarılmır.
+      // Kartın ilk sətri 64, xəttdən sonrakılar 63 + 1 dp xətt.
+      for (final (title, height) in const [
+        ('Bütün səslər', 64.0),
+        ('Titrəmə', 64.0),
+        ('Heyvan səsləri', 63.0),
+        ('Effektlər', 63.0),
+      ]) {
         expect(
           tester.getSize(find.widgetWithText(SwitchListTile, title)).height,
-          64,
+          height,
           reason: '"$title" sətri',
         );
       }
+      // «Səs» kartı maketdəki kimi 4 × 64.
+      expect(tester.getSize(find.byType(ParentGroup).first).height, 4 * 64);
+      // Başlıq ilə altyazı arasında maketin 1 dp-si.
+      final title = tester.getRect(find.text('Bütün səslər'));
+      final subtitle = tester.getRect(
+        find.text('Tətbiqdəki bütün səsləri susdurur'),
+      );
+      expect(subtitle.top - title.bottom, 1);
 
       await tester.scrollUntilVisible(find.text('5 × 5'), 200);
       await tester.pumpAndSettle();
@@ -74,6 +93,80 @@ void main() {
       for (final label in const ['3 × 3', '4 × 4', '5 × 5']) {
         expect(find.text(label), findsOneWidget);
       }
+    });
+
+    testWidgets('bölmə başlığının sətir qutusu 22 dp (line-height normal)', (
+      tester,
+    ) async {
+      await pumpSettings(tester);
+
+      expect(tester.getSize(find.text('Səs')).height, closeTo(22, 0.001));
+      // Səs başlığı: siyahının 4 + 12 dp üst boşluğu; kart 4 + 8 dp sonra.
+      final header = tester.getRect(find.text('Səs'));
+      final card = tester.getRect(find.byType(ParentGroup).first);
+      expect(card.top - header.bottom, 12);
+    });
+
+    testWidgets('seçilmiş seqment: ✓ etiketdə, 6 dp aralıq, M3 konturu yox', (
+      tester,
+    ) async {
+      settings.puzzleGridSize = 4;
+      await pumpSettings(tester);
+      await tester.scrollUntilVisible(find.text('5 × 5'), 200);
+      await tester.pumpAndSettle();
+
+      final segmented = find.byType(SegmentedButton<int>);
+      final check = find.descendant(
+        of: segmented,
+        matching: find.byIcon(Icons.check_rounded),
+      );
+      expect(check, findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('4 × 4')).dx -
+            tester.getTopRight(check).dx,
+        6,
+      );
+      // Kontur seqmentlərin altında əl ilə çəkilir (seçilmiş seqmentin fonu
+      // onu örtsün); M3-ün üstdən çəkdiyi kontur söndürülüb.
+      final button = tester.widget<SegmentedButton<int>>(segmented);
+      expect(button.showSelectedIcon, isFalse);
+      expect(button.style?.side?.resolve(const {}), BorderSide.none);
+      expect(
+        find.ancestor(of: segmented, matching: find.byType(CustomPaint)),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('yan insetlər: kartlar landşaftda nav bar-ın altına girmir', (
+      tester,
+    ) async {
+      // `FakeViewPadding` fiziki pikseldir: DPR 1 → dp ilə eyni.
+      const insets = FakeViewPadding(left: 32, top: 24, right: 48);
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.padding = insets;
+      tester.view.viewPadding = insets;
+      addTearDown(tester.view.reset);
+      await pumpSettings(tester);
+
+      final card = tester.getRect(find.byType(ParentGroup).first);
+      expect(card.left, 32 + 16);
+      expect(card.right, 800 - 48 - 16);
+      // Toolbar da eyni insetdədir (SafeArea): geri düyməsi 32 + 8-dən.
+      expect(tester.getRect(find.byTooltip('Geri')).left, 32 + 8);
+    });
+
+    testWidgets('«Ayarlar» ekranın adıdır (AppBar kimi namesRoute)', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpSettings(tester);
+
+      expect(
+        tester.getSemantics(find.text('Ayarlar')),
+        containsSemantics(label: 'Ayarlar', isHeader: true, namesRoute: true),
+      );
+      handle.dispose();
     });
   });
 
@@ -134,6 +227,93 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
       expect(find.text('Progres sıfırlandı.'), findsNothing);
+    });
+
+    // Reqressiya: `ParentDialog`-un sürüşməyən `Column`-u landşaftda böyük
+    // şriftlə daşırdı və düymələr ekrandan çıxırdı (640 × 360, 1.3: 84 dp).
+    // Oriyentasiya kilidlənməyib, tətbiq şrifti 1.3-ə qədər buraxır.
+    for (final (size, insets) in const [
+      (Size(640, 360), FakeViewPadding(top: 24, bottom: 24)),
+      (Size(640, 360), FakeViewPadding(top: 24, right: 48)),
+      (Size(568, 320), FakeViewPadding(top: 24, bottom: 24)),
+    ]) {
+      testWidgets(
+        'landşaft ${size.width.toInt()} × ${size.height.toInt()}, şrift 1.3: '
+        'təsdiq düymələri görünür və işləyir',
+        (tester) async {
+          tester.view.devicePixelRatio = 1;
+          tester.view.physicalSize = size;
+          tester.view.padding = insets;
+          tester.view.viewPadding = insets;
+          tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+          addTearDown(tester.view.reset);
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          store.markWritten('Ğ');
+          await pumpSettings(tester);
+          await openRow(tester, 'Progresi sıfırla');
+
+          expect(tester.takeException(), isNull);
+          expect(find.text('Bütün ulduzlar silinsin?'), findsOneWidget);
+          // Dialoqda hələ də `Scrollable` yoxdur (B11).
+          expect(find.byType(Scrollable), findsOneWidget);
+          for (final label in const ['Ləğv et', 'Bəli, sil']) {
+            final rect = tester.getRect(find.text(label));
+            expect(rect.top, greaterThanOrEqualTo(insets.top), reason: label);
+            expect(
+              rect.bottom,
+              lessThanOrEqualTo(size.height - insets.bottom),
+              reason: label,
+            );
+          }
+
+          await tester.tap(find.text('Bəli, sil'));
+          await tester.pumpAndSettle();
+          expect(store.totalStars, 0);
+          await tester.pump(const Duration(seconds: 5));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
+    testWidgets('yer çatmayanda mətn tam sətirlərlə «…» ilə qısalır', (
+      tester,
+    ) async {
+      // Test şrifti enlidir (hər simvol 1 em): 800 × 600-də, 1.3-də mətn
+      // dialoqa sığmır, amma bir neçə tam sətrə yer qalır.
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpSettings(tester);
+      await openRow(tester, 'Progresi sıfırla');
+      expect(tester.takeException(), isNull);
+
+      final body = find.textContaining('Yığılmış');
+      expect(tester.widget<Text>(body).overflow, TextOverflow.ellipsis);
+      expect(
+        tester.renderObject<RenderParagraph>(body).didExceedMaxLines,
+        isTrue,
+      );
+      // Mətn sətrin ortasından kəsilmir: qutusu düymələrdən 20 dp yuxarıda
+      // bitir (maketin 14 + 6 dp-si).
+      final buttonsTop = tester.getRect(
+        find.widgetWithText(TextButton, 'Ləğv et'),
+      ).top;
+      expect(
+        tester.getRect(body).bottom,
+        lessThanOrEqualTo(buttonsTop - 20 + 0.01),
+      );
+    });
+
+    testWidgets('portretdə mətn qısalmır', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 640);
+      addTearDown(tester.view.reset);
+      await pumpSettings(tester);
+      await openRow(tester, 'Progresi sıfırla');
+
+      final body = find.textContaining('Yığılmış');
+      final paragraph = tester.renderObject<RenderParagraph>(body);
+      expect(paragraph.didExceedMaxLines, isFalse);
     });
   });
 
