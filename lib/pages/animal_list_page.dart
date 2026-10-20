@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,10 @@ import 'letter_writing_page.dart';
 /// ona görə bu dəyər mənbə ölçüsü ilə eynidir və detal səhifəsindəki hero ilə
 /// eyni image-cache açarını paylaşır (iki ayrı dekod yaranmır).
 const int kAnimalThumbDecodeWidth = 400;
+
+/// Heyvan kartının kənarı ilə halqasının qutudan aşağı çıxdığı məsafə:
+/// `ElifbaEdge.e6` + `ElifbaRing.normal` (CSS `0 6px 0 2px`).
+const double _kCardPaintOverflow = ElifbaEdge.e6 + ElifbaRing.normal;
 
 /// Hərf səhifəsi (ScreenLetter, §7.4): üst panel + TƏK sürüşən sahə — hərf
 /// haqqında kart (səs düyməsi içində), «Heyvanlar» sətri və tənbəl qrid
@@ -141,7 +146,9 @@ class _AnimalListPageState extends State<AnimalListPage> {
     // çəkilir (gotcha 10).
     final vp = MediaQuery.viewPaddingOf(context);
     final big = ElifbaLayout.isLarge(context);
-    // Ekran maketləri 360 və 412-də eyni 16 dp kənar işlədir (ElifbaSpace).
+    // Ekran maketləri (ScreenLetter renders) 360 və 412-də eyni 16 dp kənar
+    // işlədir: 412-də kart 184 endədir. letter.md D1-in 20 dp-si (kart 180)
+    // QƏSDƏN tətbiq olunmayıb — keyfiyyət ölçüsü maketlərdir.
     const hPad = ElifbaSpace.gutter;
     final cardH = big ? 212.0 : 196.0;
 
@@ -184,37 +191,49 @@ class _AnimalListPageState extends State<AnimalListPage> {
         // Qrid tənbəldir (`SliverGrid`): yalnız görünən sətirlər qurulur.
         // Yazı kartı qridin İLK xanasıdır — ekranın ilk gördüyü, ən böyük
         // hədəf; heyvan indeksi buna görə bir sürüşür.
+        //
+        // Kartın kənarı və halqası (`0 6px 0 2px`) qutudan 8 dp aşağı çəkilir,
+        // `SliverGrid` isə xananı yalnız QUTUSU görünəndə çəkir: kart ekranın
+        // üstündən çıxan kimi kənarı da yox olardı (maket 01-də o zolaq
+        // görünür). Ona görə həmin 8 dp xananın içindədir — xana `cardH + 8`,
+        // sətir arası 6: kartların yeri və addımı (cardH + 14) dəyişmir.
         if (gridShown)
           SliverPadding(
             padding: EdgeInsets.fromLTRB(hPad + vp.left, 0, hPad + vp.right, 0),
             sliver: SliverGrid.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 14,
+                mainAxisSpacing: 14 - _kCardPaintOverflow,
                 crossAxisSpacing: 12,
-                mainAxisExtent: cardH,
+                mainAxisExtent: cardH + _kCardPaintOverflow,
               ),
               itemCount: itemCount,
               itemBuilder: (context, index) {
+                final Widget card;
                 if (showWrite && index == 0) {
-                  return _WriteLetterCard(
+                  card = _WriteLetterCard(
                     letter: letter,
                     written: _store.isWritten(letter),
                     onTap: () => _openWriting(letter),
                   );
+                } else {
+                  // AnimalDetailPage-ə MÜTLƏQ sürüşdürülməmiş heyvan indeksi
+                  // verilməlidir, yoxsa detal səhifəsindəki irəli/geri
+                  // naviqasiya səhv heyvandan başlayır.
+                  final animalIndex = showWrite ? index - 1 : index;
+                  final animal = animals[animalIndex];
+                  final imageAsset =
+                      AppConfig.findAnimal(letter, animal)?.imagePath ?? '';
+                  card = _AnimalCard(
+                    animal: animal,
+                    imageAsset: imageAsset,
+                    stars: _store.animalStars(animal),
+                    onTap: () => _openAnimal(animal, animals, animalIndex),
+                  );
                 }
-                // AnimalDetailPage-ə MÜTLƏQ sürüşdürülməmiş heyvan indeksi
-                // verilməlidir, yoxsa detal səhifəsindəki irəli/geri
-                // naviqasiya səhv heyvandan başlayır.
-                final animalIndex = showWrite ? index - 1 : index;
-                final animal = animals[animalIndex];
-                final imageAsset =
-                    AppConfig.findAnimal(letter, animal)?.imagePath ?? '';
-                return _AnimalCard(
-                  animal: animal,
-                  imageAsset: imageAsset,
-                  stars: _store.animalStars(animal),
-                  onTap: () => _openAnimal(animal, animals, animalIndex),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: _kCardPaintOverflow),
+                  child: card,
                 );
               },
             ),
@@ -225,7 +244,8 @@ class _AnimalListPageState extends State<AnimalListPage> {
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
               hPad + vp.left,
-              gridShown ? 14 : 0,
+              // Qridin son 8 dp-si artıq kartın kənarıdır: arada yenə 14.
+              gridShown ? 14 - _kCardPaintOverflow : 0,
               hPad + vp.right,
               0,
             ),
@@ -238,8 +258,15 @@ class _AnimalListPageState extends State<AnimalListPage> {
               ),
             ),
           ),
-        // Kartların kənarı qutudan kənarda çəkilir: sonda boşluq qalsın.
-        SliverToBoxAdapter(child: SizedBox(height: 40 + vp.bottom)),
+        // Maketin alt boşluğu 40 dp-dir. Qrid sonuncudursa onun son 8 dp-si
+        // (kartın kənarı) bu boşluğun bir hissəsidir — sürüşmə uzunluğu
+        // maketdəki kimi qalır.
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height:
+                (animals.isEmpty ? 40 : 40 - _kCardPaintOverflow) + vp.bottom,
+          ),
+        ),
       ],
     );
 
@@ -292,13 +319,23 @@ class _LetterTopBar extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 6),
-                child: Text(
-                  '$letter hərfi',
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  style: ElifbaTypography.textTheme.titleLarge!.copyWith(
-                    color: ElifbaPalette.onSurface,
+                // Köhnə `AppBar` başlığı belə bükürdü: TalkBack səhifə
+                // açılanda «A hərfi»-ni ekranın adı kimi oxuyur. iOS-da
+                // `AppBar` kimi `namesRoute` verilmir.
+                child: Semantics(
+                  header: true,
+                  namesRoute: switch (Theme.of(context).platform) {
+                    TargetPlatform.iOS || TargetPlatform.macOS => null,
+                    _ => true,
+                  },
+                  child: Text(
+                    '$letter hərfi',
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: ElifbaTypography.textTheme.titleLarge!.copyWith(
+                      color: ElifbaPalette.onSurface,
+                    ),
                   ),
                 ),
               ),
@@ -418,22 +455,22 @@ class _LetterInfoCard extends StatelessWidget {
     final bodyStyle = ElifbaTypography.textTheme.bodyMedium!.copyWith(
       color: ElifbaPalette.onSurface,
     );
+    final titleStyle = ElifbaTextStyles.infoCardTitle.copyWith(
+      color: ElifbaPalette.onSurface,
+    );
+    final readLabel = '$letter hərfi haqqında oxu';
 
     final header = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: expanded ? onToggle : null,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 40),
+        constraints: const BoxConstraints(minHeight: _headerMinHeight),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                expanded
-                    ? '$letter hərfi haqqında'
-                    : '$letter hərfi haqqında oxu',
-                style: ElifbaTextStyles.infoCardTitle.copyWith(
-                  color: ElifbaPalette.onSurface,
-                ),
+                expanded ? '$letter hərfi haqqında' : readLabel,
+                style: titleStyle,
               ),
             ),
             AnimatedRotation(
@@ -442,7 +479,7 @@ class _LetterInfoCard extends StatelessWidget {
               curve: ElifbaMotion.expandCurve,
               child: const Icon(
                 Icons.expand_more_rounded,
-                size: 28,
+                size: _chevronSize,
                 color: ElifbaPalette.secondary,
               ),
             ),
@@ -458,10 +495,10 @@ class _LetterInfoCard extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 64),
         child: ElifbaCard.section(
           padding: EdgeInsets.fromLTRB(
-            hasAudio ? 72 : 14,
-            12,
-            14,
-            expanded ? 16 : 12,
+            hasAudio ? _padLeftWithAudio : _padSide,
+            _padTop,
+            _padSide,
+            expanded ? 16 : _padTop,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -495,18 +532,70 @@ class _LetterInfoCard extends StatelessWidget {
       ),
     );
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        card,
-        if (hasAudio)
-          Positioned(
-            left: 8,
-            top: 8,
-            child: _LetterAudioButton(letter: letter),
+    if (!hasAudio) return card;
+    return LayoutBuilder(
+      builder:
+          (context, box) => Stack(
+            clipBehavior: Clip.none,
+            children: [
+              card,
+              // Açıq kartda düymə yuxarıdan 8 dp-dədir (maket `top: 8px`),
+              // bağlı kartda kartın ortasında (`top: 50%`). Hər iki halda
+              // EYNİ `AnimatedPositioned`-dir: element (və pleyer) qalır.
+              AnimatedPositioned(
+                left: 8,
+                top:
+                    expanded
+                        ? 8
+                        : _collapsedAudioTop(
+                          context,
+                          box.maxWidth,
+                          readLabel,
+                          titleStyle,
+                        ),
+                duration: ElifbaMotion.expand,
+                curve: ElifbaMotion.expandCurve,
+                child: _LetterAudioButton(letter: letter),
+              ),
+            ],
           ),
-      ],
     );
+  }
+
+  static const double _padLeftWithAudio = 72;
+  static const double _padSide = 14;
+  static const double _padTop = 12;
+  static const double _headerMinHeight = 40;
+  static const double _chevronSize = 28;
+
+  /// Bağlı kartda düymənin yuxarı kənarı: kartın (= başlığın) ortası − 24.
+  ///
+  /// Bağlı kartın hündürlüyü başlıqdan asılıdır: 1.3x mətndə «Ğ hərfi
+  /// haqqında oxu» iki sətrə düşür və kart 64 deyil, ~82 dp olur. Düyməni
+  /// kartın öz hündürlüyünə bağlamaq (`bottom: 8` + `Align`) olmur: bağlanan
+  /// anda kart hələ açıq hündürlükdədir və düymə onun ortasına sıçrayardı.
+  /// Ona görə başlığın hündürlüyü eyni üslubla ölçülür.
+  static double _collapsedAudioTop(
+    BuildContext context,
+    double cardWidth,
+    String label,
+    TextStyle style,
+  ) {
+    const fallback = 8.0;
+    final textWidth =
+        cardWidth - _padLeftWithAudio - _padSide - _chevronSize;
+    if (!textWidth.isFinite || textWidth <= 0) return fallback;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: textWidth);
+    final headerH = math.max(_headerMinHeight, painter.height);
+    painter.dispose();
+    return _padTop + headerH / 2 - ElifbaSize.audioM / 2;
   }
 }
 
@@ -595,12 +684,44 @@ class _LetterAudioButtonState extends State<_LetterAudioButton> {
 ///
 /// Hündürlüyü 36 dp-dir (ən hündür element 24 dp-lik başlıqdır). Store-a özü
 /// qoşulmur — səhifə store-u dinləyib bütün alt ağacı yenidən qurur.
-/// `Text('Heyvanlar')` və sayğac EYNİ `Row`-un birbaşa uşaqlarıdır
+/// `Text('Heyvanlar')` və sayğac EYNİ `Row`-un birbaşa uşaqlarıdır; dar
+/// ekranda da sayğac «Heyvanlar»-ın ilk `Row` əcdadının içindədir
 /// (`star_ui_test` buna söykənir).
+///
+/// Dar ekranda (320 dp — Android «Ekran ölçüsü: böyük» — və 1.3x mətn) sabit
+/// elementlər (başlıq, ulduzlar, «Tamam!») sətrə sığmır və zolağa yer qalmır:
+/// onda başlıq yuxarı sətrə, tərəqqi aşağı sətrə keçir. Sətir scroll-un
+/// içindədir, artıq hündürlük qridi yalnız aşağı itələyir (gotcha 13).
 class _AnimalsHeadingRow extends StatelessWidget {
   const _AnimalsHeadingRow({required this.letter});
 
   final String letter;
+
+  static const double _gap = 10;
+  static const double _starSize = 18;
+  static const double _checkGap = 3;
+
+  /// Zolağın ən kiçik eni; bundan dar zolaq tərəqqini göstərmir.
+  static const double _minBarWidth = 24;
+
+  static double _textWidth(
+    BuildContext context,
+    String text,
+    TextStyle style,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -608,53 +729,90 @@ class _AnimalsHeadingRow extends StatelessWidget {
     final total = store.letterTotal(letter);
     final done = store.letterDone(letter);
     final complete = total > 0 && done >= total;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 36),
-      child: Row(
-        children: [
-          Text(
-            'Heyvanlar',
-            style: ElifbaTypography.textTheme.titleMedium!.copyWith(
-              color: ElifbaPalette.onSurface,
+    final titleStyle = ElifbaTypography.textTheme.titleMedium!.copyWith(
+      color: ElifbaPalette.onSurface,
+    );
+    final title = Text('Heyvanlar', style: titleStyle);
+    // Əlifbada olmayan hərf (praktikada baş vermir) — "0/0" yazılmır.
+    if (total == 0) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 36),
+        child: Row(children: [title]),
+      );
+    }
+
+    final counterLabel = complete ? 'Tamam!' : '$done/$total';
+    final counterStyle = ElifbaTextStyles.counter.copyWith(
+      color:
+          complete
+              ? ElifbaPalette.onCorrectContainer
+              : ElifbaPalette.onSurfaceVariant,
+    );
+    final counter =
+        complete
+            ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: _starSize,
+                  color: ElifbaPalette.correct,
+                ),
+                const SizedBox(width: _checkGap),
+                Text(counterLabel, style: counterStyle),
+              ],
+            )
+            : Text(counterLabel, style: counterStyle);
+    final progress = <Widget>[
+      Expanded(
+        child: ElifbaProgressBar(value: done / total, complete: complete),
+      ),
+      const SizedBox(width: _gap),
+      StarRow(filled: store.starsOf(letter), size: _starSize),
+      const SizedBox(width: _gap),
+      counter,
+    ];
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        final fixed =
+            _textWidth(context, 'Heyvanlar', titleStyle) +
+            _gap * 3 +
+            _starSize * ProgressStore.maxStarsPerLetter +
+            (complete ? _starSize + _checkGap : 0) +
+            _textWidth(context, counterLabel, counterStyle);
+        if (box.maxWidth >= fixed + _minBarWidth) {
+          return ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 36),
+            child: Row(
+              children: [title, const SizedBox(width: _gap), ...progress],
             ),
-          ),
-          // Əlifbada olmayan hərf (praktikada baş vermir) — "0/0" yazılmır.
-          if (total > 0) ...[
-            const SizedBox(width: 10),
+          );
+        }
+        // Dar ekran. Xarici `Row` test tutacağını saxlayır: «Heyvanlar»-ın
+        // ilk `Row` əcdadında sayğac da var.
+        return Row(
+          children: [
             Expanded(
-              child: ElifbaProgressBar(value: done / total, complete: complete),
-            ),
-            const SizedBox(width: 10),
-            StarRow(filled: store.starsOf(letter), size: 18),
-            const SizedBox(width: 10),
-            if (complete)
-              Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    size: 18,
-                    color: ElifbaPalette.correct,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    'Tamam!',
-                    style: ElifbaTextStyles.counter.copyWith(
-                      color: ElifbaPalette.onCorrectContainer,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 36),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      widthFactor: 1,
+                      child: title,
                     ),
                   ),
+                  Row(children: progress),
                 ],
-              )
-            else
-              Text(
-                '$done/$total',
-                style: ElifbaTextStyles.counter.copyWith(
-                  color: ElifbaPalette.onSurfaceVariant,
-                ),
               ),
+            ),
           ],
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -893,6 +1051,12 @@ class _DrawBadge extends StatelessWidget {
 ///
 /// Qalınlıqlar dp ilə verilir (`canvas.scale`-dən sonra `/ s`): 78 dp-lik
 /// hərfdə yol 17 dp (DS kartı: 82 dp hərfdə 18), nöqtə 8 dp (maket).
+///
+/// Məlum məhdudiyyət: `İ`-nin nöqtəsi (50, 12) gövdənin başlanğıcına (50, 20)
+/// çox yaxındır — gövdənin yuvarlaq ucu nöqtənin mərkəzindən o yana çatır,
+/// ona görə nöqtə gövdəyə yapışır və «1» nişanının altında qalır. Nöqtənin
+/// radiusunu kiçiltmək arada boşluq açmır; düzəliş [LetterStrokes] datasındadır
+/// (oyunla birgə), kartda ayrıca yer dəyişmək kartı oyundan ayırardı.
 class _TraceGlyphPainter extends CustomPainter {
   const _TraceGlyphPainter({required this.units});
 

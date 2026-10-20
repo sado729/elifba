@@ -349,10 +349,17 @@ Future<void> _openInfo(WidgetTester tester, String letter) async {
   await tester.pump(const Duration(milliseconds: 400));
 }
 
+/// Səsləndirməni başladır və düyməni SAKİT halda saxlayır.
+///
+/// `tester.tap` `Squishy`-nin 90 ms-lik basışı bitməmiş buraxır; buraxılış
+/// növbəyə düşür və geri qayıdış (140 ms) yalnız basış bitən kadrda başlayır
+/// — o da 300 ms-lik kadrdır. Əlavə 200 ms olmasa düymə 4 dp aşağıda,
+/// kənarı 0 olaraq çəkilir.
 Future<void> _playNarration(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Səsləndir'));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
+  await tester.pump(const Duration(milliseconds: 200));
 }
 
 /// Real axın: hər şey bitib, yalnız yazı qalıb → yazı oyununa gir, hərfi yaz,
@@ -468,8 +475,9 @@ void main() {
     _progressB();
     await _pumpPage(tester, 'B', size: _small);
     await _playNarration(tester);
-    // Nəbz 0 → 6 dp (600 ms); ~420 ms-də ≈ 5 dp.
-    await tester.pump(const Duration(milliseconds: 120));
+    // Nəbz 0 → 6 → 0 dp (600 + 600 ms). `_playNarration`-dan sonra 500 ms
+    // keçib; ~780 ms-də (geri yolda) ≈ 5 dp.
+    await tester.pump(const Duration(milliseconds: 280));
     await _capture(tester, 'letter_07p_b-playing-pulse_360');
     // Stop: nəbz dayanır. `stop()` real I/O-nu gözləyə bilər — qısa real
     // fasilə verilir.
@@ -542,6 +550,72 @@ void main() {
   testWidgets('14 Ğ · mətn 1.3x · 360', (tester) async {
     await _pumpPage(tester, 'Ğ', size: _small, textScale: 1.3);
     await _capture(tester, 'letter_14_g-breve-textscale_360');
+    await _done(tester);
+  });
+
+  testWidgets('14o Ğ · açıq · mətn 1.3x · 360', (tester) async {
+    await _pumpPage(tester, 'Ğ', size: _small, textScale: 1.3);
+    await _openInfo(tester, 'Ğ');
+    await _capture(tester, 'letter_14o_g-breve-open-textscale_360');
+    await _done(tester);
+  });
+
+  testWidgets('14c Ğ · bağlanır (yarıda) · mətn 1.3x · 360', (tester) async {
+    // Bağlanan kartda düymə açıq kartın ortasına SIÇRAMAMALIDIR.
+    await _pumpPage(tester, 'Ğ', size: _small, textScale: 1.3);
+    await _openInfo(tester, 'Ğ');
+    await tester.tap(find.text('Ğ hərfi haqqında'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    await _capture(tester, 'letter_14c_g-breve-collapsing-textscale_360');
+    await tester.pump(const Duration(milliseconds: 400));
+    await _capture(tester, 'letter_14d_g-breve-collapsed-again_360');
+    await _done(tester);
+  });
+
+  testWidgets('17 A · tamam · mətn 1.3x · 320', (tester) async {
+    _completeLetter('A');
+    await _pumpPage(
+      tester,
+      'A',
+      size: const Size(320, 640),
+      textScale: 1.3,
+    );
+    await _capture(tester, 'letter_17_a-complete-textscale_320');
+    await _done(tester);
+  });
+
+  testWidgets('18 Q · mətn 1.3x · 320', (tester) async {
+    _progressQ();
+    await _pumpPage(
+      tester,
+      'Q',
+      size: const Size(320, 640),
+      textScale: 1.3,
+    );
+    await _capture(tester, 'letter_18_q-textscale_320');
+    await _done(tester);
+  });
+
+  testWidgets('19 A · tamam · 320', (tester) async {
+    _completeLetter('A');
+    await _pumpPage(tester, 'A', size: const Size(320, 640));
+    await _capture(tester, 'letter_19_a-complete_320');
+    await _done(tester);
+  });
+
+  testWidgets('20 A · tamam · mətn 1.3x · 360', (tester) async {
+    _completeLetter('A');
+    await _pumpPage(tester, 'A', size: _small, textScale: 1.3);
+    await _capture(tester, 'letter_20_a-complete-textscale_360');
+    await _done(tester);
+  });
+
+  testWidgets('21 B · açıq · yatıq 640x360', (tester) async {
+    _progressB();
+    await _pumpPage(tester, 'B', size: const Size(640, 360));
+    await _openInfo(tester, 'B');
+    await _capture(tester, 'letter_21_b-open-landscape_640x360');
     await _done(tester);
   });
 

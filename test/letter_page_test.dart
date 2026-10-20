@@ -9,7 +9,9 @@ import 'package:elifba/core/progress.dart';
 import 'package:elifba/core/settings.dart';
 import 'package:elifba/pages/animal_list_page.dart';
 import 'package:elifba/pages/letter_writing_page.dart';
+import 'package:elifba/widgets/progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _pump(WidgetTester tester, String letter) async {
@@ -161,6 +163,118 @@ void main() {
     await tester.pump();
     expect(find.byTooltip('Səsləndir'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('kartı açıb-bağlamaq nəqli kəsmir (düymə eyni State-dir)', (
+    tester,
+  ) async {
+    // Azaldılmış hərəkət: "oxuyur" nəbzi sonsuz deyil, pump-lar bitir.
+    AppSettings.instance.reduceMotion = true;
+    await _pump(tester, 'A');
+
+    // `_isPlaying` toxunuşda sinxron qalxır; just_audio çağırışı gözlənilmir.
+    await tester.tap(find.byTooltip('Səsləndir'));
+    await tester.pump();
+    expect(find.byTooltip('Dayandır'), findsOneWidget);
+
+    // State yenidən yaradılsaydı (açıq/bağlı üçün ayrı alt ağac), bayraq
+    // sıfırlanar və düymə yenə «Səsləndir» olardı — pleyer də dispose olardı.
+    await tester.tap(find.text('A hərfi haqqında oxu'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('A hərfi haqqında'), findsOneWidget);
+    expect(find.byTooltip('Dayandır'), findsOneWidget);
+
+    await tester.tap(find.text('A hərfi haqqında'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('A hərfi haqqında oxu'), findsOneWidget);
+    expect(find.byTooltip('Dayandır'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('bağlı kartda səs düyməsi kartın ortasındadır (1.3x mətn)', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 640);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await _pump(tester, 'Ğ');
+
+    // Test şriftində başlıq bir neçə sətrə düşür və kart 64-dən hündürdür.
+    final audio = find.byTooltip('Səsləndir');
+    final header = find.text('Ğ hərfi haqqında oxu');
+    expect(tester.getSize(header).height, greaterThan(40));
+    expect(
+      tester.getCenter(audio).dy,
+      moreOrLessEquals(tester.getCenter(header).dy, epsilon: 1),
+    );
+
+    // Açıq kartda düymə kartın yuxarısından 8 dp-dədir (maket `top: 8px`).
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+    final card =
+        find
+            .ancestor(of: audio, matching: find.byType(Stack))
+            .first;
+    expect(tester.getTopLeft(audio).dy - tester.getTopLeft(card).dy, 8);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('320 dp, 1.3x mətn: tam hərfin «Heyvanlar» sətri daşmır', (
+    tester,
+  ) async {
+    // Android «Ekran ölçüsü: böyük» 360 dp telefonu ~320 dp edir; mətn
+    // `main.dart`-da 1.3-ə qədər böyüyür.
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 640);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    for (final animal in AppConfig.animalsByLetter['A']!) {
+      for (final task in store.tasksOf(animal)) {
+        store.markDone(animal, task);
+      }
+      for (final food in AppConfig.animalFoods[animal] ?? const <String>[]) {
+        store.markFoodFed(animal, food);
+      }
+    }
+    store.markWritten('A');
+
+    await _pump(tester, 'A');
+
+    expect(tester.takeException(), isNull);
+    // Dar ekranda da sayğac «Heyvanlar»-ın ilk `Row` əcdadındadır.
+    final heading =
+        find
+            .ancestor(of: find.text('Heyvanlar'), matching: find.byType(Row))
+            .first;
+    expect(
+      find.descendant(of: heading, matching: find.text('Tamam!')),
+      findsOneWidget,
+    );
+    // Zolaq başlığın ALTINDADIR və görünəcək qədər enlidir.
+    final bar = find.byType(ElifbaProgressBar);
+    expect(
+      tester.getTopLeft(bar).dy,
+      greaterThan(tester.getBottomLeft(find.text('Heyvanlar')).dy),
+    );
+    expect(tester.getSize(bar).width, greaterThanOrEqualTo(24));
+  });
+
+  testWidgets('üst paneldəki başlıq ekranın adıdır (header, namesRoute)', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester, 'A');
+
+    final node = tester.getSemantics(find.text('A hərfi'));
+    expect(node.hasFlag(SemanticsFlag.isHeader), isTrue);
+    expect(node.hasFlag(SemanticsFlag.namesRoute), isTrue);
+    semantics.dispose();
   });
 
   testWidgets('oxlar: A-da əvvəlki, Z-də növbəti söndürülüb, dövrə yoxdur', (
