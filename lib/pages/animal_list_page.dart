@@ -1,18 +1,28 @@
-import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_drawing/path_drawing.dart';
 
-import '../core/stroke_tracker.dart';
-import '../widgets/tracing_canvas.dart';
-import 'animal_detail_page.dart';
-import 'letter_writing_page.dart';
 import '../core/config.dart';
 import '../core/letter_strokes.dart';
 import '../core/progress.dart';
 import '../core/settings.dart';
 import '../core/sound.dart';
+import '../core/stroke_tracker.dart';
+import '../theme/theme.dart';
+import '../widgets/audio_button.dart';
+import '../widgets/celebration.dart';
+import '../widgets/elifba_card.dart';
+import '../widgets/icon_buttons.dart';
+import '../widgets/progress_bar.dart';
+import '../widgets/sky_background.dart';
+import '../widgets/squishy.dart';
 import '../widgets/star_row.dart';
+import '../widgets/sun_mascot.dart';
+import '../widgets/tracing_canvas.dart';
+import 'animal_detail_page.dart';
+import 'letter_writing_page.dart';
 
 /// Qrid xanasındaki heyvan şəkli üçün dekod eni. Bütün heyvan şəkilləri
 /// 400x400 WebP-dir və xana ~160 px göstərilir; `cacheWidth` şəkli böyütmür,
@@ -20,6 +30,14 @@ import '../widgets/star_row.dart';
 /// eyni image-cache açarını paylaşır (iki ayrı dekod yaranmır).
 const int kAnimalThumbDecodeWidth = 400;
 
+/// Hərf səhifəsi (ScreenLetter, §7.4): üst panel + TƏK sürüşən sahə — hərf
+/// haqqında kart (səs düyməsi içində), «Heyvanlar» sətri və tənbəl qrid
+/// (əvvəl yazı kartı, sonra heyvanlar).
+///
+/// Bütün məzmun bir `CustomScrollView`-dadır: açılan məlumat kartı qridi
+/// sıxmır, onu aşağı itələyir. Sabit olan yalnız 64 dp-lik üst paneldir —
+/// əvvəlki `AppBar` da 64 dp idi, ona görə qridin üstünə yeni sabit sətir
+/// əlavə olunmayıb (CLAUDE.md gotcha 13).
 class AnimalListPage extends StatefulWidget {
   final String letter;
   const AnimalListPage({super.key, required this.letter});
@@ -29,7 +47,7 @@ class AnimalListPage extends StatefulWidget {
 }
 
 class _AnimalListPageState extends State<AnimalListPage> {
-  /// Hərf haqqında mətn ilk açılışda gizlidir; başlığa toxunanda açılır.
+  /// Hərf haqqında mətn ilk açılışda gizlidir; karta toxunanda açılır.
   bool _infoExpanded = false;
 
   ProgressStore get _store => ProgressStore.instance;
@@ -40,36 +58,25 @@ class _AnimalListPageState extends State<AnimalListPage> {
   /// Təbrik store dinləyicisindən deyil, məhz QAYIDIŞDA göstərilir: son bölmə
   /// alt səhifədə bitir və dinləyici ilə dialoq həmin səhifənin ÜSTÜNDƏ açılardı.
   /// `takeLetterCelebration` özü bir dəfəlikdir, ona görə təkrar açılmır.
+  /// Konfetini route özü oynadır, `reduceMotion` yoxlaması ilə (gotcha 16).
   Future<void> _maybeCelebrateLetter() async {
     if (!mounted) return;
     if (!_store.takeLetterCelebration(widget.letter)) return;
-    await showDialog<void>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            icon: const StarRow(
-              filled: ProgressStore.maxStarsPerLetter,
-              size: 42,
-              spacing: 2,
-            ),
-            title: Text('${widget.letter} hərfi tamam!'),
-            content: Text(
-              'Bu hərflə bağlı hər şeyi etdin — heyvanları, tapmacaları və '
-              'hərfi yazmağı. ${ProgressStore.maxStarsPerLetter} ulduz sənindir!',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Yaşa!'),
-              ),
-            ],
-          ),
+    await showBigWinCelebration(
+      context,
+      title: '${widget.letter} hərfi tamam!',
+      message:
+          'Bu hərflə bağlı hər şeyi etdin — heyvanları, tapmacaları və '
+          'hərfi yazmağı. ${ProgressStore.maxStarsPerLetter} ulduz sənindir!',
+      actionLabel: 'Yaşa!',
     );
   }
 
   void _onProgressChanged() {
     if (mounted) setState(() {});
   }
+
+  void _toggleInfo() => setState(() => _infoExpanded = !_infoExpanded);
 
   @override
   void dispose() {
@@ -81,9 +88,10 @@ class _AnimalListPageState extends State<AnimalListPage> {
   void initState() {
     super.initState();
     // Ulduzlar alt səhifədə (heyvan detalı, yazı oyunu) qazanılır; qayıdanda
-    // qrid və hərf sayğacı təzə dəyərləri göstərsin.
+    // qrid və hərf sayğacı təzə dəyərləri göstərsin. Səhifədə TƏK dinləyici
+    // var — kartlar store-a özləri qoşulmur.
     _store.addListener(_onProgressChanged);
-    // Şəkilləri qabaqcadan yüklə. Ölçü qridd-dəki `cacheWidth` ilə eyni olmalıdır,
+    // Şəkilləri qabaqcadan yüklə. Ölçü qriddəki `cacheWidth` ilə eyni olmalıdır,
     // əks halda image cache-də hər şəkil üçün ikinci nüsxə yaranır.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -101,595 +109,159 @@ class _AnimalListPageState extends State<AnimalListPage> {
     });
   }
 
+  void _openWriting(String letter) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => LetterWritingPage(letter: letter)),
+    ).then((_) {
+      _maybeCelebrateLetter();
+    });
+  }
+
+  void _openAnimal(String animal, List<String> animals, int animalIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => AnimalDetailPage(
+              animal: animal,
+              animals: animals,
+              currentIndex: animalIndex,
+            ),
+      ),
+    ).then((_) {
+      _maybeCelebrateLetter();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Android 16 (API 36) forces edge-to-edge, so the system bars overlay the
-    // body: inset the content by the window's view padding manually.
-    final viewPadding = MediaQuery.viewPaddingOf(context);
+    // Android 16 (API 36) edge-to-edge-i məcbur edir: sistem panelləri gövdənin
+    // üstünə düşür. Fon tam ekrandır, məzmun isə view padding qədər içəri
+    // çəkilir (gotcha 10).
+    final vp = MediaQuery.viewPaddingOf(context);
+    final big = ElifbaLayout.isLarge(context);
+    // Ekran maketləri 360 və 412-də eyni 16 dp kənar işlədir (ElifbaSpace).
+    const hPad = ElifbaSpace.gutter;
+    final cardH = big ? 212.0 : 196.0;
+
     final letter = widget.letter;
+    final letterConfig = AppConfig.findLetter(letter);
     final info =
-        AppConfig.findLetter(letter)?.description ??
-        '$letter hərfi haqqında məlumat yoxdur.';
-    final animalObjects = AppConfig.findLetter(letter)?.animals ?? [];
+        letterConfig?.description ?? '$letter hərfi haqqında məlumat yoxdur.';
+    final animalObjects = letterConfig?.animals ?? [];
     final animals = animalObjects.map((a) => a.name).toList();
     // Yazı kartı yalnız cizgiləri təsvir olunmuş hərflərdə görünür. Bu səhifə
     // əsl hərfi (Ə, Ş...) bilir, ona görə diakritikanı normalizasiyadan
     // yenidən çıxarmaq lazım gəlmir.
     final showWrite = LetterStrokes.has(letter);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '$letter hərfi',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.deepPurple.shade700,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          _LetterArrowAppBarButton(
-            direction: ArrowDirection.left,
-            currentLetter: letter,
-          ),
-          _LetterArrowAppBarButton(
-            direction: ArrowDirection.right,
-            currentLetter: letter,
-          ),
-        ],
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF2E2B5F), Color(0xFF1B1A3A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            16 + viewPadding.left,
-            18,
-            16 + viewPadding.right,
-            18 + viewPadding.bottom,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hərf haqqında məlumat üçün dekorativ kart və səsləndirmə düyməsi.
-              // Mətn ilk açılışda bağlıdır: yalnız başlıq görünür, uşaq istəsə
-              // ona toxunub açır. Beləcə ekranın böyük hissəsi heyvanlara qalır.
-              const SizedBox(height: 10),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.deepPurple.shade400,
-                          Colors.deepPurple.shade700,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.deepPurple.withAlpha(46),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Colors.yellowAccent.withAlpha(77),
-                        width: 1.5,
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Şəffaf Material olmasa dalğa effekti gradient
-                        // Container-in altında, Scaffold-un Material-ində qalır.
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap:
-                                () => setState(() {
-                                  _infoExpanded = !_infoExpanded;
-                                }),
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                // Səsləndirmə düyməsi kartın sol yuxarı küncünü
-                                // örtür; başlıq onun altında qalmasın.
-                                left: AppConfig.hasLetterAudio(letter) ? 26 : 0,
-                                top: 2,
-                                bottom: 2,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _infoExpanded
-                                          ? '$letter hərfi haqqında'
-                                          : '$letter hərfi haqqında oxu',
-                                      style: const TextStyle(
-                                        color: Colors.yellowAccent,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  AnimatedRotation(
-                                    turns: _infoExpanded ? 0.5 : 0,
-                                    duration: const Duration(milliseconds: 250),
-                                    curve: Curves.easeInOut,
-                                    child: const Icon(
-                                      Icons.expand_more,
-                                      color: Colors.yellowAccent,
-                                      size: 26,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        AnimatedCrossFade(
-                          firstChild: const SizedBox(
-                            width: double.infinity,
-                            height: 0,
-                          ),
-                          secondChild: Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Text(
-                              info,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-                          crossFadeState:
-                              _infoExpanded
-                                  ? CrossFadeState.showSecond
-                                  : CrossFadeState.showFirst,
-                          duration: const Duration(milliseconds: 250),
-                          sizeCurve: Curves.easeInOut,
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Səs faylı olmayan hərfdə düyməni ümumiyyətlə göstərmirik:
-                  // 32 hərfdən yalnız A, B, C-nin tələffüz səsi var.
-                  if (AppConfig.hasLetterAudio(letter))
-                    Positioned(
-                      top: -16,
-                      left: -16,
-                      child: _SoundButton(info: info, letter: letter),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              // Başlıq və dekorativ xətt
-              Row(
-                children: [
-                  const Text(
-                    'Heyvanlar',
-                    style: TextStyle(
-                      color: Colors.yellowAccent,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Dekorativ xəttin yerini hərfin tərəqqisi tutur: səhifəyə
-                  // YENİ şaquli blok əlavə etmək olmur — sabit hündürlük
-                  // `Expanded`-dəki qridi sıxır və alçaq ekranda daşma yaranır.
-                  Expanded(child: _LetterProgressBar(letter: letter)),
-                ],
-              ),
-              const SizedBox(height: 18),
-              // Heyvanlar gridi. Yazı oyunu AppBar ikonundan buraya, qridin ilk
-              // xanasına köçürüldü: AppBar-da üç ağ ikon (yazı + iki ox)
-              // yan-yana dururdu, yazı oyunu naviqasiya oxları ilə eyni çəkidə
-              // görünürdü və 24 dp-lik qlif uşaq barmağı üçün kiçik hədəf idi.
-              // Kart şəklində o, ekranın ilk gördüyü, ən böyük hədəfdir.
-              Expanded(
-                child:
-                    (animals.isEmpty && !showWrite)
-                        ? const Center(
-                          child: Text(
-                            'Bu hərflə başlayan heyvan yoxdur.',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        )
-                        : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Ğ, I, Ü hərflərinin heyvanı yoxdur: qriddə tək
-                            // yazı kartı qalır, uşaq isə niyəsini bilməlidir.
-                            if (animals.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 14),
-                                child: Text(
-                                  'Bu hərflə başlayan heyvan yoxdur, amma hərfi yaza bilərsən!',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            Expanded(
-                              child: GridView.builder(
-                                padding: const EdgeInsets.only(top: 4),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      mainAxisSpacing: 24,
-                                      crossAxisSpacing: 24,
-                                      childAspectRatio: 0.95,
-                                    ),
-                                itemCount: animals.length + (showWrite ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (showWrite && index == 0) {
-                                    return _WriteLetterCard(
-                                      letter: letter,
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (_) => LetterWritingPage(
-                                                  letter: letter,
-                                                ),
-                                          ),
-                                        ).then((_) {
-                                          _maybeCelebrateLetter();
-                                        });
-                                      },
-                                    );
-                                  }
-                                  // Yazı kartı qridin başına əlavə olunduğu
-                                  // üçün heyvan indeksi bir sürüşür.
-                                  // AnimalDetailPage-ə MÜTLƏQ sürüşdürülməmiş
-                                  // heyvan indeksi verilməlidir, yoxsa detal
-                                  // səhifəsindəki irəli/geri naviqasiya səhv
-                                  // heyvandan başlayır.
-                                  final animalIndex =
-                                      showWrite ? index - 1 : index;
-                                  final animal = animals[animalIndex];
-                                  final animalInfo = AppConfig.findAnimal(
-                                    letter,
-                                    animal,
-                                  );
-                                  final imageAsset =
-                                      animalInfo?.imagePath ?? '';
-                                  return _ModernAnimalCard(
-                                    animal: animal,
-                                    imageAsset: imageAsset,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => AnimalDetailPage(
-                                                animal: animal,
-                                                animals: animals,
-                                                currentIndex: animalIndex,
-                                              ),
-                                        ),
-                                      ).then((_) {
-                                        _maybeCelebrateLetter();
-                                      });
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final itemCount = animals.length + (showWrite ? 1 : 0);
+    final gridShown = itemCount > 0;
 
-// Müasir heyvan kartı
-class _ModernAnimalCard extends StatefulWidget {
-  final String animal;
-  final String imageAsset;
-  final VoidCallback onTap;
-  const _ModernAnimalCard({
-    required this.animal,
-    required this.imageAsset,
-    required this.onTap,
-  });
-
-  @override
-  State<_ModernAnimalCard> createState() => _ModernAnimalCardState();
-}
-
-class _ModernAnimalCardState extends State<_ModernAnimalCard> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            color: _hovered ? Colors.deepPurple.shade100 : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.deepPurple.withAlpha(
-                  _hovered ? (0.22 * 255).toInt() : (0.10 * 255).toInt(),
-                ),
-                blurRadius: _hovered ? 28 : 14,
-                offset: const Offset(0, 8),
-              ),
-            ],
-            border: Border.all(
-              color:
-                  _hovered ? Colors.orangeAccent : Colors.deepPurple.shade100,
-              width: 2.2,
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.asset(
-                    widget.imageAsset,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.contain,
-                    cacheWidth: kAnimalThumbDecodeWidth,
-                    frameBuilder: (
-                      context,
-                      child,
-                      frame,
-                      wasSynchronouslyLoaded,
-                    ) {
-                      if (wasSynchronouslyLoaded) return child;
-                      return AnimatedOpacity(
-                        opacity: frame == null ? 0 : 1,
-                        duration: const Duration(milliseconds: 400),
-                        child: child,
-                      );
-                    },
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.pets,
-                            size: 60,
-                            color: Colors.deepPurple,
-                          ),
-                        ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.deepPurple.shade100,
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withAlpha((0.06 * 255).toInt()),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.animal,
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple.shade700,
-                        letterSpacing: 1.1,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 3),
-                    // Ulduzlar adın ALTINDA, kartın öz qutusunun içindədir:
-                    // şəklin üstündə üzən nişan heyvanı örtürdü, burada isə
-                    // uşaq adı və qazandığı ulduzu bir yerdə görür. Ağ kartda
-                    // boş ulduz açıq bənövşəyi olur (tünd fondaki ağ deyil).
-                    StarRow(
-                      filled: ProgressStore.instance.animalStars(
-                        widget.animal,
-                      ),
-                      size: 15,
-                      spacing: 1,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Qridin ilk xanası: hərfi yazma oyununa giriş.
-///
-/// Formaca `_ModernAnimalCard` ilə eynidir (18 radius, eyni kölgə quruluşu,
-/// 200 ms hover animasiyası, eyni padding), amma rəngcə qəsdən ayrılır:
-/// heyvan kartları ağ fondadır, bu kart isə səhifədə onsuz da işlənən
-/// sarı-narıncı (yellowAccent → orangeAccent) qradiyentlə isti görünür, ona
-/// görə uşaq onu heyvanla qarışdırmır.
-/// Yazı oyununun qrid xanası.
-///
-/// Söz yazılmır: kartın ÖZÜ hərfin cızılmamış halıdır — qalın solğun "yol",
-/// üstündə kəsik orta xətt və birinci ştrixin başlanğıcında sarı nöqtə. Uşaq
-/// oyunda məhz bunu görəcək, ona görə kart nə vəd etdiyini mətnsiz anladır.
-///
-/// Ağ heyvan kartlarının arasında qəsdən tərsinə boyanıb (səhifənin öz bənövşəyi
-/// qradiyenti) — beləcə heyvan sayılmır və AppBar-dakı kiçik ikondan fərqli
-/// olaraq gözdən qaçmır.
-class _WriteLetterCard extends StatefulWidget {
-  final String letter;
-  final VoidCallback onTap;
-  const _WriteLetterCard({required this.letter, required this.onTap});
-
-  @override
-  State<_WriteLetterCard> createState() => _WriteLetterCardState();
-}
-
-class _WriteLetterCardState extends State<_WriteLetterCard> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final units = LetterStrokes.unitsFor(widget.letter);
-    return Semantics(
-      button: true,
-      label: '${widget.letter} hərfini yaz',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.deepPurple.shade500,
-                  Colors.deepPurple.shade800,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.yellowAccent.withAlpha(_hovered ? 150 : 60),
-                width: 1.4,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(_hovered ? 90 : 55),
-                  blurRadius: _hovered ? 26 : 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+    final scroll = CustomScrollView(
+      key: const ValueKey('letterPageScroll'),
+      slivers: [
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(hPad + vp.left, 6, hPad + vp.right, 0),
+          sliver: SliverToBoxAdapter(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Küncdəki kiçik lələk nişanı: mətn olmadan "bu, yazı işidir"
-                // deyən yeganə əlavə. Hərfin özünə yer qalsın deyə kiçikdir.
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Yazma tək tapşırıqdır, ona görə üç ulduz yerinə bir
-                      // ulduz: dolu = hərf yazılıb.
-                      Icon(
-                        ProgressStore.instance.isWritten(widget.letter)
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        size: 20,
-                        color:
-                            ProgressStore.instance.isWritten(widget.letter)
-                                ? Colors.white
-                                : Colors.white54,
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.history_edu,
-                        size: 18,
-                        color: Colors.yellowAccent.withAlpha(
-                          _hovered ? 235 : 165,
-                        ),
-                      ),
-                    ],
-                  ),
+                _LetterInfoCard(
+                  letter: letter,
+                  description: info,
+                  expanded: _infoExpanded,
+                  onToggle: _toggleInfo,
                 ),
-                Expanded(
-                  child: units == null
-                      // Ştrix datası olmayan hərf üçün ehtiyat: sadəcə hərfin
-                      // özü. Praktikada bura düşülmür — kart yalnız
-                      // `LetterStrokes.has()` doğru olanda qurulur.
-                      ? Center(
-                          child: Text(
-                            widget.letter,
-                            style: const TextStyle(
-                              fontFamily: 'Baloo2',
-                              fontSize: 56,
-                              color: Colors.white,
-                            ),
-                          ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 4),
-                          child: CustomPaint(
-                            painter: _TraceGlyphPainter(
-                              units: units,
-                              road: Colors.white.withAlpha(56),
-                              ink: Colors.white.withAlpha(_hovered ? 235 : 195),
-                              accent: Colors.yellowAccent,
-                            ),
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                ),
+                const SizedBox(height: 14),
+                _AnimalsHeadingRow(letter: letter),
+                const SizedBox(height: 14),
               ],
             ),
+          ),
+        ),
+        // Qrid tənbəldir (`SliverGrid`): yalnız görünən sətirlər qurulur.
+        // Yazı kartı qridin İLK xanasıdır — ekranın ilk gördüyü, ən böyük
+        // hədəf; heyvan indeksi buna görə bir sürüşür.
+        if (gridShown)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(hPad + vp.left, 0, hPad + vp.right, 0),
+            sliver: SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 12,
+                mainAxisExtent: cardH,
+              ),
+              itemCount: itemCount,
+              itemBuilder: (context, index) {
+                if (showWrite && index == 0) {
+                  return _WriteLetterCard(
+                    letter: letter,
+                    written: _store.isWritten(letter),
+                    onTap: () => _openWriting(letter),
+                  );
+                }
+                // AnimalDetailPage-ə MÜTLƏQ sürüşdürülməmiş heyvan indeksi
+                // verilməlidir, yoxsa detal səhifəsindəki irəli/geri
+                // naviqasiya səhv heyvandan başlayır.
+                final animalIndex = showWrite ? index - 1 : index;
+                final animal = animals[animalIndex];
+                final imageAsset =
+                    AppConfig.findAnimal(letter, animal)?.imagePath ?? '';
+                return _AnimalCard(
+                  animal: animal,
+                  imageAsset: imageAsset,
+                  stars: _store.animalStars(animal),
+                  onTap: () => _openAnimal(animal, animals, animalIndex),
+                );
+              },
+            ),
+          ),
+        // Ğ, I, Ü, J, R hərflərinin heyvanı yoxdur: qriddə tək yazı kartı
+        // qalır, uşaq isə niyəsini bilməlidir.
+        if (animals.isEmpty)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              hPad + vp.left,
+              gridShown ? 14 : 0,
+              hPad + vp.right,
+              0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _EmptyLetterCard(
+                message:
+                    showWrite
+                        ? 'Bu hərflə başlayan heyvan yoxdur, amma hərfi yaza bilərsən!'
+                        : 'Bu hərflə başlayan heyvan yoxdur.',
+              ),
+            ),
+          ),
+        // Kartların kənarı qutudan kənarda çəkilir: sonda boşluq qalsın.
+        SliverToBoxAdapter(child: SizedBox(height: 40 + vp.bottom)),
+      ],
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Açıq ekran, tünd sistem ikonları; `AppBar` olmadığı üçün üslubu səhifə
+      // özü verir.
+      value: kElifbaSystemUiStyle,
+      child: Scaffold(
+        backgroundColor: ElifbaPalette.skyMid,
+        body: SkyBackground(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Column(
+                children: [
+                  SizedBox(height: vp.top),
+                  _LetterTopBar(letter: letter),
+                  Expanded(child: RepaintBoundary(child: scroll)),
+                ],
+              ),
+              const NavBarFade(),
+            ],
           ),
         ),
       ),
@@ -697,252 +269,65 @@ class _WriteLetterCardState extends State<_WriteLetterCard> {
   }
 }
 
-/// Hərfi "hələ cızılmamış" halda çəkir: qalın yol + kəsik orta xətt + başlanğıc
-/// nöqtəsi. `TracingCanvas`-ın kiçildilmiş, statik variantıdır — eyni
-/// [LetterStrokes] datasından qidalanır, ona görə kartda görünən forma oyunda
-/// görünənlə həmişə eyni olur.
-class _TraceGlyphPainter extends CustomPainter {
-  const _TraceGlyphPainter({
-    required this.units,
-    required this.road,
-    required this.ink,
-    required this.accent,
-  });
+// ------------------------------------------------------------- üst panel
 
-  final List<TraceUnit> units;
-  final Color road;
-  final Color ink;
-  final Color accent;
+/// 64 dp üst panel: geri · «B hərfi» · ‹ ›. Fonu yoxdur — səma görünür.
+class _LetterTopBar extends StatelessWidget {
+  const _LetterTopBar({required this.letter});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (units.isEmpty) return;
-
-    // Qutu (100x104) xanaya sığdırılır, nisbət qorunur və mərkəzləşdirilir.
-    final scale = math.min(
-      size.width / kGlyphBox.width,
-      size.height / kGlyphBox.height,
-    );
-    canvas.save();
-    canvas.translate(
-      (size.width - kGlyphBox.width * scale) / 2,
-      (size.height - kGlyphBox.height * scale) / 2,
-    );
-    canvas.scale(scale);
-
-    final roadPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = road;
-
-    final inkPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = ink;
-
-    for (final u in units) {
-      if (u.kind == TraceUnitKind.stroke) {
-        canvas.drawPath(u.partialPath(1), roadPaint);
-      } else {
-        canvas.drawCircle(u.start, 6, Paint()..color = road);
-      }
-    }
-
-    for (final u in units) {
-      if (u.kind == TraceUnitKind.stroke) {
-        canvas.drawPath(
-          dashPath(
-            u.partialPath(1),
-            dashArray: CircularIntervalList<double>(const [5, 4.5]),
-          ),
-          inkPaint,
-        );
-      } else {
-        canvas.drawCircle(u.start, 2.6, Paint()..color = ink);
-      }
-    }
-
-    // Birinci ştrixin başlanğıcı: "buradan başla".
-    for (final u in units) {
-      if (u.kind != TraceUnitKind.stroke) continue;
-      canvas.drawCircle(u.start, 4.4, Paint()..color = accent);
-      break;
-    }
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_TraceGlyphPainter old) =>
-      old.units != units ||
-      old.road != road ||
-      old.ink != ink ||
-      old.accent != accent;
-}
-
-// Səsləndirmə düyməsi üçün xüsusi widget
-class _SoundButton extends StatefulWidget {
-  final String info;
   final String letter;
-  const _SoundButton({required this.info, required this.letter});
-
-  @override
-  State<_SoundButton> createState() => _SoundButtonState();
-}
-
-class _SoundButtonState extends State<_SoundButton> {
-  bool _hovered = false;
-  bool _isPlaying = false;
-  final GatedPlayer _audioPlayer = GatedPlayer(SoundChannel.narration);
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Səs bitdikdə _isPlaying-i false et
-    _audioPlayer.onCompleted.listen((_) {
-      if (mounted) setState(() => _isPlaying = false);
-    });
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  Future<void> _playSound(String audioPath) async {
-    await _audioPlayer.setAsset(audioPath);
-    await _audioPlayer.play();
-  }
-
-  Future<void> _playLetterSound() async {
-    final audioPath = AppConfig.letterAudioPath(widget.letter);
-    // Susdurulmuş kanalda `play()` heç nə çalmır — bayrağı qaldırsaydıq
-    // `completed` hadisəsi gəlməyəcəyi üçün düymə əbədi "Dayandır" vəziyyətində
-    // ilişərdi. Düymə onsuz da sönük göstərilir, bura təhlükəsizlik qatıdır.
-    if (_audioPlayer.isMuted) return;
-    setState(() {
-      _isPlaying = true;
-    });
-    try {
-      await _playSound(audioPath);
-    } catch (e) {
-      // Fayl yoxdursa və ya oxunmursa düymə "dayandır" vəziyyətində ilişməsin.
-      debugPrint('Hərf səsi oxunmadı ($audioPath): $e');
-      if (mounted) {
-        setState(() {
-          _isPlaying = false;
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    // Səs ayarı dəyişəndə düymə də dəyişməlidir: susdurulmuş kanalda işləməyən
-    // parlaq düymə uşağı çaşdırır — sönük göstərmək nə üçün səs gəlmədiyini
-    // izah edir (CLAUDE.md gotcha #6-nın mute-a genişləndirilməsi).
-    return AnimatedBuilder(
-      animation: AppSettings.instance,
-      builder: (context, _) {
-        final muted = _audioPlayer.isMuted;
-        return MouseRegion(
-          cursor: muted ? SystemMouseCursors.basic : SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors:
-                    muted
-                        ? [Colors.grey.shade300, Colors.grey.shade400]
-                        : [Colors.yellowAccent, Colors.orangeAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (_hovered && !muted
-                          ? Colors.deepPurple
-                          : Colors.yellowAccent)
-                      .withAlpha((0.25 * 255).toInt()),
-                  blurRadius: 12,
-                  offset: const Offset(0, 1),
+    final vp = MediaQuery.viewPaddingOf(context);
+    return Padding(
+      key: const ValueKey('letterTopBar'),
+      padding: EdgeInsets.only(left: 10 + vp.left, right: 10 + vp.right),
+      child: SizedBox(
+        height: ElifbaSize.toolbar,
+        child: Row(
+          children: [
+            const ToolbarBackButton(),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Text(
+                  '$letter hərfi',
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: ElifbaTypography.textTheme.titleLarge!.copyWith(
+                    color: ElifbaPalette.onSurface,
+                  ),
                 ),
-              ],
-            ),
-            padding: const EdgeInsets.all(1),
-            child: IconButton(
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder:
-                    (child, anim) => ScaleTransition(scale: anim, child: child),
-                child:
-                    muted
-                        ? Icon(
-                          Icons.volume_off,
-                          key: const ValueKey('muted'),
-                          color: Colors.grey.shade700,
-                          size: 22,
-                        )
-                        : _isPlaying
-                        ? Icon(
-                          Icons.stop,
-                          key: const ValueKey('stop'),
-                          color: Colors.deepPurple,
-                          size: 22,
-                        )
-                        : Icon(
-                          Icons.volume_up,
-                          key: const ValueKey('play'),
-                          color: Colors.deepPurple,
-                          size: 22,
-                        ),
               ),
-              onPressed:
-                  muted
-                      ? null
-                      : () async {
-                        if (_isPlaying) {
-                          await _audioPlayer.stop();
-                          setState(() {
-                            _isPlaying = false;
-                          });
-                        } else {
-                          await _playLetterSound();
-                        }
-                      },
-              splashRadius: 20,
-              tooltip:
-                  muted
-                      ? 'Səs söndürülüb'
-                      : _isPlaying
-                      ? 'Dayandır'
-                      : 'Səsləndir',
             ),
-          ),
-        );
-      },
+            const SizedBox(width: 6),
+            _LetterArrowButton(
+              direction: ArrowDirection.left,
+              currentLetter: letter,
+            ),
+            const SizedBox(width: 6),
+            _LetterArrowButton(
+              direction: ArrowDirection.right,
+              currentLetter: letter,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
-
-// Ox düymələri üçün əlavə widget və enum
 
 enum ArrowDirection { left, right }
 
-class _LetterArrowAppBarButton extends StatelessWidget {
+/// Əvvəlki/növbəti hərf. Əlifbanın sonunda dövrə vurmur (bu yalnız yazı
+/// oyunundadır): kənarda düymə söndürülür.
+class _LetterArrowButton extends StatelessWidget {
   final ArrowDirection direction;
   final String currentLetter;
-  const _LetterArrowAppBarButton({
+  const _LetterArrowButton({
     required this.direction,
     required this.currentLetter,
   });
@@ -955,12 +340,8 @@ class _LetterArrowAppBarButton extends StatelessWidget {
     final isDisabled =
         isLeft ? currentIndex == 0 : currentIndex == alphabet.length - 1;
     final nextIndex = isLeft ? currentIndex - 1 : currentIndex + 1;
-    return IconButton(
-      icon: Icon(
-        isLeft ? Icons.navigate_before : Icons.navigate_next,
-        color: isDisabled ? Colors.white24 : Colors.white,
-        size: 22,
-      ),
+    return ToolbarChevron(
+      forward: !isLeft,
       tooltip: isLeft ? 'Əvvəlki hərf' : 'Növbəti hərf',
       onPressed:
           isDisabled
@@ -981,7 +362,7 @@ class _LetterArrowAppBarButton extends StatelessWidget {
                     ) {
                       const begin = Offset(1.0, 0.0);
                       const end = Offset.zero;
-                      const curve = Curves.easeInOutCubic;
+                      const curve = ElifbaMotion.routeSlideCurve;
                       var tween = Tween(
                         begin: isLeft ? const Offset(-1.0, 0.0) : begin,
                         end: end,
@@ -992,7 +373,7 @@ class _LetterArrowAppBarButton extends StatelessWidget {
                         child: child,
                       );
                     },
-                    transitionDuration: const Duration(milliseconds: 500),
+                    transitionDuration: ElifbaMotion.routeSlide,
                   ),
                 );
               },
@@ -1000,17 +381,224 @@ class _LetterArrowAppBarButton extends StatelessWidget {
   }
 }
 
-/// Hərfin ümumi tərəqqisi: zolaq + ulduzlar + "n/m".
+// ------------------------------------------------------- hərf haqqında kart
+
+/// Açılıb-bağlanan hərf kartı; səsləndirmə düyməsi kartın sol tərəfindədir.
 ///
-/// "Heyvanlar" başlığının sağındaki dekorativ xəttin yerində durur, ona görə
-/// QƏSDƏN nazikdir (ən hündür elementi 18 px ulduzdur) — başlıq sətrindən
-/// hündür olsa səhifə uzanır və qrid sıxılır.
+/// Toxunma sahələri: bağlı kartın HAMISI, açıq kartın isə yalnız başlığı
+/// (mətnə toxunmaq kartı bağlamır). Səs düyməsi heç bir toggle
+/// `GestureDetector`-unun İÇİNDƏ deyil — `Stack`-də onların qardaşıdır, ona
+/// görə ona (söndürülmüş halda da) toxunmaq kartı açıb-bağlamır.
 ///
-/// Store-a özü qoşulmur — valideyn [AnimalListPage] `ProgressStore`-u dinləyir
-/// və dəyişəndə bütün alt ağacı yenidən qurur. Beləcə səhifədə tək bir dinləyici
-/// olur, hər kart üçün ayrı-ayrı deyil.
-class _LetterProgressBar extends StatelessWidget {
-  const _LetterProgressBar({required this.letter});
+/// Düymə hər iki vəziyyətdə eyni element olaraq qalır: kartı açıb-bağlamaq
+/// `GatedPlayer`-i dispose edib nəqli kəsməməlidir.
+class _LetterInfoCard extends StatelessWidget {
+  const _LetterInfoCard({
+    required this.letter,
+    required this.description,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final String letter;
+  final String description;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    // Səs faylı olmayan hərfdə düyməni ümumiyyətlə göstərmirik (gotcha 6).
+    final hasAudio = AppConfig.hasLetterAudio(letter);
+    final paragraphs =
+        description
+            .split('\n')
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty)
+            .toList();
+    final bodyStyle = ElifbaTypography.textTheme.bodyMedium!.copyWith(
+      color: ElifbaPalette.onSurface,
+    );
+
+    final header = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: expanded ? onToggle : null,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 40),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                expanded
+                    ? '$letter hərfi haqqında'
+                    : '$letter hərfi haqqında oxu',
+                style: ElifbaTextStyles.infoCardTitle.copyWith(
+                  color: ElifbaPalette.onSurface,
+                ),
+              ),
+            ),
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: ElifbaMotion.expand,
+              curve: ElifbaMotion.expandCurve,
+              child: const Icon(
+                Icons.expand_more_rounded,
+                size: 28,
+                color: ElifbaPalette.secondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final card = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: expanded ? null : onToggle,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 64),
+        child: ElifbaCard.section(
+          padding: EdgeInsets.fromLTRB(
+            hasAudio ? 72 : 14,
+            12,
+            14,
+            expanded ? 16 : 12,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              AnimatedCrossFade(
+                firstChild: const SizedBox(width: double.infinity, height: 0),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < paragraphs.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 6),
+                        Text(paragraphs[i], style: bodyStyle),
+                      ],
+                    ],
+                  ),
+                ),
+                crossFadeState:
+                    expanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                duration: ElifbaMotion.expand,
+                sizeCurve: ElifbaMotion.expandCurve,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        card,
+        if (hasAudio)
+          Positioned(
+            left: 8,
+            top: 8,
+            child: _LetterAudioButton(letter: letter),
+          ),
+      ],
+    );
+  }
+}
+
+/// Hərfin səsləndirmə düyməsi (48 dp, nəqletmə kanalı). Görünüş ortaq
+/// [AudioButton]-dandır; pleyer, "oxuyur" bayrağı və `onCompleted` burada
+/// qalır (gotcha 5, 6, 15).
+class _LetterAudioButton extends StatefulWidget {
+  const _LetterAudioButton({required this.letter});
+
+  final String letter;
+
+  @override
+  State<_LetterAudioButton> createState() => _LetterAudioButtonState();
+}
+
+class _LetterAudioButtonState extends State<_LetterAudioButton> {
+  bool _isPlaying = false;
+  final GatedPlayer _audioPlayer = GatedPlayer(SoundChannel.narration);
+  StreamSubscription<void>? _completed;
+
+  @override
+  void initState() {
+    super.initState();
+    // Səs bitdikdə düymə yenidən "Səsləndir" olsun.
+    _completed = _audioPlayer.onCompleted.listen((_) {
+      if (mounted) setState(() => _isPlaying = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _completed?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playLetterSound() async {
+    final audioPath = AppConfig.letterAudioPath(widget.letter);
+    // Susdurulmuş kanalda `play()` heç nə çalmır — bayrağı qaldırsaydıq
+    // `completed` hadisəsi gəlməyəcəyi üçün düymə əbədi "Dayandır" vəziyyətində
+    // ilişərdi. Düymə onsuz da sönük göstərilir, bura təhlükəsizlik qatıdır.
+    if (_audioPlayer.isMuted) return;
+    setState(() => _isPlaying = true);
+    try {
+      await _audioPlayer.setAsset(audioPath);
+      await _audioPlayer.play();
+    } catch (e) {
+      // Fayl yoxdursa və ya oxunmursa düymə "dayandır" vəziyyətində ilişməsin.
+      debugPrint('Hərf səsi oxunmadı ($audioPath): $e');
+      if (mounted) setState(() => _isPlaying = false);
+    }
+  }
+
+  Future<void> _onPressed() async {
+    if (_isPlaying) {
+      await _audioPlayer.stop();
+      if (mounted) setState(() => _isPlaying = false);
+    } else {
+      await _playLetterSound();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Səs ayarı dəyişəndə düymə də dəyişməlidir: susdurulmuş kanalda işləməyən
+    // parlaq düymə uşağı çaşdırır — sönük göstərmək nə üçün səs gəlmədiyini
+    // izah edir (gotcha 6-nın mute-a genişləndirilməsi).
+    return AnimatedBuilder(
+      animation: AppSettings.instance,
+      builder:
+          (context, _) => AudioButton(
+            state: audioStateOf(
+              muted: _audioPlayer.isMuted,
+              playing: _isPlaying,
+            ),
+            onPressed: _onPressed,
+            size: ElifbaSize.audioM,
+          ),
+    );
+  }
+}
+
+// --------------------------------------------------------- «Heyvanlar» sətri
+
+/// «Heyvanlar» + hərfin tərəqqisi (zolaq, ulduzlar, «n/m» / «Tamam!»).
+///
+/// Hündürlüyü 36 dp-dir (ən hündür element 24 dp-lik başlıqdır). Store-a özü
+/// qoşulmur — səhifə store-u dinləyib bütün alt ağacı yenidən qurur.
+/// `Text('Heyvanlar')` və sayğac EYNİ `Row`-un birbaşa uşaqlarıdır
+/// (`star_ui_test` buna söykənir).
+class _AnimalsHeadingRow extends StatelessWidget {
+  const _AnimalsHeadingRow({required this.letter});
 
   final String letter;
 
@@ -1018,39 +606,440 @@ class _LetterProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = ProgressStore.instance;
     final total = store.letterTotal(letter);
-    // Əlifbada olmayan hərf (praktikada baş vermir) — "0/0" yazmaq yerinə
-    // köhnə dekorativ xətt kimi sadəcə boşluq qalır.
-    if (total <= 0) return const SizedBox.shrink();
     final done = store.letterDone(letter);
-    final complete = done >= total;
+    final complete = total > 0 && done >= total;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 36),
+      child: Row(
+        children: [
+          Text(
+            'Heyvanlar',
+            style: ElifbaTypography.textTheme.titleMedium!.copyWith(
+              color: ElifbaPalette.onSurface,
+            ),
+          ),
+          // Əlifbada olmayan hərf (praktikada baş vermir) — "0/0" yazılmır.
+          if (total > 0) ...[
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElifbaProgressBar(value: done / total, complete: complete),
+            ),
+            const SizedBox(width: 10),
+            StarRow(filled: store.starsOf(letter), size: 18),
+            const SizedBox(width: 10),
+            if (complete)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 18,
+                    color: ElifbaPalette.correct,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Tamam!',
+                    style: ElifbaTextStyles.counter.copyWith(
+                      color: ElifbaPalette.onCorrectContainer,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                '$done/$total',
+                style: ElifbaTextStyles.counter.copyWith(
+                  color: ElifbaPalette.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: done / total,
-              minHeight: 6,
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                complete ? kStarGold : Colors.yellowAccent,
+// ------------------------------------------------------------- heyvan kartı
+
+/// Heyvan kartı: səhnədə şəkil, ad və üç ulduz. Üç ulduzlu kart qızılı olur.
+///
+/// Çərçivə `Squishy`-nin tək `AnimatedContainer`-idir — kartın içində başqa
+/// `AnimatedContainer` olmamalıdır (`widget_test` `_cardOf` buna söykənir).
+/// Ad və `StarRow` eyni `Column`-dadır (`star_ui_test`).
+class _AnimalCard extends StatelessWidget {
+  const _AnimalCard({
+    required this.animal,
+    required this.imageAsset,
+    required this.stars,
+    required this.onTap,
+  });
+
+  final String animal;
+  final String imageAsset;
+  final int stars;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final complete = stars == ProgressStore.maxStarsPerLetter;
+    return Squishy(
+      onTap: onTap,
+      borderRadius: const BorderRadius.all(Radius.circular(ElifbaRadius.r28)),
+      color: complete ? ElifbaPalette.complete : ElifbaPalette.surface,
+      ringWidth: ElifbaRing.normal,
+      ringColor:
+          complete ? ElifbaPalette.completeEdge : ElifbaPalette.outlineVariant,
+      edge: ElifbaEdge.e6,
+      edgeColor: complete ? ElifbaPalette.completeEdge : ElifbaPalette.outline,
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+      child: Column(
+        children: [
+          Expanded(
+            // Səhnə tam kartda da lavanda qalır (ScreenLetter); tamamlanma
+            // kartın qızılı üzündən və üç ulduzdan bilinir.
+            child: AnimalStage(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 16, 22, 8),
+                child: Image.asset(
+                  imageAsset,
+                  fit: BoxFit.contain,
+                  cacheWidth: kAnimalThumbDecodeWidth,
+                  frameBuilder: (
+                    context,
+                    child,
+                    frame,
+                    wasSynchronouslyLoaded,
+                  ) {
+                    if (wasSynchronouslyLoaded) return child;
+                    return AnimatedOpacity(
+                      opacity: frame == null ? 0 : 1,
+                      duration: ElifbaMotion.imageFadeIn,
+                      child: child,
+                    );
+                  },
+                  errorBuilder:
+                      (context, error, stackTrace) => const ImagePlaceholder(),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        StarRow(filled: store.starsOf(letter), size: 18, spacing: 1),
-        const SizedBox(width: 6),
-        Text(
-          complete ? 'Tamam!' : '$done/$total',
-          style: TextStyle(
-            color: complete ? kStarGold : Colors.white70,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: SizedBox(
+              height: 22,
+              // Uzun adlar (Qarışqayeyən) kəsilmir, kiçilir.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  animal,
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: ElifbaTextStyles.cardName.copyWith(
+                    color: ElifbaPalette.onSurface,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          StarRow(filled: stars, size: 20, spacing: 1),
+        ],
+      ),
+    );
+  }
+}
+
+// --------------------------------------------------------------- yazı kartı
+
+/// Qridin ilk xanası: hərfi yazma oyununa giriş.
+///
+/// Söz yazılmır: kartın ÖZÜ hərfin cızılmamış halıdır — ağ "yol", üstündə
+/// kəsik orta xətt və birinci ştrixin başlanğıcında nömrəli yaşıl nöqtə. Uşaq
+/// oyunda məhz bunu görəcək, ona görə kart nə vəd etdiyini mətnsiz anladır.
+/// Bənövşəyi fon və qırıq çərçivə onu heyvan kartlarından ayırır.
+///
+/// `Semantics` ən xaricidir və uşaq semantikasını atır: etiket DƏQİQ
+/// «A hərfini yaz» olur (`widget_test` `_writeCardOf`). Kartda tək
+/// `AnimatedContainer` var — `Squishy`-nin çərçivəsi.
+class _WriteLetterCard extends StatelessWidget {
+  const _WriteLetterCard({
+    required this.letter,
+    required this.written,
+    required this.onTap,
+  });
+
+  final String letter;
+
+  /// Yazma tək tapşırıqdır, ona görə üç ulduz yerinə bir ulduz.
+  final bool written;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final units = LetterStrokes.unitsFor(letter);
+    return Semantics(
+      container: true,
+      button: true,
+      excludeSemantics: true,
+      label: '$letter hərfini yaz',
+      onTap: onTap,
+      child: Squishy(
+        onTap: onTap,
+        color: ElifbaPalette.secondaryContainer,
+        borderRadius: const BorderRadius.all(Radius.circular(ElifbaRadius.r28)),
+        pressDepth: 3,
+        child: CustomPaint(
+          foregroundPainter: const DashedRRectPainter(
+            color: ElifbaPalette.secondary,
+            strokeWidth: ElifbaRing.dashed,
+            radius: ElifbaRadius.r28,
+          ),
+          // CSS `box-sizing: border-box`: 10 dp boşluq 2.5 dp qırıq xəttin
+          // İÇİNDƏN ölçülür, nişan da (`top/right: 10`) xəttin içindən.
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(10 + ElifbaRing.dashed),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: SizedBox(
+                        width: 110,
+                        height: 120,
+                        child:
+                            units == null
+                                // Ştrix datası olmayan hərf üçün ehtiyat:
+                                // praktikada bura düşülmür — kart yalnız
+                                // `LetterStrokes.has()` doğru olanda qurulur.
+                                ? Center(
+                                  child: Text(
+                                    letter,
+                                    style: const TextStyle(
+                                      fontFamily: ElifbaTypography.display,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 72,
+                                      height: 1,
+                                      color: ElifbaPalette.traceCentre,
+                                    ),
+                                  ),
+                                )
+                                : CustomPaint(
+                                  painter: _TraceGlyphPainter(units: units),
+                                ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        StarGlyph(filled: written, size: 22),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Yaz',
+                          style: ElifbaTypography.textTheme.labelLarge!
+                              .copyWith(color: ElifbaPalette.onSurface),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Positioned(
+                top: 10 + ElifbaRing.dashed,
+                right: 10 + ElifbaRing.dashed,
+                child: _DrawBadge(),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Yazı kartının küncündəki 30 dp bənövşəyi nişan.
+class _DrawBadge extends StatelessWidget {
+  const _DrawBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: ElifbaPalette.secondary,
+      ),
+      child: SizedBox.square(
+        dimension: 30,
+        child: Icon(Icons.draw_rounded, size: 18, color: ElifbaPalette.surface),
+      ),
+    );
+  }
+}
+
+/// Hərfi "hələ cızılmamış" halda çəkir: xətt dəftərinin iki sətri, ağ yol,
+/// kəsik orta xətt və "1" yazılmış başlanğıc nöqtəsi. `TracingCanvas`-ın
+/// kiçildilmiş, statik variantıdır — eyni [LetterStrokes] datasından
+/// qidalanır, ona görə kartda görünən forma oyunda görünənlə həmişə eynidir.
+///
+/// Maketin 110 × 120 qutusunda xətt dəftərinin iki sətri `y = 22` (yuxarı
+/// sətir) və `y = 100`-dür (əsas xətt); hərf qutusu (100 × 104) elə
+/// miqyaslanır ki, [kCapLine] / [kBaseLine] məhz bu sətirlərə düşsün, və
+/// üfüqi mərkəzləşir. Diakritika və quyruqlar ([kDescLine]-ə qədər) yenə
+/// qutunun içində qalır.
+///
+/// Qalınlıqlar dp ilə verilir (`canvas.scale`-dən sonra `/ s`): 78 dp-lik
+/// hərfdə yol 17 dp (DS kartı: 82 dp hərfdə 18), nöqtə 8 dp (maket).
+class _TraceGlyphPainter extends CustomPainter {
+  const _TraceGlyphPainter({required this.units});
+
+  final List<TraceUnit> units;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (units.isEmpty) return;
+
+    // Xətt dəftəri maketdəki yerində: 22 / 120 və 100 / 120.
+    final capY = size.height * 22 / 120;
+    final baseY = size.height * 100 / 120;
+    final s = (baseY - capY) / (kBaseLine - kCapLine);
+    final dx = (size.width - kGlyphBox.width * s) / 2;
+    final dy = capY - kCapLine * s;
+
+    // 1. Xətt dəftəri: yuxarı sətir və əsas xətt (dp ilə).
+    final rule =
+        Paint()
+          ..isAntiAlias = true
+          ..color = ElifbaPalette.playingEdge;
+    canvas.drawLine(
+      Offset(6, capY),
+      Offset(size.width - 6, capY),
+      rule..strokeWidth = 1,
+    );
+    canvas.drawLine(
+      Offset(6, baseY),
+      Offset(size.width - 6, baseY),
+      rule..strokeWidth = 1.5,
+    );
+
+    canvas.save();
+    canvas.translate(dx, dy);
+    canvas.scale(s);
+
+    // 2. Yol.
+    final road =
+        Paint()
+          ..isAntiAlias = true
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 17 / s
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..color = ElifbaPalette.surface;
+    final roadDot =
+        Paint()
+          ..isAntiAlias = true
+          ..color = ElifbaPalette.surface;
+    for (final u in units) {
+      if (u.kind == TraceUnitKind.stroke) {
+        canvas.drawPath(u.partialPath(1), road);
+      } else {
+        canvas.drawCircle(u.start, 8.5 / s, roadDot);
+      }
+    }
+
+    // 3. Kəsik orta xətt.
+    final centre =
+        Paint()
+          ..isAntiAlias = true
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 / s
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..color = ElifbaPalette.traceCentre;
+    final centreDot =
+        Paint()
+          ..isAntiAlias = true
+          ..color = ElifbaPalette.traceCentre;
+    for (final u in units) {
+      if (u.kind == TraceUnitKind.stroke) {
+        canvas.drawPath(
+          dashPath(
+            u.partialPath(1),
+            dashArray: CircularIntervalList<double>([4 / s, 5 / s]),
+          ),
+          centre,
+        );
+      } else {
+        canvas.drawCircle(u.start, 2 / s, centreDot);
+      }
+    }
+    canvas.restore();
+
+    // 4. Birinci ştrixin başlanğıcı: "buradan başla" (dp ilə).
+    for (final u in units) {
+      if (u.kind != TraceUnitKind.stroke) continue;
+      final p = Offset(dx + u.start.dx * s, dy + u.start.dy * s);
+      canvas.drawCircle(
+        p,
+        8,
+        Paint()
+          ..isAntiAlias = true
+          ..color = ElifbaPalette.correct,
+      );
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: '1',
+          style: TextStyle(
+            fontFamily: ElifbaTypography.display,
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+            height: 1,
+            color: ElifbaPalette.surface,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, p - Offset(tp.width / 2, tp.height / 2));
+      tp.dispose();
+      break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TraceGlyphPainter old) => old.units != units;
+}
+
+// ---------------------------------------------------------- boş hərf kartı
+
+/// Heyvanı olmayan hərfin izahı: yatan günəş + mətn. Basılmır, kənarı yoxdur.
+class _EmptyLetterCard extends StatelessWidget {
+  const _EmptyLetterCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElifbaCard(
+      radius: ElifbaRadius.r24,
+      edge: ElifbaEdge.e0,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      child: Row(
+        children: [
+          const SunMascot.sleepy(size: 72, cloudColor: ElifbaPalette.stageSky),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              message,
+              style: ElifbaTextStyles.emptyState.copyWith(
+                color: ElifbaPalette.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

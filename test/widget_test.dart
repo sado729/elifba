@@ -176,11 +176,11 @@ void main() {
     await _pumpAnimalList(tester, letter);
 
     // Qriddə heyvanların sayından bir çox xana var — artıq olan yazı kartıdır.
-    final grid = tester.widget<GridView>(find.byType(GridView));
-    expect(grid.semanticChildCount, animals.length + 1);
+    final grid = tester.widget<SliverGrid>(find.byType(SliverGrid));
+    expect(grid.delegate.estimatedChildCount, animals.length + 1);
 
     final writeCard = find.descendant(
-      of: find.byType(GridView),
+      of: find.byType(SliverGrid),
       matching: _writeCardOf(letter),
     );
     expect(writeCard, findsOneWidget);
@@ -200,7 +200,9 @@ void main() {
       reason: 'yazı kartı qridin birinci sətirindədir',
     );
 
-    await tester.tap(writeCard);
+    // Çərçivənin `RenderTransform`-u hit-test yoluna düşmür (basış üçün
+    // `Squishy`-də həmişə var) — kartın semantika düyünü düşür.
+    await tester.tap(find.bySemanticsLabel('$letter hərfini yaz'));
     await _settleRoute(tester);
 
     expect(find.byType(LetterWritingPage), findsOneWidget);
@@ -212,22 +214,23 @@ void main() {
     expect(tester.takeException(), isNull);
   }, timeout: const Timeout(Duration(seconds: 30)));
 
-  testWidgets('AppBar-da artıq yazı ikonu yoxdur', (tester) async {
+  testWidgets('üst paneldə yazı ikonu yoxdur', (tester) async {
     await _pumpAnimalList(tester, 'A');
 
     expect(
       find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byIcon(Icons.draw_outlined),
+        of: find.byKey(const ValueKey('letterTopBar')),
+        matching: find.byIcon(Icons.draw_rounded),
       ),
       findsNothing,
     );
     expect(find.byIcon(Icons.draw_outlined), findsNothing);
+    expect(find.byIcon(Icons.draw_rounded), findsOneWidget);
     // Yazı girişi yoxa çıxmayıb, sadəcə qridə köçüb.
     expect(
       find.descendant(
-        of: find.byType(GridView),
-        matching: find.byIcon(Icons.history_edu),
+        of: find.byType(SliverGrid),
+        matching: find.byIcon(Icons.draw_rounded),
       ),
       findsOneWidget,
     );
@@ -252,13 +255,13 @@ void main() {
         reason: '$letter: səhifə tamamilə boş qalmamalıdır',
       );
       expect(
-        find.byType(GridView),
+        find.byType(SliverGrid),
         findsOneWidget,
         reason: '$letter: qrid tək yazı kartı ilə də qurulmalıdır',
       );
       expect(
         find.descendant(
-          of: find.byType(GridView),
+          of: find.byType(SliverGrid),
           matching: _writeCardOf(letter),
         ),
         findsOneWidget,
@@ -288,16 +291,16 @@ void main() {
       // açıq qalır və siyahı offstage olur.
       await _pumpAnimalList(tester, letter, key: ValueKey(animal));
 
-      // `ensureVisible` QƏSDƏN işlədilmir: qrid tənbəl qurulur və test
-      // ekranında (800x600) başlıq kartı + irəliləyiş sətri qalanda cəmi BİR
-      // heyvan xanası qurulur, ona görə ikinci heyvanın widget-i hələ ağacda
-      // olmur və `ensureVisible` "No element" atır. `scrollUntilVisible`
-      // tapana qədər sürüşdürür və artıq görünəni olduğu kimi saxlayır.
+      // `ensureVisible` QƏSDƏN işlədilmir: qrid tənbəl qurulur (test
+      // ekranında, 800x600, ilk üç sətir), ona görə uzaqdakı heyvanın
+      // widget-i hələ ağacda olmaya bilər və `ensureVisible` "No element"
+      // atar. `scrollUntilVisible` səhifənin tək scroll-unu tapana qədər
+      // sürüşdürür və artıq görünəni olduğu kimi saxlayır.
       await tester.scrollUntilVisible(
         find.text(animal),
         120,
         scrollable: find.descendant(
-          of: find.byType(GridView),
+          of: find.byKey(const ValueKey('letterPageScroll')),
           matching: find.byType(Scrollable),
         ),
       );

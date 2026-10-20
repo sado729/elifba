@@ -11,7 +11,7 @@
 // * Bu səhifələr `AudioPlayer` qurur, ona görə CLAUDE.md gotcha 11-ə uyğun
 //   olaraq heç bir just_audio çağırışı `await` edilmir və `tester.runAsync`
 //   istifadə olunmur.
-// * Heyvan qridi lazy-dir: 800x600 test səthində yalnız ilk iki xana qurulur
+// * Heyvan qridi lazy-dir: 800x600 test səthində yalnız ilk üç sətir qurulur
 //   (gotcha 11), ona görə testlər yalnız qurulan xanalara istinad edir.
 
 import 'package:elifba/core/config.dart';
@@ -221,14 +221,25 @@ void main() {
       );
       await tester.pump();
 
-      // Gotcha 13: zolaq şaquli yer tutsa `Expanded` sıfıra sıxılır və lazy
-      // qrid HEÇ bir xana qurmur. 800x600 səthində qrid 357 px olmalıdır.
-      final grid = tester.getSize(find.byType(GridView));
-      expect(grid.height, greaterThan(300), reason: 'qrid sıxılmamalıdır');
+      // Gotcha 13: zolaq şaquli yer tutsa xana sıxılar və ya qurulmazdı.
+      // Səhifə tək scroll-dur (800x600 səthində 536 px): ilk heyvan xanası
+      // tam hündürlükdə (geniş ekranda 212) qurulmalı, «Heyvanlar» sətri
+      // isə 36 px-dən hündür olmamalıdır.
+      final first = AppConfig.animalsByLetter['A']!.first;
+      final card = find.ancestor(
+        of: find.text(first),
+        matching: find.byType(AnimatedContainer),
+      );
+      expect(tester.getSize(card).height, 212, reason: 'xana sıxılmamalıdır');
+      final headingRow =
+          find
+              .ancestor(of: find.text('Heyvanlar'), matching: find.byType(Row))
+              .first;
+      expect(tester.getSize(headingRow).height, lessThanOrEqualTo(36));
       expect(
         find.descendant(
-          of: find.byType(GridView),
-          matching: find.text(AppConfig.animalsByLetter['A']!.first),
+          of: find.byType(SliverGrid),
+          matching: find.text(first),
         ),
         findsOneWidget,
         reason: 'ilk heyvan xanası qurulmalıdır',
@@ -269,13 +280,16 @@ void main() {
       );
       await tester.pump();
 
-      // Yazı kartı qridin ilk xanasıdır və mətnsizdir: ulduzu ayrıca
-      // `Icons.star_outline_rounded` ikonudur (StarRow deyil, tək tapşırıq).
-      final outlineInGrid = find.descendant(
-        of: find.byType(GridView),
-        matching: find.byIcon(Icons.star_outline_rounded),
+      // Yazı kartı qridin ilk xanasıdır: ulduzu ayrıca bir `StarGlyph`-dir
+      // (StarRow deyil, tək tapşırıq).
+      final writeCard = find.bySemanticsLabel('A hərfini yaz');
+      expect(
+        find.descendant(
+          of: writeCard,
+          matching: find.byWidgetPredicate((w) => w is StarGlyph && !w.filled),
+        ),
+        findsOneWidget,
       );
-      expect(outlineInGrid, findsWidgets);
 
       store.markWritten('A');
       await tester.pump();
@@ -283,10 +297,10 @@ void main() {
       expect(store.isWritten('A'), isTrue);
       expect(
         find.descendant(
-          of: find.byType(GridView),
-          matching: find.byIcon(Icons.star_rounded),
+          of: writeCard,
+          matching: find.byWidgetPredicate((w) => w is StarGlyph && w.filled),
         ),
-        findsWidgets,
+        findsOneWidget,
         reason: 'hərf yazılandan sonra dolu ulduz görünməlidir',
       );
       expect(tester.takeException(), isNull);
