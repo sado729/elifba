@@ -86,6 +86,11 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   /// Səhnə + yapışqan tablar + bölmə bir `CustomScrollView`-dadır.
   final ScrollController _scroll = ScrollController();
 
+  /// Tab zolağı üfüqi sürüşür (360 dp-də, uzun etiketlərdə 412-də də): seçilmiş
+  /// tab həmişə görünən yerə gətirilir, yoxsa uşaq hansının seçildiyini görmür.
+  final ScrollController _tabScroll = ScrollController();
+  final Map<_Section, GlobalKey> _tabKeys = {};
+
   /// Söz tapmaca qələbəsi (1.2 s) və "Tam ulduz!" (2 s) konfetiləri.
   final ConfettiController _smallConfetti =
       ConfettiPreset.small.createController();
@@ -221,6 +226,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     _flightCtrl.dispose();
     _arrivalCtrl.dispose();
     _scroll.dispose();
+    _tabScroll.dispose();
     _infoPlayer.dispose();
     _animalPlayer.dispose();
     _smallConfetti.dispose();
@@ -385,6 +391,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     if (section == _section) return;
     final stageExtent = _stageHeight(context);
     setState(() => _section = section);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealTab(section));
     if (_scroll.hasClients && _scroll.offset > stageExtent) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scroll.hasClients) return;
@@ -392,6 +399,22 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
         _scroll.jumpTo(math.min(stageExtent, position.maxScrollExtent));
       });
     }
+  }
+
+  /// Seçilmiş tabı zolağın ortasına (kənarlarda kənara) sürüşdürür. Yalnız
+  /// üfüqi zolaq hərəkət edir — səhifənin şaquli sürüşməsinə toxunulmur.
+  void _revealTab(_Section section) {
+    final box = _tabKeys[section]?.currentContext?.findRenderObject();
+    if (!mounted || box == null || !_tabScroll.hasClients) return;
+    _tabScroll.position.ensureVisible(
+      box,
+      alignment: 0.5,
+      duration:
+          ElifbaMotion.reduced
+              ? Duration.zero
+              : const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -843,6 +866,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       child: DecoratedBox(
         decoration: _tabStripDecoration,
         child: SingleChildScrollView(
+          controller: _tabScroll,
           scrollDirection: Axis.horizontal,
           // Yuxarıdakı 12 dp ✓ nişanına, aşağıdakı 10 dp seçilmiş tabın 4 dp
           // kənarına yer saxlayır.
@@ -857,6 +881,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
               for (var i = 0; i < tabs.length; i++) ...[
                 if (i > 0) const SizedBox(width: 8),
                 PillTab(
+                  key: _tabKeys.putIfAbsent(tabs[i].section, GlobalKey.new),
                   label: tabs[i].label,
                   icon: tabs[i].icon,
                   selected: tabs[i].section == _section,

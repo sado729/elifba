@@ -591,35 +591,40 @@ class _PuzzleSizeBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.extension_rounded,
-                size: 22,
-                color: ElifbaPalette.onSurfaceVariant,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pazl çətinliyi',
-                      style: ElifbaTextStyles.listTitle.copyWith(
-                        color: ElifbaPalette.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Şəkil pazlındaki parça sayı',
-                      style: ElifbaTextStyles.listSubtitle.copyWith(
-                        color: ElifbaPalette.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+          // Öz semantik düyünü: olmasa başlıq bütün «Oyun» kartının etiketinə
+          // qarışır və ekran oxuyucusu kartı «Pazl çətinliyi» kimi oxuyur.
+          Semantics(
+            container: true,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.extension_rounded,
+                  size: 22,
+                  color: ElifbaPalette.onSurfaceVariant,
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pazl çətinliyi',
+                        style: ElifbaTextStyles.listTitle.copyWith(
+                          color: ElifbaPalette.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        'Şəkil pazlındaki parça sayı',
+                        style: ElifbaTextStyles.listSubtitle.copyWith(
+                          color: ElifbaPalette.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           Padding(

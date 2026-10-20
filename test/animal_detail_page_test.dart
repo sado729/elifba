@@ -85,6 +85,31 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('seçilmiş tab zolaqda görünən yerə sürüşür', (tester) async {
+      _surface(tester, 360, 640);
+      await _pumpPage(tester, 'Ayı');
+
+      // Sağ kənardan qismən görünən ilk tab (test şriftində yazılar enlidir,
+      // ona görə hansı olduğu sabit deyil).
+      final tabs = find.byType(PillTab);
+      Finder? partial;
+      for (var i = 0; i < tabs.evaluate().length; i++) {
+        final r = tester.getRect(tabs.at(i));
+        if (r.left < 360 - 12 && r.right > 360) {
+          partial = tabs.at(i);
+          break;
+        }
+      }
+      expect(partial, isNotNull, reason: 'kənardan kəsilən tab yoxdur');
+      final before = tester.getRect(partial!);
+      await tester.tapAt(Offset(before.left + 6, before.center.dy));
+      await _settle(tester);
+
+      final after = tester.getRect(partial);
+      expect(after.left, greaterThanOrEqualTo(0));
+      expect(after.right, lessThanOrEqualTo(360));
+    });
+
     testWidgets('tab zolağı sürüşdürüləndə yuxarıda yapışıb qalır', (
       tester,
     ) async {
@@ -262,9 +287,8 @@ void main() {
       // Səbət lövhənin altındadır: hər ikisi ekranda olsun.
       _surface(tester, 800, 1200);
       final calls = await pumpPuzzle(tester);
-      Finder trayPiece() => find.byWidgetPredicate(
-        (w) => w is Draggable<int> && w.data! >= 9,
-      );
+      Finder trayPiece() =>
+          find.byWidgetPredicate((w) => w is Draggable<int> && w.data! >= 9);
       Future<void> drag(Offset from, Offset to) async {
         final g = await tester.startGesture(from);
         await tester.pump();
