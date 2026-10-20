@@ -420,8 +420,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(store.totalStars, 0);
 
-      // Kitaba qayıdanda sayğac yenilənmiş dəyəri göstərir.
-      await tester.pageBack();
+      // Kitaba qayıdanda sayğac yenilənmiş dəyəri göstərir. Geri düyməsinin
+      // tooltip-i Azərbaycancadır ('Geri'), ona görə ingiliscə "Back"
+      // axtaran `pageBack()` işlədilmir.
+      await tester.tap(find.byTooltip('Geri'));
       await tester.pumpAndSettle();
       expect(find.text('0/96'), findsOneWidget);
 

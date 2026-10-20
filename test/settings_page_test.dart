@@ -122,12 +122,16 @@ void main() {
   });
 
   group('bölmə başlıqları', () {
-    // `toUpperCase()` `i`-ni `I` edir: başlıq əvvəl "VALIDEYN" görünürdü.
-    testWidgets('böyük hərfli başlıqda i → İ olur', (tester) async {
+    // Başlıqlar cümlə registrindədir (dizayn §7.7, §8 qərar 3): böyük hərfə
+    // çevirmə yoxdur, ona görə "VALIDEYN" xətası yarana bilməz.
+    testWidgets('başlıqlar cümlə registrindədir', (tester) async {
       await pumpSettings(tester);
 
-      await tester.scrollUntilVisible(find.text('VALİDEYN'), 200);
-      expect(find.text('VALİDEYN'), findsOneWidget);
+      for (final header in const ['Səs', 'Oyun', 'Valideyn', 'Məlumat']) {
+        await tester.scrollUntilVisible(find.text(header), 200);
+        expect(find.text(header), findsOneWidget);
+      }
+      expect(find.text('VALİDEYN'), findsNothing);
       expect(find.text('VALIDEYN'), findsNothing);
     });
   });
