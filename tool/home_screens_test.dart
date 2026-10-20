@@ -383,8 +383,9 @@ void main() {
 
   // Maketdə olmayan, amma yoxlanmalı hallar.
 
-  testWidgets('x_pressed · Ə səhifəsi basılı · 360', (tester) async {
-    TestGesture? g;
+  testWidgets('x_pressed · Ə səhifəsi və «irəli» basılı · 360', (tester) async {
+    TestGesture? card;
+    TestGesture? arrow;
     await _shot(
       tester,
       'x_pressed-card-and-arrow_360',
@@ -392,9 +393,32 @@ void main() {
       spread: 3,
       progress: _designProgress,
       beforeCapture: () async {
-        g = await tester.startGesture(tester.getCenter(find.text('Ə')));
+        // İki barmaq: kart (üz 4 dp enir, kənar 8 → 4) və ox (maketin
+        // style-active-i: translateY 5, kənar 5 → 0).
+        card = await tester.startGesture(tester.getCenter(find.text('Ə')));
+        arrow = await tester.startGesture(
+          tester.getCenter(find.byTooltip('Növbəti səhifə')),
+        );
         await tester.pump(const Duration(milliseconds: 150));
         await tester.pump(const Duration(milliseconds: 150));
+      },
+    );
+    await card?.cancel();
+    await arrow?.cancel();
+  });
+
+  testWidgets('x_midswipe · Ə–F → G–Ğ yarı yolda · 360', (tester) async {
+    TestGesture? g;
+    await _shot(
+      tester,
+      'x_midswipe-gap-between-spreads_360',
+      small,
+      spread: 3,
+      progress: _designProgress,
+      beforeCapture: () async {
+        g = await tester.startGesture(tester.getCenter(find.byType(PageView)));
+        await g!.moveBy(const Offset(-190, 0));
+        await tester.pump();
       },
     );
     await g?.cancel();

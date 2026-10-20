@@ -5,11 +5,19 @@
 //
 // Səhifə `GatedPlayer` qurur: CLAUDE.md gotcha 11-ə uyğun olaraq heç bir
 // just_audio çağırışı `await` edilmir və `tester.runAsync` işlədilmir.
+//
+// Semantika `testWidgets`-də defolt açıqdır (`semanticsEnabled: true`), ona
+// görə əl ilə `ensureSemantics()` tutulmur. `addTearDown(handle.dispose)`
+// İŞLƏMİR: tutacaq testin sonundakı yoxlamadan sonra bağlanır və test
+// "A SemanticsHandle was active" ilə düşür.
 
+import 'package:elifba/core/config.dart';
 import 'package:elifba/core/progress.dart';
 import 'package:elifba/core/settings.dart';
 import 'package:elifba/pages/alphabet_page.dart';
+import 'package:elifba/theme/theme.dart';
 import 'package:elifba/widgets/squishy.dart';
+import 'package:elifba/widgets/sunburst.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,6 +29,19 @@ Future<void> _pumpHome(WidgetTester tester) async {
 /// Hərf səhifəsinin kartı (`Squishy`) — hərfin böyük `Text`-inə görə.
 Finder _cardOf(String letter) =>
     find.ancestor(of: find.text(letter), matching: find.byType(SquishyButton));
+
+/// Hərfin bütün bölmələrini tamamlayır (heyvanlar + hərfi yazmaq) — 3 ulduz.
+void _completeLetter(ProgressStore store, String letter) {
+  for (final animal in AppConfig.animalsByLetter[letter] ?? const <String>[]) {
+    for (final task in store.tasksOf(animal)) {
+      store.markDone(animal, task);
+    }
+    for (final food in AppConfig.animalFoods[animal] ?? const <String>[]) {
+      store.markFoodFed(animal, food);
+    }
+  }
+  store.markWritten(letter);
+}
 
 void main() {
   final store = ProgressStore.instance;
@@ -37,7 +58,6 @@ void main() {
       await _pumpHome(tester);
       expect(find.text('1 / 16'), findsOneWidget);
 
-      final semantics = tester.ensureSemantics();
       expect(
         tester.getSemantics(find.byTooltip('Əvvəlki səhifə')),
         containsSemantics(
@@ -57,7 +77,6 @@ void main() {
         ),
       );
       expect(find.bySemanticsLabel('Səhifə 1 / 16'), findsOneWidget);
-      semantics.dispose();
 
       // Söndürülmüş oxa toxunmaq heç nə etmir.
       await tester.tap(find.byTooltip('Əvvəlki səhifə'));
@@ -80,7 +99,6 @@ void main() {
       expect(find.text('Z'), findsOneWidget);
       expect(find.text('16 / 16'), findsOneWidget);
 
-      final semantics = tester.ensureSemantics();
       expect(
         tester.getSemantics(find.byTooltip('Növbəti səhifə')),
         containsSemantics(hasEnabledState: true, isEnabled: false),
@@ -89,7 +107,6 @@ void main() {
         tester.getSemantics(find.byTooltip('Əvvəlki səhifə')),
         containsSemantics(hasEnabledState: true, isEnabled: true),
       );
-      semantics.dispose();
 
       await tester.tap(find.byTooltip('Növbəti səhifə'));
       await tester.pumpAndSettle();
@@ -157,20 +174,65 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('tam bitmiş hərf: qızılı üz, günəş şüaları, ✓ və etiket', (
+      tester,
+    ) async {
+      await _pumpHome(tester);
+      _completeLetter(store, 'A');
+      await tester.pump();
+      expect(store.starsOf('A'), 3);
+      expect(store.starsOf('B'), 0);
+
+      final aCard = _cardOf('A').first;
+      final bCard = _cardOf('B').first;
+
+      // "Yalnız rəng" deyil: şüalar + ✓ + etiket (home.md §8.5).
+      expect(
+        find.descendant(of: aCard, matching: find.byType(SunburstDisc)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bCard, matching: find.byType(SunburstDisc)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: aCard, matching: find.byIcon(Icons.check_rounded)),
+        findsOneWidget,
+      );
+
+      // Qızılı üz və kənar; yarımçıq B öz dəstinin rəngində qalır.
+      final a = tester.widget<Squishy>(aCard);
+      expect(a.color, ElifbaPalette.complete);
+      expect(a.edgeColor, ElifbaPalette.completeEdge);
+      final b = tester.widget<Squishy>(bCard);
+      expect(b.color, ElifbaPalette.letterSetAt(1).tint);
+      expect(b.edgeColor, ElifbaPalette.letterSetAt(1).edge);
+
+      expect(
+        tester.getSemantics(aCard),
+        containsSemantics(
+          isButton: true,
+          label: 'A hərfi, tamamlanıb\n3 ulduzdan 3',
+        ),
+      );
+      expect(
+        tester.getSemantics(bCard),
+        containsSemantics(isButton: true, label: 'B hərfi\n3 ulduzdan 0'),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('hərf səhifəsinin semantikası ulduzları da oxuyur', (
       tester,
     ) async {
-      final semantics = tester.ensureSemantics();
       await _pumpHome(tester);
       expect(
         tester.getSemantics(_cardOf('A').first),
         containsSemantics(isButton: true, label: 'A hərfi\n3 ulduzdan 0'),
       );
-      semantics.dispose();
     });
 
     testWidgets('ümumi sayğacın etiketi və tooltip-i', (tester) async {
-      final semantics = tester.ensureSemantics();
       await _pumpHome(tester);
       expect(find.text('0/96'), findsOneWidget);
       expect(
@@ -178,7 +240,6 @@ void main() {
         findsOneWidget,
       );
       expect(find.byTooltip('96 ulduzdan 0 ulduz yığılıb'), findsOneWidget);
-      semantics.dispose();
     });
   });
 
@@ -217,12 +278,38 @@ void main() {
       expect(tester.getSize(_cardOf('A').first), const Size(188, 560));
     });
 
-    testWidgets('800 × 600 test səthi: kart 276 × 400, kitab 560 enində', (
+    testWidgets('800 × 600 test səthi: kart 276 × 400, PageView 574 enində', (
       tester,
     ) async {
       await pumpAt(tester, const Size(800, 600));
       expect(tester.getSize(_cardOf('A').first), const Size(276, 400));
-      expect(tester.getSize(find.byType(PageView)).width, 560);
+      // Kart sırası 560 dp, üstəgəl hər yanda 7 dp cütlər arası boşluq.
+      expect(tester.getSize(find.byType(PageView)).width, 574);
+      expect(tester.getTopLeft(_cardOf('A').first).dx, 120);
+      expect(tester.getTopRight(_cardOf('B').first).dx, 680);
+    });
+
+    testWidgets('sürüşdürəndə iki cütün kartları arasında 14 dp boşluq', (
+      tester,
+    ) async {
+      await pumpAt(tester, const Size(360, 640));
+      expect(tester.getTopLeft(_cardOf('A').first).dx, 14);
+      expect(tester.getTopRight(_cardOf('B').first).dx, 346);
+
+      final g = await tester.startGesture(
+        tester.getCenter(find.byType(PageView)),
+      );
+      await g.moveBy(const Offset(-120, 0));
+      await tester.pump();
+      // C növbəti cütün sol səhifəsidir və artıq qismən görünür.
+      final bRight = tester.getTopRight(_cardOf('B').first).dx;
+      final cLeft = tester.getTopLeft(_cardOf('C').first).dx;
+      expect(bRight, lessThan(346), reason: 'kitab sürüşməyib');
+      expect(cLeft - bRight, moreOrLessEquals(14));
+
+      await g.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('640 × 360 landşaft: daşma yoxdur', (tester) async {

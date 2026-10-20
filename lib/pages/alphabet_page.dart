@@ -176,12 +176,19 @@ class _AlphabetPageState extends State<AlphabetPage> {
     );
   }
 
+  /// Səhifə cütünün hər yanındakı boşluq: sürüşdürəndə iki cütün arasında
+  /// 2 × 7 = 14 dp qalır, kartlar bir-birinə yapışmır (köhnə `_BookPage`-in
+  /// `margin`-i kimi).
+  static const double _spreadGap = 7;
+
   /// Kitab sahəsi: yuxarıdan 28, yanlardan 14 dp boşluq, hündürlük 420 / 560
   /// dp ilə məhdud (+8 dp səhifənin alt kənarı üçün), ortada.
   ///
-  /// `PageView` tam en DEYİL, kitab qutusu qədərdir: `widget_test`-in −400 dp
-  /// sürüşdürməsi 560 dp-lik səhifənin 68 %-idir və səhifə irəli keçir; tam
-  /// endə (800 dp) 47 % olardı və geri qayıdardı.
+  /// `PageView` kart sırasından hər yana [_spreadGap] qədər enlidir, hər cüt
+  /// də o qədər içəri çəkilir: sakit vəziyyətdə kartlar maketdəki yerindədir.
+  /// `PageView` tam en DEYİL: `widget_test`-in −400 dp sürüşdürməsi 574 dp-lik
+  /// səhifənin ~70 %-idir və səhifə irəli keçir; tam endə (800 dp) 47 %
+  /// olardı və geri qayıdardı.
   Widget _buildBook(bool big) {
     final bookMax = big ? 560.0 : 420.0;
     return Padding(
@@ -192,7 +199,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
           final rowW = math.max(0.0, math.min(c.maxWidth - 28, 560.0));
           return Center(
             child: SizedBox(
-              width: rowW,
+              width: rowW + 2 * _spreadGap,
               height: boxH,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -201,7 +208,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
                   // dp-ni örtür və o, kitabın üstündən "baxır".
                   const Positioned(
                     top: -36,
-                    right: 20,
+                    right: 20 + _spreadGap,
                     width: 60,
                     height: 60,
                     child: IgnorePointer(child: SunMascot(size: 60)),
@@ -217,8 +224,14 @@ class _AlphabetPageState extends State<AlphabetPage> {
                       itemCount: _spreadCount,
                       itemBuilder: (context, i) {
                         return Padding(
-                          // Səhifənin 8 dp alt kənarı kəsilməsin.
-                          padding: const EdgeInsets.only(bottom: ElifbaEdge.e8),
+                          // Səhifənin 8 dp alt kənarı kəsilməsin; yanlarda
+                          // cütlər arası boşluq.
+                          padding: const EdgeInsets.fromLTRB(
+                            _spreadGap,
+                            0,
+                            _spreadGap,
+                            ElifbaEdge.e8,
+                          ),
                           child: _Spread(
                             leftIndex: i * 2,
                             rightIndex:
