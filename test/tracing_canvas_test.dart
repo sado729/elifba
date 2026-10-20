@@ -137,9 +137,42 @@ void main() {
     // Animasiya öz-özünə hərfi bitirir.
     await tester.pump(const Duration(milliseconds: 1200));
     expect(events.any((e) => e.letterCompleted), isTrue);
+    // «Bax»-da başlanğıc halqası yoxdur — nəbz də işləmir, kətan settle olur.
+    expect(tester.hasRunningAnimations, isFalse);
 
-    // Təkrarlanan nəbz animasiyası testi asılı qoymasın.
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('nəbz yalnız «İzlə»-də, hərf bitənə qədər işləyir', (
+    tester,
+  ) async {
+    final events = <TraceResult>[];
+    final units = [
+      TraceUnit.stroke(_line(const Offset(50, 20), const Offset(50, 88))),
+    ];
+
+    // «Təkrarla»: halqa çəkilmir, heç bir animasiya işləmir.
+    await pumpCanvas(
+      tester,
+      units: units,
+      events: events,
+      mode: TracingMode.faded,
+    );
+    expect(tester.hasRunningAnimations, isFalse);
+    await tester.pumpAndSettle();
+
+    // Eyni kətan «İzlə»-yə keçir (`didUpdateWidget`) — halqa nəfəs alır.
+    await pumpCanvas(tester, units: units, events: events);
+    expect(tester.hasRunningAnimations, isTrue);
+
+    // Hərf bitəndə halqa itir, nəbz dayanır.
+    await trace(tester, [
+      for (var y = 20.0; y <= 88; y += 4) Offset(50, y),
+    ]);
+    expect(events.where((e) => e.letterCompleted), isNotEmpty);
+    expect(tester.hasRunningAnimations, isFalse);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('kətan barmaq hərəkətində valideyni yenidən qurmur', (

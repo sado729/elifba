@@ -23,6 +23,22 @@ import '../widgets/tracing_canvas.dart';
 @visibleForTesting
 const ValueKey<String> kTraceCardShakeKey = ValueKey<String>('traceCardShake');
 
+/// Pəncərə bundan alçaq və enindən qısa olanda (telefon yan tutulanda)
+/// rejimlər sola, sayğac və «Yenidən» sağa keçir — kart bütün hündürlüyü
+/// alır. Portret düzülüşündə 640x360-da kətan cəmi 86 dp qalardı (miqyas
+/// 0.83). 800x600 test səthi portret düzülüşündə qalır.
+const double _kLandscapeMaxHeight = 520;
+
+/// Yan düzülüşdə rejim və alt panel sütunlarının eni (16 dp kənar daxil).
+const double _kSideColumnWidth = 184;
+
+/// Rejim düymələri, `TracingMode.values` sırası ilə (Bax · İzlə · Təkrarla).
+const Map<TracingMode, ({String label, IconData icon})> _kModes = {
+  TracingMode.watch: (label: 'Bax', icon: Icons.visibility_rounded),
+  TracingMode.guided: (label: 'İzlə', icon: Icons.touch_app_rounded),
+  TracingMode.faded: (label: 'Təkrarla', icon: Icons.edit_rounded),
+};
+
 /// Barmaqla hərf yazma oyunu.
 ///
 /// Səhifə əsl hərfi (`Ə`, `Ş` kimi) `letter` parametri ilə alır — diakritikanı
@@ -66,6 +82,10 @@ class _LetterWritingPageState extends State<LetterWritingPage>
 
   /// "Yenidən" düyməsi bunu artırır; kətanın açarı dəyişir və vəziyyət sıfırlanır.
   int _resetToken = 0;
+
+  /// Ekran dönəndə kart portret sütunundan yan sıraya köçür; bu açar onu
+  /// yerindən qoparmadan daşıyır ki, yarımçıq cızıq itməsin.
+  final GlobalKey _cardKey = GlobalKey(debugLabel: 'traceCard');
 
   ProgressStore get _store => widget.store ?? ProgressStore.instance;
 
@@ -172,6 +192,9 @@ class _LetterWritingPageState extends State<LetterWritingPage>
   Widget build(BuildContext context) {
     final units = LetterStrokes.unitsFor(_letter);
     final card = _buildCard(units);
+    final screen = MediaQuery.sizeOf(context);
+    final landscape =
+        screen.width > screen.height && screen.height < _kLandscapeMaxHeight;
 
     // Android 16 (API 36) edge-to-edge rejimində sistem panelləri body-nin
     // üstünə düşür. Səma fonu SafeArea-dan KƏNARDA qalır ki, panellərin
@@ -189,19 +212,52 @@ class _LetterWritingPageState extends State<LetterWritingPage>
               child: AnimatedBuilder(
                 animation: _store,
                 child: card,
-                builder: (context, child) => Column(
-                  children: [
-                    _buildHeader(),
-                    if (units != null) _buildModeBar(),
-                    Expanded(child: child!),
-                    _buildFooter(),
-                  ],
-                ),
+                builder: (context, child) => landscape
+                    ? _buildLandscape(units, child!)
+                    : Column(
+                        children: [
+                          _buildHeader(),
+                          if (units != null) _buildModeBar(),
+                          Expanded(child: child!),
+                          _buildFooter(),
+                        ],
+                      ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Yan düzülüş (dizaynda kadrı yoxdur): başlıq yuxarıda, altında
+  /// rejimlər · kart · sayğac və «Yenidən». Portretdəki eyni widget-lər.
+  Widget _buildLandscape(List<TraceUnit>? units, Widget card) {
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Kart ortada qalsın deyə sol sütun datası olmayan hərfdə də
+              // yerini tutur.
+              SizedBox(
+                width: _kSideColumnWidth,
+                child: units == null ? null : _buildModeColumn(),
+              ),
+              // Kartın 8 dp kənarı alt boşluğa düşür.
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: card,
+                ),
+              ),
+              SizedBox(width: _kSideColumnWidth, child: _buildSideFooter()),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -265,30 +321,42 @@ class _LetterWritingPageState extends State<LetterWritingPage>
     );
   }
 
+  Widget _modePill(TracingMode mode) {
+    final m = _kModes[mode]!;
+    return PillTab(
+      label: m.label,
+      icon: m.icon,
+      selected: _mode == mode,
+      expand: true,
+      unselectedIconColor: ElifbaPalette.onSurfaceVariant,
+      onTap: () => _setMode(mode),
+    );
+  }
+
   /// Üç rejim düyməsi — kətanın ÜSTÜNDƏ, hər biri ekranın üçdə biri.
   Widget _buildModeBar() {
-    const modes = <TracingMode, ({String label, IconData icon})>{
-      TracingMode.watch: (label: 'Bax', icon: Icons.visibility_rounded),
-      TracingMode.guided: (label: 'İzlə', icon: Icons.touch_app_rounded),
-      TracingMode.faded: (label: 'Təkrarla', icon: Icons.edit_rounded),
-    };
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Row(
         children: [
-          for (final entry in modes.entries) ...[
-            if (entry.key != modes.keys.first) const SizedBox(width: 8),
-            Expanded(
-              child: PillTab(
-                label: entry.value.label,
-                icon: entry.value.icon,
-                selected: _mode == entry.key,
-                expand: true,
-                unselectedIconColor: ElifbaPalette.onSurfaceVariant,
-                onTap: () => _setMode(entry.key),
-              ),
-            ),
+          for (final mode in _kModes.keys) ...[
+            if (mode != _kModes.keys.first) const SizedBox(width: 8),
+            Expanded(child: _modePill(mode)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Yan düzülüşdə rejimlər kartın solunda, üst-üstə.
+  Widget _buildModeColumn() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16),
+      child: Column(
+        children: [
+          for (final mode in _kModes.keys) ...[
+            if (mode != _kModes.keys.first) const SizedBox(height: 10),
+            _modePill(mode),
           ],
         ],
       ),
@@ -314,6 +382,7 @@ class _LetterWritingPageState extends State<LetterWritingPage>
           );
 
     return Padding(
+      key: _cardKey,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: AnimatedBuilder(
         animation: _shake,
@@ -345,27 +414,36 @@ class _LetterWritingPageState extends State<LetterWritingPage>
   }
 
   Widget _buildMissing() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.edit_off_rounded,
-              color: ElifbaPalette.onMuted,
-              size: 44,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '"$_letter" hərfi üçün yazı datası hələ hazır deyil.',
-              textAlign: TextAlign.center,
-              // Andika 16/23 — təbrik mətni ilə eyni üslub.
-              style: ElifbaTextStyles.celebrationBody.copyWith(
-                color: ElifbaPalette.onSurfaceVariant,
+    // Ortada durur; yan düzülüşdə böyük mətnlə kart alçaq qalanda isə
+    // daşmaq əvəzinə sürüşür.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.edit_off_rounded,
+                    color: ElifbaPalette.onMuted,
+                    size: 44,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '"$_letter" hərfi üçün yazı datası hələ hazır deyil.',
+                    textAlign: TextAlign.center,
+                    // Andika 16/23 — təbrik mətni ilə eyni üslub.
+                    style: ElifbaTextStyles.celebrationBody.copyWith(
+                      color: ElifbaPalette.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -382,26 +460,50 @@ class _LetterWritingPageState extends State<LetterWritingPage>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
-              child: Text(
-                '${_store.writtenLetterCount} / ${AppConfig.alphabet.length} '
-                'hərf yazıldı',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: ElifbaTextStyles.counter.copyWith(
-                  color: ElifbaPalette.onSurfaceVariant,
-                ),
-              ),
-            ),
+            Flexible(child: _buildCounter()),
             const SizedBox(width: 12),
-            PillButton(
-              label: 'Yenidən',
-              icon: Icons.refresh_rounded,
-              onPressed: _restart,
-            ),
+            _buildRestart(),
           ],
         ),
       ),
+    );
+  }
+
+  /// Yan düzülüşdə sayğac və «Yenidən» kartın sağında, aşağıda. Düymənin
+  /// üzü kartın üzü ilə eyni xəttdə bitir.
+  Widget _buildSideFooter() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16, bottom: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildCounter(textAlign: TextAlign.end),
+          const SizedBox(height: 12),
+          _buildRestart(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCounter({TextAlign? textAlign}) {
+    return Text(
+      '${_store.writtenLetterCount} / ${AppConfig.alphabet.length} '
+      'hərf yazıldı',
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: textAlign,
+      style: ElifbaTextStyles.counter.copyWith(
+        color: ElifbaPalette.onSurfaceVariant,
+      ),
+    );
+  }
+
+  Widget _buildRestart() {
+    return PillButton(
+      label: 'Yenidən',
+      icon: Icons.refresh_rounded,
+      onPressed: _restart,
     );
   }
 }

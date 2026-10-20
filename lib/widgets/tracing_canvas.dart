@@ -186,7 +186,13 @@ const double _kFingerHalo = 8.92; // (r 20)
 const int _kFingerHaloAlpha = 35; // 14 %
 
 const double _kHandSize = 15.16; // (34)
-const Offset _kHandOffset = Offset(-2.68, -1.78); // (−6, −4)
+
+/// Əl kvadratının sol-üst küncü mürəkkəbin ucuna nisbətən. Dizaynın `(−6, −4)`
+/// yerdəyişməsi Material Symbols qlifi üçündür; MaterialIcons qlifində barmaq
+/// ucu kvadratın `(0.47·S, 0.125·S)` nöqtəsindədir. Bu dəyərlə barmaq ucu
+/// ScreenTrace-dəki kimi mürəkkəbin ucunun üstünə düşür: ucdan `(+2.1, −0.5)`
+/// qutu (360 dp-də +6.5 / −1.5 dp).
+const Offset _kHandOffset = Offset(-4.92, -2.37);
 
 const double _kWrongRadius = 7.14; // (r 16)
 const double _kWrongStroke = 1.12; // (2.5)
@@ -260,13 +266,11 @@ class _TracingCanvasState extends State<TracingCanvas>
   @override
   void initState() {
     super.initState();
+    // Nəbzi `_build()` → `_syncPulse()` başladır.
     _pulse = AnimationController(
       vsync: this,
       duration: ElifbaMotion.tracePulse,
     );
-    // Azaldılmış hərəkətdə halqa nəfəs almır — sabit dizayn ölçüsündə qalır.
-    // Valideyn sahəsi bu səhifə açıqkən açıla bilmir, dinləyici lazım deyil.
-    if (!AppSettings.instance.reduceMotion) _pulse.repeat();
     _demo = AnimationController(vsync: this)..addListener(_onDemoTick);
     _reject = AnimationController(
       vsync: this,
@@ -290,6 +294,7 @@ class _TracingCanvasState extends State<TracingCanvas>
       _tracker.reset();
       _repaint.value++;
       _maybeStartDemo();
+      _syncPulse();
     }
   }
 
@@ -326,6 +331,25 @@ class _TracingCanvasState extends State<TracingCanvas>
     _demoUnit = 0;
     _repaint.value++;
     _maybeStartDemo();
+    _syncPulse();
+  }
+
+  /// Başlanğıc halqası yalnız «İzlə»-də, hərf bitməmiş görünür — nəbz də
+  /// yalnız onda işləyir (DECISIONS: sonsuz animasiya ancaq vəziyyəti aktiv
+  /// olanda). «Bax», «Təkrarla» və bitmiş hərfdə kətan boş yerə 60 fps-lə
+  /// yenidən çəkilmir, `pumpAndSettle` də işləyir. Azaldılmış hərəkətdə halqa
+  /// nəfəs almır — sabit dizayn ölçüsündə qalır. Valideyn sahəsi bu səhifə
+  /// açıqkən açıla bilmir, ayara dinləyici lazım deyil.
+  void _syncPulse() {
+    final active =
+        widget.mode == TracingMode.guided &&
+        !_tracker.isComplete &&
+        !AppSettings.instance.reduceMotion;
+    if (active && !_pulse.isAnimating) {
+      _pulse.repeat();
+    } else if (!active && _pulse.isAnimating) {
+      _pulse.stop();
+    }
   }
 
   void _maybeStartDemo() {
@@ -381,6 +405,8 @@ class _TracingCanvasState extends State<TracingCanvas>
     if ((r.checkpoint || r.unitCompleted) && AppSettings.instance.haptics) {
       HapticFeedback.selectionClick();
     }
+    // Hərf bitəndə halqa itir — nəbz də dayanır.
+    if (r.letterCompleted) _syncPulse();
     _repaint.value++;
     if (r != TraceResult.none) widget.onEvent?.call(r);
   }
@@ -568,19 +594,19 @@ class _TracingPainter extends CustomPainter {
       ..color = palette.line;
     canvas.drawLine(Offset(x0, kCapLine), Offset(x1, kCapLine), solid);
     canvas.drawLine(Offset(x0, kBaseLine), Offset(x1, kBaseLine), solid);
-    canvas.drawPath(
-      _dashPath(
-        Path()
-          ..moveTo(x0, kMidLine)
-          ..lineTo(x1, kMidLine),
-        on: _kMidLineDash,
-        off: _kMidLineDash,
-      ),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = _kMidLineWidth
-        ..color = palette.midLine,
-    );
+    // Qırıq orta sətir: düz xətt olduğu üçün `_dashPath` əvəzinə birbaşa
+    // parçalar — nəbz hər kadrda yenidən çəkəndə yeni `Path` qurulmasın.
+    final mid = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _kMidLineWidth
+      ..color = palette.midLine;
+    for (var x = x0; x < x1; x += 2 * _kMidLineDash) {
+      canvas.drawLine(
+        Offset(x, kMidLine),
+        Offset(math.min(x + _kMidLineDash, x1), kMidLine),
+        mid,
+      );
+    }
     canvas.drawLine(
       Offset(x0, kDescLine),
       Offset(x1, kDescLine),

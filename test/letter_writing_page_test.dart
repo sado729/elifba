@@ -401,6 +401,82 @@ void main() {
     });
   }
 
+  // Yan tutulmuş telefon: portret düzülüşündə kətan 86 dp qalardı (miqyas
+  // 0.83). Rejimlər sola, sayğac və «Yenidən» sağa keçir.
+  for (final (size, padding) in const [
+    (Size(640, 360), FakeViewPadding(top: 24, bottom: 24)),
+    (Size(640, 360), FakeViewPadding(top: 24, right: 48)),
+    (Size(915, 412), FakeViewPadding(top: 24, bottom: 24)),
+  ]) {
+    for (final textScale in const [1.0, 1.3]) {
+      testWidgets(
+        'yan düzülüş: ${size.width.toInt()}x${size.height.toInt()} '
+        'sağ ${padding.right.toInt()}, mətn $textScale',
+        (tester) async {
+          tester.view.devicePixelRatio = 1;
+          tester.view.physicalSize = size;
+          tester.view.padding = padding;
+          tester.view.viewPadding = padding;
+          addTearDown(tester.view.reset);
+          tester.platformDispatcher.textScaleFactorTestValue = textScale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          await _pumpPage(tester);
+          expect(tester.takeException(), isNull);
+
+          expect(glyphScale(tester.getSize(_canvas)), greaterThan(1.6));
+          final canvas = tester.getRect(_canvas);
+          for (final t in ['Bax', 'İzlə', 'Təkrarla']) {
+            expect(tester.getRect(find.text(t)).right, lessThan(canvas.left));
+          }
+          expect(
+            tester.getRect(find.text('Yenidən')).left,
+            greaterThan(canvas.right),
+          );
+          expect(
+            tester
+                .getRect(
+                  find.text('0 / ${AppConfig.alphabet.length} hərf yazıldı'),
+                )
+                .left,
+            greaterThan(canvas.right),
+          );
+
+          await tester.pumpWidget(const SizedBox.shrink());
+          await _pumpPage(tester, letter: 'W');
+          expect(find.byIcon(Icons.edit_off_rounded), findsOneWidget);
+          expect(tester.takeException(), isNull);
+
+          await tester.pumpWidget(const SizedBox.shrink());
+        },
+      );
+    }
+  }
+
+  testWidgets('ekran dönəndə kətan vəziyyətini saxlayır', (tester) async {
+    _phone(tester, const Size(360, 640));
+    await _pumpPage(tester);
+    final before = tester.state(_canvas);
+    final key = _canvasWidget(tester).key;
+
+    tester.view.physicalSize = const Size(640, 360);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    // Yan düzülüşdə rejimlər kətanın solundadır — düzülüş həqiqətən dəyişib.
+    expect(
+      tester.getRect(find.text('İzlə')).right,
+      lessThan(tester.getRect(_canvas).left),
+    );
+    expect(tester.state(_canvas), same(before));
+    expect(_canvasWidget(tester).key, key);
+
+    tester.view.physicalSize = const Size(360, 640);
+    await tester.pump();
+    expect(tester.state(_canvas), same(before));
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('daşma yoxdur: 360x640, mətn miqyası 1.3', (tester) async {
     _phone(tester, const Size(360, 640));
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;

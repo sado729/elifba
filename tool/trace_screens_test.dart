@@ -217,11 +217,12 @@ Future<ProgressStore> _pump(
   WidgetTester tester, {
   required Size screen,
   String letter = 'B',
+  FakeViewPadding padding = const FakeViewPadding(top: _bar, bottom: _bar),
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = screen;
-  tester.view.padding = const FakeViewPadding(top: _bar, bottom: _bar);
-  tester.view.viewPadding = const FakeViewPadding(top: _bar, bottom: _bar);
+  tester.view.padding = padding;
+  tester.view.viewPadding = padding;
   addTearDown(tester.view.reset);
 
   // Dizayndakı sayğac: 12 hərf artıq yazılıb (B yox).
@@ -433,6 +434,49 @@ void main() {
     testWidgets('07 fallback $w', (tester) async {
       await _pump(tester, screen: screen, letter: 'W');
       await _capture(tester, 'trace_07_fallback-no-data_$w');
+      await _finish(tester);
+    });
+  }
+
+  // Yan düzülüş — dizaynda kadrı yoxdur, yalnız gözlə yoxlamaq üçün.
+  const landscapes = {
+    '640x360': (Size(640, 360), FakeViewPadding(top: _bar, bottom: _bar)),
+    '640x360-navright': (Size(640, 360), FakeViewPadding(top: _bar, right: 48)),
+    '915x412': (Size(915, 412), FakeViewPadding(top: _bar, bottom: _bar)),
+  };
+  for (final e in landscapes.entries) {
+    final w = e.key;
+    final (screen, padding) = e.value;
+
+    testWidgets('L1 start $w', (tester) async {
+      await _pump(tester, screen: screen, padding: padding);
+      await _capture(tester, 'trace_L1_start_$w');
+      await _finish(tester);
+    });
+
+    testWidgets('L2 mid-stroke $w', (tester) async {
+      await _pump(tester, screen: screen, padding: padding);
+      await _trace(tester, _b[0]);
+      final g = await _trace(tester, _b[1], to: 0.55, lift: false);
+      await tester.pump(const Duration(milliseconds: 100));
+      await _capture(tester, 'trace_L2_mid-stroke_$w');
+      await g.up();
+      await _finish(tester);
+    });
+
+    testWidgets('L4 watch demo $w', (tester) async {
+      await _pump(tester, screen: screen, padding: padding);
+      await tester.tap(find.text('Bax'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 1140));
+      await _capture(tester, 'trace_L4_watch-demo_$w');
+      await _finish(tester);
+    });
+
+    testWidgets('L7 fallback $w', (tester) async {
+      await _pump(tester, screen: screen, padding: padding, letter: 'W');
+      await _capture(tester, 'trace_L7_fallback-no-data_$w');
       await _finish(tester);
     });
   }
