@@ -1,4 +1,6 @@
+import 'package:elifba/core/settings.dart';
 import 'package:elifba/core/stroke_tracker.dart';
+import 'package:elifba/theme/theme.dart';
 import 'package:elifba/widgets/tracing_canvas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -176,5 +178,93 @@ void main() {
     // Bütün irəliləyiş `repaint` notifier-i ilə getdiyi üçün valideyn
     // `build()` bir dəfə də olsun yenidən çağırılmamalıdır.
     expect(builds, before);
+  });
+
+  testWidgets('kətan özü titrəmir — silkələnmə səhifədədir', (tester) async {
+    final events = <TraceResult>[];
+    await pumpCanvas(
+      tester,
+      units: [TraceUnit.stroke(_line(const Offset(50, 20), const Offset(50, 88)))],
+      events: events,
+    );
+
+    await tester.tapAt(_screen(tester, const Offset(95, 100)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(events.any((e) => e.rejected), isTrue);
+    // Kətanın içində heç bir `Transform` yoxdur: kart iki dəfə silkələnməsin.
+    expect(
+      find.descendant(
+        of: find.byType(TracingCanvas),
+        matching: find.byType(Transform),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'azaldılmış hərəkət: nəbz başlamır, ✕ nişanı 900 ms-də özü sönür',
+    (tester) async {
+      AppSettings.instance.reduceMotion = true;
+      addTearDown(() => AppSettings.instance.reduceMotion = false);
+      final events = <TraceResult>[];
+      await pumpCanvas(
+        tester,
+        units: [
+          TraceUnit.stroke(_line(const Offset(50, 20), const Offset(50, 88))),
+        ],
+        events: events,
+      );
+
+      // Boş kətanda heç bir animasiya işləmir — settle olur.
+      expect(tester.hasRunningAnimations, isFalse);
+
+      // Səhv toxunuş ✕ nişanını AnimationController ilə göstərir (Timer yox).
+      await tester.tapAt(_screen(tester, const Offset(95, 100)));
+      await tester.pump();
+      expect(events.any((e) => e.rejected), isTrue);
+      expect(tester.hasRunningAnimations, isTrue);
+
+      await tester.pump(const Duration(milliseconds: 950));
+      expect(tester.hasRunningAnimations, isFalse);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test('TracingPalette.light dizayn rənglərini daşıyır', () {
+    const p = TracingPalette.light;
+    expect(p.road, const Color(0xFFE9E2FF));
+    expect(p.centre, const Color(0xFFA99FE0));
+    expect(p.ink, const Color(0xFF7C63D9));
+    expect(p.inkDone, const Color(0xFF9C86E6));
+    expect(p.letterDone, const Color(0xFFFFB547));
+    expect(p.start, const Color(0xFF2E9460));
+    expect(p.line, const Color(0xFFC6B8F5));
+    expect(p.wrong, ElifbaPalette.error);
+    expect(p.wrongFill, ElifbaPalette.errorContainer);
+    // Dəyər bərabərliyi: `shouldRepaint` palitranı `==` ilə müqayisə edir.
+    final same = TracingPalette(
+      line: p.line,
+      midLine: p.midLine,
+      descLine: p.descLine,
+      road: p.road,
+      centre: p.centre,
+      ink: p.ink,
+      inkDone: p.inkDone,
+      letterDone: p.letterDone,
+      start: p.start,
+      onStart: p.onStart,
+      fingerHalo: p.fingerHalo,
+      hand: p.hand,
+      wrong: p.wrong,
+      wrongFill: p.wrongFill,
+    );
+    expect(same, p);
+    expect(same.hashCode, p.hashCode);
+    expect(
+      const TracingCanvas(units: [], mode: TracingMode.guided).palette,
+      TracingPalette.light,
+    );
   });
 }
