@@ -177,16 +177,6 @@ flutter:
       fonts:
         - asset: assets/fonts/Comfortaa-Bold.ttf
           weight: 700
-    - family: NotoSans
-      fonts:
-        - asset: assets/fonts/NotoSans-Regular.ttf
-        - asset: assets/fonts/NotoSans-Bold.ttf
-          weight: 700
-    - family: Baloo2
-      fonts:
-        - asset: assets/fonts/Baloo2-Regular.ttf
-        - asset: assets/fonts/Baloo2-Bold.ttf
-          weight: 700
 
 # Launcher ikonu flutter_launcher_icons ilə YOX, adaptive icon vektorlarından
 # gəlir (android/app/src/main/res/drawable/ic_launcher_*.xml). Vektorları
