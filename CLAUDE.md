@@ -36,7 +36,7 @@ their own consumer keep rules).
 
 ```
 lib/
-  main.dart                  # MaterialApp, theme (deepPurple, Material3, NotoSans), home = AlphabetPage
+  main.dart                  # MaterialApp, ElifbaTheme.light(), dark system bars, 1.3x text clamp, home = AlphabetPage
   core/
     config.dart              # ALL content + the data model. ~760 lines of const maps.
     utils.dart               # normalizeFileName / getFirstLetter helpers (delegate to config.dart)
@@ -45,15 +45,29 @@ lib/
     sound.dart               # SoundChannel + GatedPlayer — the ONLY way to play audio
     letter_strokes.dart      # per-letter stroke geometry for the tracing game
     stroke_tracker.dart      # scores a traced stroke against its target path
+  theme/                     # the design system: import 'theme/theme.dart' (barrel)
+    elifba_palette.dart      # every hex as a const (ElifbaPalette), letter colour sets, confetti colours
+    elifba_colors.dart       # ElifbaColors ThemeExtension (+ of(context) with a fallback)
+    elifba_typography.dart   # Comfortaa/Andika TextTheme + ElifbaTextStyles (named off-scale styles)
+    elifba_tokens.dart       # ElifbaSpace / Radius / Edge / Ring / Size / Layout
+    elifba_motion.dart       # ElifbaMotion: every duration/curve + the reduced-motion switch
+    elifba_component_themes.dart, elifba_theme.dart  # ThemeData, switch/segmented/dialog themes
   pages/
-    alphabet_page.dart       # book of letters, 2 letters per page (PageView) + per-letter stars
-    animal_list_page.dart    # grid of animals for a letter, prev/next letter nav, letter progress
-    animal_detail_page.dart  # detail screen + inline AnimalWordPuzzle
+    alphabet_page.dart       # the book: 2 letter cards per spread (PageView), arrows, page chip
+    animal_list_page.dart    # letter page: one CustomScrollView (info card, progress, SliverGrid)
+    animal_detail_page.dart  # animal page: stage, sticky pill tabs, 4 sections, inline AnimalWordPuzzle
     puzzle_page.dart         # sliding image-tile puzzle (CustomPainter slices the image)
     letter_writing_page.dart # letter tracing game
     settings_page.dart       # parent area: sound/haptics/motion/puzzle size, reset, credits, about
   widgets/
-    star_row.dart            # the shared filled/empty star row (one look everywhere)
+    squishy.dart             # the press primitive behind every child tappable (see Design system)
+    pill_button.dart, icon_buttons.dart, audio_button.dart, pill_tab.dart, food_chip.dart
+    elifba_card.dart         # ElifbaCard, AnimalStage, ImagePlaceholder, DashedRRectPainter
+    star_row.dart            # StarGlyph (the design's stroked star) + StarRow
+    progress_bar.dart, badges.dart (CheckBadge/CrossBadge), game_feedback.dart (tiles, slots, puzzle cells, pop/shake)
+    sun_mascot.dart, sunburst.dart, sky_background.dart, elifba_confetti.dart
+    celebration.dart         # the one celebration family: small + big win, overlay or route
+    parent_ui.dart           # parent-area dialogs, groups, section headers, snackbar
     tracing_canvas.dart      # the tracing game's draw surface
     parental_gate.dart       # showParentalGate(): 3-second press-and-hold before the parent area
     mute_button.dart         # the quick master-mute button in the book header
@@ -68,6 +82,15 @@ test/
   settings_page_test.dart        # parent area UI + the quick mute button
   parental_gate_test.dart        # the hold gate: full hold, early release, no accumulation
   wordmark_test.dart             # the Dart logo path/colours vs. branding/wordmark/*.svg
+  foundation_widgets_test.dart   # every shared widget in every state at 360/412, test-hook rules
+  foundation_followups_test.dart # keyboard Squishy, dialog semantics/clipping, celebration centring
+  home_page_test.dart, letter_page_test.dart, animal_detail_page_test.dart,
+  letter_writing_page_test.dart, settings_page_design_test.dart  # per-screen layout + behaviour
+  letter_strokes_test.dart, stroke_tracker_test.dart, tracing_canvas_test.dart  # tracing logic
+tool/                            # NOT run by `flutter test`: font-accurate PNG capture harnesses
+  foundation_gallery_test.dart   # all shared widgets      (GALLERY_OUT, default build/…)
+  <screen>_screens_test.dart     # every designed state of home/gate/letter/animal/trace/settings
+                                 # at 360x640 + 412x915 (HOME_/GATE_/TRACE_SCREENS_OUT or SCREENS_OUT)
 ```
 
 Dependencies are deliberately minimal, one per capability: **`just_audio`** (audio),
@@ -188,10 +211,9 @@ pass `ProgressStore.forTesting()`. **Never mark progress during a build** — th
 records `Activity.info` from a post-frame callback precisely because `notifyListeners()`
 would otherwise call `setState` on the listening list page mid-build.
 
-`ProgressStore.reset()` is wired to "Progresi sıfırla" in the alphabet page's ℹ️ dialog,
-behind a second explicit confirmation so a child cannot wipe the stars with one tap. That
-dialog is slated to move into the parent-gated settings page (see the spec under
-`docs/superpowers/specs/`); the reset moves with it.
+`ProgressStore.reset()` is wired to "Progresi sıfırla" in the parent-gated settings page,
+behind a second explicit confirmation ("Bütün ulduzlar silinsin?") so a child cannot wipe
+the stars with one tap.
 
 ### Settings & the audio gate (`core/settings.dart`, `core/sound.dart`)
 
@@ -243,9 +265,8 @@ diacritic letters. See Gotchas.
 
 The brand comes from a Claude Design project ("Mobile app brand directions"), file
 **"Əlifba Brand Assets"**, built from the brief in `docs/design/claude-design-rebrand-prompt.md`.
-Direction "Lavanda buludu": an orange sun in a lavender sky. Only the brand assets are
-applied so far; the app's screens are still the old dark-purple UI. The project's
-"Design System" and "Screens" files are the next steps.
+Direction "Lavanda buludu": an orange sun in a lavender sky. The brand assets, the design
+system and every screen of that project are implemented (see Design system below).
 
 - **Launcher icon = three VectorDrawables**:
   `res/drawable/ic_launcher_{background,foreground,monochrome}.xml`, wired up by
@@ -285,8 +306,8 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
   `ElifbaWordmark` (`widgets/elifba_wordmark.dart`): the same path drawn with
   `path_drawing`, never a `Text`. The brand forbids another font, a plain dot, coloured
   letters and stretching, so the painter scales uniformly. `wordmark_test.dart` fails if
-  the Dart path, viewBox, sun position/radii or colours drift from the SVGs. The book header uses the `lavender`
-  variant, because the page is still purple.
+  the Dart path, viewBox, sun position/radii or colours drift from the SVGs. The book header
+  uses the `light` variant (height 37); the About dialog shows it too.
 - **Launch screen:** `@color/splash_background` = `#E4DEFF` (the design's `skyTop`), in
   light and dark mode alike, because the app has no dark theme. The design names no
   splash colour, so this is a choice. On Android 12+ the colour is set explicitly through
@@ -296,6 +317,63 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
   (`values`, `values-night`, `-v31`, `-night-v31`) must change together.
 - **App name** under the icon is **"Əlifba"** (Android label, iOS display name, web
   manifest). It used to be lowercase "əlifba".
+
+### Design system (redesign, 2026-10-20)
+
+Every screen follows the same Claude Design project's "Əlifba Design System" and "Əlifba
+Screens" files: light lavender sky backgrounds, candy-pastel cards, squishy buttons, an
+orange sun mascot. The parent area (settings, gate, dialogs) is calmer: flat `#F8F5FF`, no
+squish, no mascot.
+
+- **Never hard-code a hex that has a name.** Colours come from `ElifbaPalette` (consts, for
+  painters and tests) or `ElifbaColors.of(context)` (theme extension); sizes from
+  `ElifbaSpace/Radius/Edge/Ring/Size`; text from `ElifbaTypography` / `ElifbaTextStyles`;
+  timing from `ElifbaMotion`. Letters get a colour set by `AppConfig.alphabet` index % 6
+  (`ElifbaPalette.letterSetFor`); a complete letter/animal uses the gold `complete` look.
+- **Fonts:** Comfortaa Bold (letters, titles, buttons) and Andika 400/700 (body, chips,
+  parent area). Both are SIL OFL with a Reserved Font Name, so the `.ttf` files are kept
+  **unmodified** (no subsetting); licences are `assets/fonts/OFL-*.txt`. Both contain all 64
+  Azerbaijani letters with single-storey a/g. Lower-case display letters come from
+  `AppConfig.lowerOf()` (explicit table), never `toLowerCase()`.
+- **Icons:** Material `Icons.*_rounded`, except two deliberate `_outlined` glyphs that are
+  also test hooks: the settings gear (`Icons.settings_outlined`, `QuietIconButton`) and the
+  gate's hold button (`Icons.touch_app_outlined`). Every back button has tooltip **'Geri'**.
+- **`Squishy`** is the press primitive behind every child tappable: solid darker bottom
+  edge, press = translate by the edge in 90 ms easeOut, release 140 ms easeOutBack, no blur.
+  It builds **exactly one `AnimatedContainer`** (its frame); `widget_test`'s `_cardOf` /
+  `_writeCardOf` rely on that, so nothing inside a card may be another
+  `AnimatedContainer`. Edges and rings paint outside the layout box, so a clipping scroll
+  view needs at least `edge` dp of padding under its last squishy child. It is focusable
+  (keyboard, D-pad, switch access) with a 2 dp secondary focus ring.
+- **Stars** are `StarGlyph` (the design's stroked star path), not icons. Tests count them
+  with `find.byWidgetPredicate((w) => w is StarGlyph && w.filled)`.
+- **Right / wrong is never colour alone:** a check `CheckBadge` / cross `CrossBadge`, a
+  solid ring vs a dashed outline, a pop vs a 280 ms shake, a -5 degree tilt on wrong tiles.
+- **Celebrations are one family** (`widgets/celebration.dart`): `CelebrationCard.small`
+  (word puzzle, image puzzle) and `.big` ("Tam ulduz!", "... hərfi tamam!"). The animal page
+  shows its two as in-page `CelebrationOverlay`s (present after one `pump()`); the image
+  puzzle's (1.5 s after solving) and the letter-complete card are routes
+  (`showCelebration`). Each has a reduced-motion version.
+- **Reduced motion** means `AppSettings.instance.reduceMotion` only (`ElifbaMotion.reduced`;
+  `MediaQuery.disableAnimations` is deliberately ignored). It removes confetti, the
+  celebration entrances and ray rotation, the food flight (fade instead), right/wrong pop
+  and shake, the audio "playing" pulse and the tracing shake/pulse; shapes and icons stay.
+  Squish presses and the 500 ms page turn are not gated.
+- **Infinite animations** (audio playing pulse, big-win ray rotation, tracing start-dot
+  pulse) run only while their state is active. Never `pumpAndSettle` while one runs, or
+  while confetti plays (the package uses the real clock).
+- **Text scale** is clamped to 1.3x in `MaterialApp.builder`, so 48-64 dp pills never overflow.
+- **Visual checks:** `flutter test tool/<screen>_screens_test.dart` renders every designed
+  state with the real fonts into PNGs (a fake just_audio platform lives inside the
+  harness). Compare them with the design renders after any UI change.
+
+Behaviour that changed with the redesign (everything else is identical):
+- the animal page's tabs are a radio group (tapping the selected tab does nothing; before,
+  it could hide every section);
+- the image-puzzle hint disables "İpucu" and locks the board for its 2 s (see gotcha 14);
+- the gate turns green and closes 200 ms after a full 3 s hold;
+- the letter-complete celebration has confetti;
+- labels "Kömək" -> "İpucu", "Puzzle" -> "Pazl"; settings headers in sentence case.
 
 ## Conventions
 
@@ -310,7 +388,7 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
   or match the surrounding style by hand. `flutter analyze` does not check formatting, so
   nothing forces the issue.
 - Colors use `Color.withAlpha((opacity * 255).toInt())` (post-`withOpacity` migration).
-- Fonts declared in `pubspec.yaml`: `NotoSans` (default) and `Baloo2`.
+- Fonts declared in `pubspec.yaml`: `Andika` (default, via the theme) and `Comfortaa`.
 - Lints: default `flutter_lints` via `analysis_options.yaml`.
 
 ## Gotchas / known issues
@@ -332,9 +410,10 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
    explicitly, so `I` plays `assets/audios/ı/ı_info_sound.mp3` and `İ` plays `i/`. Images
    and the rest still go through `toLowerCase()`.
    The trap also works the other way: `toUpperCase()` turns `i` into `I`, never `İ`.
-   All-caps UI text must map `i → İ` first, as `_SectionHeader` in `settings_page.dart`
-   does (it used to show "VALIDEYN"). `ProgressStore` keys letters through its own
-   explicit lower→upper table for the same reason.
+   The redesign avoids all-caps text altogether (settings headers are sentence case; the
+   old `_SectionHeader` that showed "VALIDEYN" is gone). If capitals are ever needed, map
+   `i → İ` first. `ProgressStore` keys letters through its own explicit lower→upper table,
+   and `AppConfig.lowerOf()` goes the other way, for the same reason.
 3. **Where the widgets live.** `AnimalWordPuzzle` is defined **inline** in
    `animal_detail_page.dart`; the old duplicate `pages/animal_word_puzzle.dart`
    and the YouTube widget were deleted. Do not reintroduce copies of either.
@@ -353,7 +432,8 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
    try/catch — without both, a missing file leaves the button stuck in its stop state and
    swallows the first tap. Apply the same rule to any new audio affordance.
    The same rule now covers **muting**: when a channel is off, its button renders
-   greyed out with a `volume_off` icon and `onPressed: null`. Without that, the
+   greyed out with a `volume_off_rounded` icon and `onPressed: null` (`AudioButton` /
+   `AudioPillButton` in the `muted` state do both). Without that, the
    button's `isPlaying` flag would latch forever — nothing plays, so the
    `ProcessingState.completed` event that clears the flag never arrives.
 7. **Asset bloat.** The whole `assets/` tree is declared in `pubspec.yaml`, so anything
@@ -363,9 +443,11 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
    duplicate `*.mp3` (10.8 MB) and web junk; 2026-09-08 converted all PNG art to WebP and
    re-encoded the oversized sound effects.
    ⚠️ The per-letter card images (`assets/images/<letter>/<letter>*.webp`) are **never
-   rendered** — `alphabet_page.dart` draws each letter as `Text(fontSize: 72)`. They are
-   kept only as small 512 px WebP files in case a letter card is added later; do not let
-   them grow back.
+   rendered** — `alphabet_page.dart` draws each letter as two Comfortaa `Text`s (upper and
+   lower case; tests tap `find.text(letter)`). They are kept only as small 512 px WebP files
+   in case a letter card is added later; do not let them grow back. The stock book photo
+   (`book_cover.webp`) and the unused `ball`/`basket` images were removed in the redesign,
+   and so were the NotoSans and Baloo2 fonts.
 8. **Image decode widths.** Every `Image.asset` of animal/food/puzzle art passes
    `cacheWidth` (`kAnimalThumbDecodeWidth` 400, `kAnimalHeroDecodeWidth` 400,
    `kFoodDecodeWidth` 256, `kPuzzleThumbDecodeWidth` 192, `kPuzzlePreviewDecodeWidth` 700).
@@ -381,12 +463,13 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
    once **per tile** (9–16×) and re-decoded on every `setState`.
 10. **Edge-to-edge is manual.** The app targets API 36, where Android 16 forces
     edge-to-edge with no opt-out, so system bars overlay the `Scaffold.body`. `main.dart`
-    turns on `SystemUiMode.edgeToEdge` for every Android version and pins light system-bar
-    icons (all pages sit on dark purple). Each page insets its own content:
-    `alphabet_page` uses `SafeArea`, `animal_list_page` / `animal_detail_page` add
-    `MediaQuery.viewPaddingOf(context)` to the padding of their bottom-most scrollable.
-    Keep the full-bleed gradient `Container` *outside* the inset so it still paints behind
-    the bars. **A new page must do one of these or its bottom content hides under the nav
+    turns on `SystemUiMode.edgeToEdge` for every Android version and sets
+    `kElifbaSystemUiStyle`: **dark** icons on transparent bars, because every page now sits
+    on a light background. The AppBar-less pages repeat it with an `AnnotatedRegion`. Each
+    page insets its own content: `alphabet_page`, `letter_writing_page` and the puzzle use
+    `SafeArea`; `animal_list_page`, `animal_detail_page` and `settings_page` add
+    `MediaQuery.viewPaddingOf(context)` to their scroll padding. Keep the full-bleed
+    `SkyBackground` *outside* the inset so it still paints behind the bars. **A new page must do one of these or its bottom content hides under the nav
     bar.**
 11. **Tests are the content gate.** `content_integrity_test.dart` walks the config maps,
     builds paths with the **same functions the pages use**, and stats them with `dart:io`
@@ -397,11 +480,13 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
     just_audio call** (it hangs for the full 10-minute timeout) and **never use
     `tester.runAsync`** on a page that builds an `AudioPlayer` (the real event loop then
     delivers `MissingPluginException` and fails the test). And the animal grid is built
-    lazily: on the default 800x600 test surface the GridView is 768x357 and lays out
-    only its first **two** cells, so a finder reaching the third animal matches nothing
-    and `ensureVisible` throws `Bad state: No element` — use `tester.scrollUntilVisible`.
-    Adding a cell at the head of the grid shifts which animals those two slots hold, so
-    a test that names an animal by position breaks without the grid itself being wrong.
+    lazily: it is a `SliverGrid` inside the letter page's single `CustomScrollView`
+    (`ValueKey('letterPageScroll')`), so on the 800x600 test surface only the first rows
+    exist; a finder reaching a later animal matches nothing — use
+    `tester.scrollUntilVisible` (with an explicit `scrollable:` on pages that have more
+    than one Scrollable, like the animal page). Adding a cell at the head of the grid
+    shifts which animals the first slots hold, so a test that names an animal by position
+    breaks without the grid itself being wrong.
 
 12. **An empty asset folder is invisible to git and breaks a clean clone.** `pubspec.yaml`
     declares `assets/audios/<letter>/` for all 32 letters, but git does not track empty
@@ -416,24 +501,22 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
     since `flutter analyze` in the main tree cannot see the problem. Deleting the pubspec
     line instead would be worse: a recording dropped in later would silently never bundle.
 
-13. **The star UI must not add a fixed-height row to a page's `Column`.**
-    `animal_detail_page.dart` and `animal_list_page.dart` both end in
-    `Expanded(<scrollable>)`, and on a short screen the fixed children already use up the
-    height — the detail page overflowed by 8 px even before stars existed. A star row added
-    as one more `Column` child took that to 44 px, and on the list page it squeezed
-    `Expanded` to nearly zero so the **lazy** grid built no cells at all and every
-    `find.text(<animal>)` failed. Both are now placed at zero height cost: the animal's
-    stars are a `Positioned` overlay inside the hero `Stack` (whose size the `AspectRatio`
-    child fixes), and the letter's progress replaced the decorative divider **inside** the
-    existing "Heyvanlar" heading `Row` (its tallest element, an 18 px star, is shorter than
-    the 24 px heading text). Verify a new badge with
-    `tester.getSize(find.byType(GridView))` — it must not shrink.
+13. **Never add a fixed-height row above a page's scrolling area.** On short screens the
+    old `Column` + `Expanded(<scrollable>)` layouts overflowed, and an extra row squeezed
+    the lazy grid until it built no cells. The redesign removes the problem at the root:
+    the letter page is one `CustomScrollView` (info card, "Heyvanlar" row, `SliverGrid`
+    scroll together) and on the animal page everything below the 64 dp bar scrolls, with
+    only the pill tabs sticky. Badges still cost zero height: the animal's stars are a
+    pill overlaid on the stage, and the letter's progress lives **inside** the "Heyvanlar"
+    row (which wraps to two lines on very narrow / large-text screens).
 
 14. **A puzzle star must not be awarded during a hint.** `_showHint()` in
     `puzzle_page.dart` puts the solved arrangement into `slots` for 2 seconds, which makes
-    `_isCompleted()` return `true`. Both completion checks are therefore guarded with
-    `!showHint` before calling `widget.onCompleted` — without it a child could tap the hint
-    and collect the star. No test catches this; it is a logic invariant.
+    `_isCompleted()` return `true`. The single `_checkCompleted()` is therefore guarded
+    with `!showHint` before calling `widget.onCompleted`. On top of that, "İpucu" is
+    disabled while the hint shows (a second tap used to save the solved board as the
+    "original"), the board and tray ignore input (`IgnorePointer`), and drops return early;
+    the screen shows the child's own board under a 40 % ghost photo.
 
 15. **Never construct a bare `AudioPlayer`.** Every sound must go through
     `GatedPlayer(SoundChannel.x)` (`core/sound.dart`), which is what makes the parent's
@@ -444,9 +527,16 @@ applied so far; the app's screens are still the old dark-purple UI. The project'
     file name — `click.mp3` is an `effect` in both the puzzle and the tracing game.
 
 16. **`reduceMotion` gates confetti at the call site.** All six `ConfettiController.play()`
-    calls are wrapped in `if (!AppSettings.instance.reduceMotion)`. The `ConfettiWidget`
-    stays in the tree (it paints nothing when not playing) — do not make the widget itself
-    conditional.
+    calls (3 in `animal_detail_page.dart`, 1 each in `puzzle_page.dart`,
+    `letter_writing_page.dart` and the `showCelebration` route in `celebration.dart`) are
+    wrapped in `if (!AppSettings.instance.reduceMotion)`. The `ConfettiWidget` stays in the
+    tree (it paints nothing when not playing) — do not make the widget itself conditional.
+    Controllers come from `ConfettiPreset.small/.big.createController()` (design colours,
+    at most 40 pieces).
+17. **The gate's 3 s must not shrink.** `parental_gate.dart`'s controllers use
+    `AnimationBehavior.preserve`: with the system "remove animations" setting a normal
+    `AnimationController` runs 20x faster, which turned the 3 s hold into 150 ms. The 200 ms
+    "done" beat is an `AnimationController` too — never a `Timer`.
 
 ## Known content gaps
 
