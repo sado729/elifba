@@ -62,6 +62,54 @@ void main() {
     expect(find.text('Valideynlər üçün'), findsOneWidget);
   });
 
+  testWidgets('sistemin "animasiyaları söndür"ü 3 s-i qısaltmır', (
+    tester,
+  ) async {
+    // Android-in "Animasiyaları sil" ayarı `disableAnimations` bayrağını
+    // qaldırır; adi `AnimationController` onda müddəti 20 dəfə qısaldır
+    // (3 s → 150 ms). Qapı bu bayraqdan asılı olmamalıdır.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+
+    final result = <bool>[];
+    await pumpHost(tester, result);
+
+    var gesture = await tester.startGesture(tester.getCenter(holdTarget));
+    await tester.pump();
+    await tester.pump(kParentalGateHold - const Duration(milliseconds: 200));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(result, isEmpty, reason: 'hədd yenə tam 3 s-dir');
+    expect(find.text('Valideynlər üçün'), findsOneWidget);
+
+    gesture = await tester.startGesture(tester.getCenter(holdTarget));
+    await tester.pump();
+    await tester.pump(kParentalGateHold + const Duration(milliseconds: 16));
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    // Yaşıl ✓ da tam 200 ms görünür (10 ms yox).
+    await tester.pump(kParentalGateDoneDelay ~/ 2);
+    expect(result, isEmpty);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(result, [true]);
+  });
+
+  testWidgets('ekran oxuyucusu "Valideynlər üçün"ü bir dəfə eşidir', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await pumpHost(tester, <bool>[]);
+
+    // Marşrutun adı yoxdur (spec §6); başlıq yeganə belə düyündür.
+    expect(find.bySemanticsLabel('Valideynlər üçün'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Valideynlər üçün')),
+      containsSemantics(isHeader: true),
+    );
+    handle.dispose();
+  });
+
   testWidgets('yarımçıq cəhdlər YIĞILMIR — tərəqqi sıfırlanır', (tester) async {
     final result = <bool>[];
     await pumpHost(tester, result);

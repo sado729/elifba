@@ -61,18 +61,28 @@ Future<void> _loadFonts() async {
       FontLoader('Andika')
         ..addFont(_bytes('assets/fonts/Andika-Regular.ttf'))
         ..addFont(_bytes('assets/fonts/Andika-Bold.ttf'));
-  // Kitab səhifəsi (qapının altında) hələ köhnə şriftləri işlədir.
-  final noto =
-      FontLoader('NotoSans')
-        ..addFont(_bytes('assets/fonts/NotoSans-Regular.ttf'))
-        ..addFont(_bytes('assets/fonts/NotoSans-Bold.ttf'));
-  final baloo =
-      FontLoader('Baloo2')
-        ..addFont(_bytes('assets/fonts/Baloo2-Regular.ttf'))
-        ..addFont(_bytes('assets/fonts/Baloo2-Bold.ttf'))
-        ..addFont(_bytes('assets/fonts/Baloo2-ExtraBold.ttf'));
-  await Future.wait([comfortaa.load(), andika.load(), noto.load()]);
-  await baloo.load();
+  await Future.wait([comfortaa.load(), andika.load()]);
+  // Kitab səhifəsi (qapının altında) hələ köhnə şriftləri işlədə bilər.
+  // İnteqrasiya onları silir — yalnız diskdə olan faylları yükləyirik, yoxsa
+  // `setUpAll` bütün harness-i yıxardı.
+  for (final (family, files) in const [
+    ('NotoSans', ['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf']),
+    (
+      'Baloo2',
+      ['Baloo2-Regular.ttf', 'Baloo2-Bold.ttf', 'Baloo2-ExtraBold.ttf'],
+    ),
+  ]) {
+    final present = [
+      for (final f in files)
+        if (File('assets/fonts/$f').existsSync()) 'assets/fonts/$f',
+    ];
+    if (present.isEmpty) continue;
+    final loader = FontLoader(family);
+    for (final path in present) {
+      loader.addFont(_bytes(path));
+    }
+    await loader.load();
+  }
   final root = _flutterRoot();
   if (root == null) return;
   final sep = Platform.pathSeparator;
@@ -211,13 +221,17 @@ Future<void> _capture(
   await tester.pumpWidget(
     RepaintBoundary(key: _screenKey, child: const MyApp()),
   );
-  final context = tester.element(find.byType(Scaffold).first);
-  await tester.runAsync(() async {
-    await precacheImage(
-      const AssetImage('assets/images/book_cover.webp'),
-      context,
-    );
-  });
+  // Köhnə kitabın üz qabığı. DECISIONS → Assets: Home yenilənəndə bu fayl
+  // silinir; onda precache-i atlayırıq (olmayan aktiv FlutterError verərdi).
+  // Yeni Home aktiv şəkil göstərirsə, onları səhifənin öz `ResizeImage`
+  // enləri ilə burada precache edin (gotcha 8).
+  const cover = 'assets/images/book_cover.webp';
+  if (File(cover).existsSync()) {
+    final context = tester.element(find.byType(Scaffold).first);
+    await tester.runAsync(() async {
+      await precacheImage(const AssetImage(cover), context);
+    });
+  }
   await tester.pumpAndSettle();
 
   await tester.tap(find.byIcon(Icons.settings_outlined));

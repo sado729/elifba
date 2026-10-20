@@ -52,16 +52,23 @@ class _ParentalGateDialog extends StatefulWidget {
 class _ParentalGateDialogState extends State<_ParentalGateDialog>
     with TickerProviderStateMixin {
   /// Basıb-saxlamanın vaxtı: xətti 0→1, [kParentalGateHold] ərzində.
+  ///
+  /// `preserve`: sistemin "animasiyaları söndür" bayrağı (Android-in
+  /// "Animasiyaları sil" ayarı) adi controller-in müddətini 20 dəfə qısaldır —
+  /// 3 s 150 ms olardı. Bu, animasiya yox, qapının həddidir; qısalmamalıdır.
   late final AnimationController _hold = AnimationController(
     vsync: this,
     duration: kParentalGateHold,
+    animationBehavior: AnimationBehavior.preserve,
   )..addStatusListener(_onHoldStatus);
 
   /// Yaşıl ✓ halının 200 ms-i. `Timer` yox, controller: testlərdəki
   /// `pumpAndSettle` onun kadrlarını addımlayır, `Timer`-i isə gözləməzdi.
+  /// `preserve` — yuxarıdakı səbəbdən (yoxsa ✓ 10 ms görünərdi).
   late final AnimationController _doneDelay = AnimationController(
     vsync: this,
     duration: kParentalGateDoneDelay,
+    animationBehavior: AnimationBehavior.preserve,
   )..addStatusListener(_onDoneStatus);
 
   /// Halqa tam doldu — qapı keçilib. Geri dönüşü yoxdur: barmağı qaldırmaq,
@@ -120,11 +127,13 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog>
   Widget build(BuildContext context) {
     // Done halında scrim və sistemin "geri"si dialoqu bağlamır: scrim
     // `Navigator.maybePop` çağırır, o da `PopScope`-a tabedir.
+    // `semanticLabel` bilərəkdən verilmir (spec §6): o, marşrutu da
+    // "Valideynlər üçün" adlandırardı və ekran oxuyucusu başlıqla birlikdə
+    // eyni sözləri iki dəfə deyərdi. Başlıq yeganə belə düyündür.
     return PopScope(
       canPop: !_done,
       child: ParentDialogFrame(
         maxWidth: ElifbaSize.gateMaxWidth,
-        semanticLabel: 'Valideynlər üçün',
         child: SizedBox(
           width: double.infinity,
           // Portretdə məzmun sığır və Scrollable heç bir sürüşdürmə tanıyıcısı
@@ -244,9 +253,12 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog>
                       width: ElifbaRing.hairline,
                     ),
                   ),
+                  // Dizaynda hər iki ikon 32 px-dir, amma Material Symbols-un
+                  // ✓-u `check_rounded`-dan incə və kiçikdir: 28-də qutusu
+                  // (≈19×15) dizaynınkına (20×14) uyur, 32-də 23×17 olardı.
                   child: Icon(
                     _done ? Icons.check_rounded : Icons.touch_app_outlined,
-                    size: 32,
+                    size: _done ? 28 : 32,
                     color:
                         _done
                             ? ElifbaPalette.onCorrectContainer
