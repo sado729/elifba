@@ -1,13 +1,28 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
+
 import 'package:confetti/confetti.dart';
-import '../core/utils.dart';
+import 'package:flutter/material.dart';
+
 import '../core/config.dart';
 import '../core/progress.dart';
 import '../core/settings.dart';
 import '../core/sound.dart';
+import '../core/utils.dart';
+import '../theme/theme.dart';
+import '../widgets/audio_button.dart';
+import '../widgets/celebration.dart';
+import '../widgets/elifba_card.dart';
+import '../widgets/elifba_confetti.dart';
+import '../widgets/food_chip.dart';
+import '../widgets/game_feedback.dart';
+import '../widgets/icon_buttons.dart';
+import '../widgets/pill_button.dart';
+import '../widgets/pill_tab.dart';
+import '../widgets/sky_background.dart';
+import '../widgets/squishy.dart';
 import '../widgets/star_row.dart';
 import 'puzzle_page.dart';
-import 'dart:math';
 
 /// Şəkil dekod ölçüləri. Mənbə fayllar 256–600 px arasındadır: heyvan şəkilləri
 /// 400x400 WebP, yem şəkilləri 256x256 WebP, pazl kəsikləri 600x600 JPEG (ən
@@ -15,17 +30,23 @@ import 'dart:math';
 /// kiçildir — mənbədən böyük dəyər faydasızdır, üstəlik ayrıca image-cache
 /// açarı yaradır.
 ///
-/// Yem şəkilləri üç yerdə (chip 32 px, uçan animasiya 40 px, effekt 64 px)
+/// Yem şəkilləri üç yerdə (çipin diski, uçan disk, heyvanın üstündəki "pop")
 /// göstərilir — hamısı EYNİ ölçü ilə dekod olunur ki, image cache-də hər yem
 /// üçün bir dəfə saxlanılsın.
 // Heyvan şəkilləri 400x400-dür: 800 heç vaxt çatmır (cacheWidth böyütmür), amma
 // qrid xanası (400) ilə fərqli image-cache açarı yaradıb eyni şəkli iki dəfə
 // saxlayırdı.
 const int kAnimalHeroDecodeWidth = 400;
-// Yem şəkilləri 256 px WebP-dir; ən böyük göstərim 64 dp x 1.3 miqyas, yəni 3x
-// sıxlıqda ~250 fiziki px — 256 tam örtür (160 isə 36% əskik idi).
+// Yem şəkilləri 256 px WebP-dir; ən böyük göstərim 44 dp x 1.15 miqyas, yəni 3x
+// sıxlıqda ~150 fiziki px — 256 tam örtür.
 const int kFoodDecodeWidth = 256;
+
+/// Pazl şəklinin böyük baxışı (miniatürü basıb saxlayanda), yalnız dekod
+/// olunmuş `ui.Image` hələ hazır deyilsə işlənir (`puzzle_page.dart`).
 const int kPuzzlePreviewDecodeWidth = 700;
+
+/// Səhifənin bölmələri. Tablar radio qrupudur: həmişə dəqiq biri seçilidir.
+enum _Section { info, foods, word, puzzle }
 
 class AnimalDetailPage extends StatefulWidget {
   final String animal;
@@ -57,25 +78,40 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   final GatedPlayer _infoPlayer = GatedPlayer(SoundChannel.narration);
   final GatedPlayer _animalPlayer = GatedPlayer(SoundChannel.animal);
   bool isPlayingInfo = false;
-  bool showInfo = true;
-  bool showFoods = false;
-  bool showPuzzle = false;
-  bool showWordPuzzle = false;
-  late ConfettiController _confettiController;
 
-  // --- ANİMASİYA üçün əlavə dəyişənlər ---
+  /// Açıq bölmə. Defolt "Məlumat"-dır; seçilməmiş bölmənin widget-i qurulmur
+  /// (söz tapmaca və pazl hər açılışda yenidən qarışdırılır — bu günkü kimi).
+  _Section _section = _Section.info;
+
+  /// Səhnə + yapışqan tablar + bölmə bir `CustomScrollView`-dadır.
+  final ScrollController _scroll = ScrollController();
+
+  /// Söz tapmaca qələbəsi (1.2 s) və "Tam ulduz!" (2 s) konfetiləri.
+  final ConfettiController _smallConfetti =
+      ConfettiPreset.small.createController();
+  final ConfettiController _bigConfetti = ConfettiPreset.big.createController();
+
+  // --- Qidalandırma animasiyası ---
   final Map<String, GlobalKey> _foodKeys = {};
   final GlobalKey _animalImageKey = GlobalKey();
   OverlayEntry? _foodOverlayEntry;
   bool _foodEffectActive = false;
-  final bool _showHeart = false;
-  final double _heartScale = 0.0;
-  bool _showFoodEffect = false;
-  double _foodEffectScale = 0.0;
-  double _foodEffectOpacity = 0.0;
-  String? _foodEffectImage;
-  bool _showHalo = false;
-  double _haloOpacity = 0.0;
+
+  /// Uçuş (900 ms) və çatma (400 ms; azaldılmış hərəkətdə 600 ms) State-in
+  /// özünə məxsusdur və `dispose()`-da atılır: səhifə uçuşun ortasında
+  /// bağlansa "aktiv Ticker" xətası olmasın, overlay qalmasın.
+  late final AnimationController _flightCtrl;
+  late final AnimationController _arrivalCtrl;
+
+  /// Şəkli uçan (və ya azaldılmış hərəkətdə heyvanın üstündə görünən) qida —
+  /// onun çipindəki disk solğun göstərilir.
+  String? _dimmedFood;
+
+  /// Heyvanın üstündə "pop" edən qidanın şəkli və diskinin rəngi.
+  String? _arrivalImage;
+  Color _arrivalTint = ElifbaPalette.foodDiscTints.first;
+  bool _arrivalReduced = false;
+
   bool showCongrats = false;
 
   /// Təbrik pəncərəsi "tam ulduz" mesajını göstərsinmi (söz tapmacası qalibiyyəti
@@ -90,8 +126,8 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   /// Bölməni qeyd edir və səhifəni yeniləyir.
   ///
   /// Bu səhifə store-a `AnimatedBuilder` ilə qoşulmur: bütün qeydlər səhifənin
-  /// ÖZ callback-lərindən gəlir, ona görə adi `setState` kifayətdir və
-  /// `actions` siyahısı (build içində qurulur) təzə dəyərlərlə yenidən yaranır.
+  /// ÖZ callback-lərindən gəlir, ona görə adi `setState` kifayətdir və tablar
+  /// (build içində qurulur) təzə dəyərlərlə yenidən yaranır.
   void _mark(Activity activity) {
     _store.markDone(widget.animal, activity);
     if (!mounted) return;
@@ -110,15 +146,29 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       showCongrats = true;
     });
     if (!AppSettings.instance.reduceMotion) {
-      _confettiController.play();
+      _bigConfetti.play();
     }
+  }
+
+  /// Təbriki bağlayır. Konfeti controller-ləri də dayandırılır: əks halda
+  /// `playing` vəziyyətində qalır və növbəti təbrikin `ConfettiWidget`-i
+  /// (məsələn "Hərəkəti azalt" artıq açıq olanda) özbaşına oynayardı.
+  void _closeCongrats() {
+    _smallConfetti.stop();
+    _bigConfetti.stop();
+    setState(() => showCongrats = false);
   }
 
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 1),
+    _flightCtrl = AnimationController(
+      vsync: this,
+      duration: ElifbaMotion.foodFlight,
+    );
+    _arrivalCtrl = AnimationController(
+      vsync: this,
+      duration: ElifbaMotion.foodArrival,
     );
 
     // Heyvan ƏVVƏLKİ baxışlarda artıq tamamlanıbsa təbrik göstərilmir: əks halda
@@ -135,9 +185,9 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // "Məlumat" bölməsi `showInfo = true` ilə açıq qurulur, yəni heyvanı
-      // açmaq həmin bölməyə keçmək deməkdir — ilk kadrdan sonra onu tamamlanmış
-      // sayırıq. Qulaq asmaq tələb olunmur (səs ulduza daxil deyil).
+      // "Məlumat" bölməsi defolt açıq qurulur, yəni heyvanı açmaq həmin
+      // bölməyə keçmək deməkdir — ilk kadrdan sonra onu tamamlanmış sayırıq.
+      // Qulaq asmaq tələb olunmur (səs ulduza daxil deyil).
       // Qeyd ilk kadrdan SONRA edilir: `markDone` `notifyListeners()` çağırır və
       // valideyn siyahı səhifəsindəki `AnimatedBuilder` build fazasında
       // `setState` almasın.
@@ -154,10 +204,11 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
       }
       final foods = animalData?.foods ?? [];
       for (final food in foods) {
-        final foodImagePath =
-            'assets/foods/${AppConfig.normalizeFileName(food)}.webp';
         precacheImage(
-          ResizeImage(AssetImage(foodImagePath), width: kFoodDecodeWidth),
+          ResizeImage(
+            AssetImage(_foodImagePath(food)),
+            width: kFoodDecodeWidth,
+          ),
           context,
         );
       }
@@ -166,11 +217,19 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
   @override
   void dispose() {
+    _removeFoodOverlay();
+    _flightCtrl.dispose();
+    _arrivalCtrl.dispose();
+    _scroll.dispose();
     _infoPlayer.dispose();
     _animalPlayer.dispose();
-    _confettiController.dispose();
+    _smallConfetti.dispose();
+    _bigConfetti.dispose();
     super.dispose();
   }
+
+  static String _foodImagePath(String food) =>
+      'assets/foods/${AppConfig.normalizeFileName(food)}.webp';
 
   /// Heyvanın öz səsi — izahdan AYRI pleyerdə, ona görə izahı kəsmir.
   Future<void> _playAnimalSound(String audioAsset) async {
@@ -212,129 +271,125 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     }
   }
 
-  Future<void> _showFoodArrivalEffect(String foodImagePath) async {
-    setState(() {
-      _showFoodEffect = true;
-      _foodEffectScale = 0.2;
-      _foodEffectOpacity = 1.0;
-      _foodEffectImage = foodImagePath;
-      _showHalo = true;
-      _haloOpacity = 0.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 10));
-    setState(() {
-      _foodEffectScale = 1.3;
-      _foodEffectOpacity = 1.0;
-      _haloOpacity = 0.7;
-    });
-    await Future.delayed(const Duration(milliseconds: 320));
-    setState(() {
-      _foodEffectScale = 1.0;
-      _foodEffectOpacity = 0.0;
-      _haloOpacity = 0.0;
-    });
-    await Future.delayed(const Duration(milliseconds: 350));
-    setState(() {
-      _showFoodEffect = false;
-      _showHalo = false;
-      _foodEffectImage = null;
-    });
-  }
-
-  void _animateFoodToAnimal(String food, String foodImagePath) async {
-    if (_foodEffectActive) return;
-    final foodKey = _foodKeys[food];
-    if (foodKey == null) return;
-    final animalKey = _animalImageKey;
-    final foodBox = foodKey.currentContext?.findRenderObject() as RenderBox?;
-    final animalBox =
-        animalKey.currentContext?.findRenderObject() as RenderBox?;
-    if (foodBox == null || animalBox == null) return;
-    final foodPos = foodBox.localToGlobal(Offset.zero);
-    final animalPos = animalBox.localToGlobal(Offset.zero);
-    final overlay = Overlay.of(context);
-    final animalSize = animalBox.size;
-    final start = foodPos;
-    final end =
-        animalPos +
-        Offset(animalSize.width / 2 - 24, animalSize.height / 2 - 24);
-    final controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    final curve = CurvedAnimation(parent: controller, curve: Curves.easeInOut);
-    final tween = Tween<Offset>(begin: start, end: end);
-    _foodEffectActive = true;
-    _foodOverlayEntry = OverlayEntry(
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: controller,
-          builder: (context, child) {
-            final pos = tween.evaluate(curve);
-            return Positioned(left: pos.dx, top: pos.dy, child: child!);
-          },
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Image.asset(
-                  foodImagePath,
-                  width: 40,
-                  height: 40,
-                  cacheWidth: kFoodDecodeWidth,
-                  frameBuilder: (
-                    context,
-                    child,
-                    frame,
-                    wasSynchronouslyLoaded,
-                  ) {
-                    if (wasSynchronouslyLoaded) return child;
-                    return AnimatedOpacity(
-                      opacity: frame == null ? 0 : 1,
-                      duration: const Duration(milliseconds: 400),
-                      child: child,
-                    );
-                  },
-                  errorBuilder:
-                      (context, error, stackTrace) => const Icon(
-                        Icons.fastfood,
-                        size: 32,
-                        color: Colors.orange,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    overlay.insert(_foodOverlayEntry!);
-    await controller.forward();
+  void _removeFoodOverlay() {
     _foodOverlayEntry?.remove();
     _foodOverlayEntry = null;
-    controller.dispose();
-    // Sonda heyvan şəklinin üzərində qida və halo effekti
-    await _showFoodArrivalEffect(foodImagePath);
+  }
+
+  /// Qida çipdən heyvana qövs üzrə uçur (900 ms), heyvanın üstündə "pop" edir
+  /// və sarı parıltı sönür (400 ms). Azaldılmış hərəkətdə uçuş yoxdur: qida
+  /// heyvanın üstündə 200 ms görünür, 200 ms qalır, 200 ms itir.
+  ///
+  /// Qida yalnız effekt BİTƏNDƏN sonra sayılır. Effekt gedərkən başqa çipə
+  /// toxunmaq nəzərə alınmır (`_foodEffectActive`).
+  void _animateFoodToAnimal(
+    String food,
+    String foodImagePath,
+    Color tint,
+  ) async {
+    if (_foodEffectActive) return;
+    final discBox =
+        _foodKeys[food]?.currentContext?.findRenderObject() as RenderBox?;
+    final animalBox =
+        _animalImageKey.currentContext?.findRenderObject() as RenderBox?;
+    if (discBox == null || animalBox == null) return;
+    _foodEffectActive = true;
+    // Ayar toxunuş anında oxunur.
+    final reduced = ElifbaMotion.reduced;
+
+    if (!reduced) {
+      final overlay = Overlay.of(context);
+      final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+      Offset toOverlay(Offset global) =>
+          overlayBox == null ? global : overlayBox.globalToLocal(global);
+      final start = discBox.localToGlobal(discBox.size.center(Offset.zero));
+      var end = animalBox.localToGlobal(animalBox.size.center(Offset.zero));
+      // Səhnə qismən yuxarı sürüşübsə (heyvanın mərkəzi üst panelin altında
+      // gizlənib) qida yenə görünən yerə — sürüşən sahənin yuxarı kənarına,
+      // heyvanın yaxınlığına enir. Əvvəlcədən sürüşdürmə yoxdur.
+      final viewport =
+          _scroll.hasClients
+              ? _scroll.position.context.storageContext.findRenderObject()
+              : null;
+      if (viewport is RenderBox && viewport.attached) {
+        final minY =
+            viewport.localToGlobal(Offset.zero).dy + ElifbaSize.chipImage / 2;
+        if (end.dy < minY) end = Offset(end.dx, minY);
+      }
+      setState(() => _dimmedFood = food);
+      _foodOverlayEntry = OverlayEntry(
+        builder:
+            (context) => _FoodFlyer(
+              animation: _flightCtrl,
+              start: toOverlay(start),
+              end: toOverlay(end),
+              imagePath: foodImagePath,
+              tint: tint,
+            ),
+      );
+      overlay.insert(_foodOverlayEntry!);
+      // Səhifə uçuş zamanı bağlansa controller `dispose()`-da atılır və bu
+      // gözləmə heç vaxt bitmir — qida sayılmır.
+      await _flightCtrl.forward(from: 0);
+      _removeFoodOverlay();
+      if (!mounted) return;
+    }
+
+    _arrivalCtrl.duration =
+        reduced ? ElifbaMotion.foodReducedTotal : ElifbaMotion.foodArrival;
+    setState(() {
+      _dimmedFood = reduced ? food : null;
+      _arrivalImage = foodImagePath;
+      _arrivalTint = tint;
+      _arrivalReduced = reduced;
+    });
+    await _arrivalCtrl.forward(from: 0);
     _foodEffectActive = false;
     // Qida yalnız heyvana ÇATANDAN sonra sayılır — animasiya yarıda kəsilsə
     // (səhifə bağlanıb) qeyd edilmir.
     if (!mounted) return;
+    setState(() {
+      _dimmedFood = null;
+      _arrivalImage = null;
+    });
     _store.markFoodFed(widget.animal, food);
     setState(() {});
     _maybeCelebrateFullStar();
   }
 
+  /// Səhnənin hündürlüyü: 16:9, ən çox 320 dp (eni planşet/landşaftda
+  /// səhnə bütün ekranı tutmasın). Səhnənin şaquli boşluğu yoxdur.
+  double _stageHeight(BuildContext context) {
+    final vp = MediaQuery.viewPaddingOf(context);
+    final width = MediaQuery.sizeOf(context).width - vp.left - vp.right - 24;
+    return math.max(0, math.min(width * 9 / 16, 320));
+  }
+
+  /// Tab seçimi. Radio qaydası: seçilmiş taba yenidən toxunmaq heç nə etmir.
+  /// Səhifə səhnədən aşağı sürüşdürülübsə yeni bölmə yapışqan tabların
+  /// düz altından başlayır.
+  void _select(_Section section) {
+    if (section == _section) return;
+    final stageExtent = _stageHeight(context);
+    setState(() => _section = section);
+    if (_scroll.hasClients && _scroll.offset > stageExtent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        final position = _scroll.position;
+        _scroll.jumpTo(math.min(stageExtent, position.maxScrollExtent));
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Android 16 (API 36) forces edge-to-edge, so the system bars overlay the
-    // body: inset the scrollable content by the window's view padding manually.
+    // Android 16 (API 36) edge-to-edge məcbur edir: sistem panelləri gövdənin
+    // üstünə düşür. Fon (qradiyent) panellərin altında da çəkilir, məzmun isə
+    // pəncərənin view padding-i qədər içəri çəkilir.
     final viewPadding = MediaQuery.viewPaddingOf(context);
     final animalLetter = getFirstLetter(widget.animal);
     final animalData = AppConfig.findAnimal(animalLetter, widget.animal);
     final imageAsset = animalData?.imagePath ?? '';
-    final puzzleAsset = imageAsset.replaceFirst('.webp', '_puzzle.jpg');
     final info =
         animalData?.description ?? 'Bu heyvan haqqında məlumat yoxdur.';
     final foods = animalData?.foods ?? [];
@@ -347,110 +402,112 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     final animalSoundAsset =
         'assets/audios/${animalLetter.toLowerCase()}/${normalizedAnimalName}_sound.mp3';
 
-    final List<_ActionButtonData> actions = [
-      _ActionButtonData(
-        tooltip: 'Məlumat',
-        icon: Icons.info_outline,
-        selected: showInfo,
-        onTap: () {
-          setState(() {
-            showInfo = !showInfo;
-            showFoods = false;
-            showPuzzle = false;
-            showWordPuzzle = false;
-          });
-        },
-        visible: true,
+    final tabs = <_TabDef>[
+      _TabDef(
+        section: _Section.info,
+        icon: Icons.auto_stories_rounded,
+        label: 'Məlumat',
         done: _store.isDone(widget.animal, Activity.info),
       ),
-      _ActionButtonData(
-        tooltip: 'Qidalar',
-        icon: Icons.restaurant_menu,
-        selected: showFoods,
-        onTap: () {
-          setState(() {
-            showFoods = !showFoods;
-            showInfo = !showFoods;
-            showPuzzle = false;
-            showWordPuzzle = false;
-          });
-        },
-        visible: foods.isNotEmpty,
-        done: _store.isDone(widget.animal, Activity.foods),
-      ),
-      _ActionButtonData(
-        tooltip: 'Söz tapmaca',
-        icon: Icons.abc,
-        selected: showWordPuzzle,
-        onTap: () {
-          setState(() {
-            showWordPuzzle = !showWordPuzzle;
-            showInfo = !showWordPuzzle;
-            showFoods = false;
-            showPuzzle = false;
-          });
-        },
-        visible: true,
+      if (foods.isNotEmpty)
+        _TabDef(
+          section: _Section.foods,
+          icon: Icons.restaurant_rounded,
+          label: 'Qidalar',
+          done: _store.isDone(widget.animal, Activity.foods),
+        ),
+      _TabDef(
+        section: _Section.word,
+        icon: Icons.abc_rounded,
+        label: 'Söz tapmaca',
         done: _store.isDone(widget.animal, Activity.wordPuzzle),
       ),
-    ];
-    // Puzzle iconunu yalnız map-da true olan heyvanlar üçün əlavə et
-    if (hasPuzzle) {
-      actions.add(
-        _ActionButtonData(
-          tooltip: 'Pazl',
+      // Pazl tabı yalnız map-da true olan heyvanlar üçün.
+      if (hasPuzzle)
+        _TabDef(
+          section: _Section.puzzle,
           icon: Icons.extension_rounded,
-          selected: showPuzzle,
-          onTap: () {
-            setState(() {
-              showPuzzle = !showPuzzle;
-              showInfo = !showPuzzle;
-              showFoods = false;
-              showWordPuzzle = false;
-            });
-          },
-          visible: true,
+          label: 'Pazl',
           done: _store.isDone(widget.animal, Activity.tilePuzzle),
         ),
-      );
-    }
+    ];
 
-    return Scaffold(
+    final stageHeight = _stageHeight(context);
+
+    final scaffold = Scaffold(
+      backgroundColor: ElifbaPalette.transparent,
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(widget.animal),
-            if (hasSound) ...[
-              const SizedBox(width: 8),
-              // Heyvan səsi kanalı söndürülübsə düymə sönük olur — işləməyən
-              // parlaq düymə uşağı çaşdırar.
-              AnimatedBuilder(
-                animation: AppSettings.instance,
-                builder: (context, _) {
-                  final muted = _animalPlayer.isMuted;
-                  return IconButton(
-                    icon: Icon(muted ? Icons.volume_off : Icons.volume_up),
-                    onPressed:
-                        muted ? null : () => _playAnimalSound(animalSoundAsset),
-                    tooltip:
-                        muted ? 'Heyvan səsləri söndürülüb' : 'Heyvanın səsi',
-                  );
-                },
+        toolbarHeight: ElifbaSize.toolbar,
+        backgroundColor: ElifbaPalette.transparent,
+        surfaceTintColor: ElifbaPalette.transparent,
+        foregroundColor: ElifbaPalette.onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        forceMaterialTransparency: true,
+        notificationPredicate: (_) => false,
+        systemOverlayStyle: kElifbaSystemUiStyle,
+        automaticallyImplyLeading: false,
+        leadingWidth: 58,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 10),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ToolbarBackButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        ),
+        titleSpacing: 6,
+        centerTitle: false,
+        titleTextStyle: _titleStyle,
+        title: Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  widget.animal,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: _titleStyle,
+                ),
               ),
+              if (hasSound) ...[
+                const SizedBox(width: 6),
+                // Heyvan səsi kanalı söndürülübsə düymə sönük olur — işləməyən
+                // parlaq düymə uşağı çaşdırar.
+                AnimatedBuilder(
+                  animation: AppSettings.instance,
+                  builder: (context, _) {
+                    final muted = _animalPlayer.isMuted;
+                    return AudioButton(
+                      tone: AudioTone.animal,
+                      size: ElifbaSize.audioM,
+                      state:
+                          muted
+                              ? AudioButtonState.muted
+                              : AudioButtonState.ready,
+                      onPressed:
+                          muted
+                              ? null
+                              : () => _playAnimalSound(animalSoundAsset),
+                    );
+                  },
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+        actionsPadding: const EdgeInsets.only(right: 10),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.navigate_before),
+          ToolbarChevron(
+            forward: false,
+            width: 44,
+            tooltip: 'Əvvəlki heyvan',
             onPressed:
                 currentIndex > 0
                     ? () {
@@ -468,8 +525,11 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                     }
                     : null,
           ),
-          IconButton(
-            icon: const Icon(Icons.navigate_next),
+          const SizedBox(width: 6),
+          ToolbarChevron(
+            forward: true,
+            width: 44,
+            tooltip: 'Növbəti heyvan',
             onPressed:
                 currentIndex < animalsList.length - 1
                     ? () {
@@ -489,700 +549,635 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // Əsas gradient background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF2E2B5F), Color(0xFF1B1A3A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      // Yalnız üst panel sürüşən sahədən kənardadır: səhnə yuxarı sürüşüb
+      // gedir, tablar yuxarıda yapışıb qalır, bölmə onların altından axır.
+      // Sabit hündürlüklü heç bir sətir scrollable-ın üstündə deyil
+      // (gotcha 13) — qısa ekranda daşma yoxdur.
+      body: CustomScrollView(
+        key: const ValueKey('animalPageScroll'),
+        controller: _scroll,
+        slivers: [
+          SliverToBoxAdapter(
+            child: _buildStage(context, imageAsset, stageHeight),
+          ),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _TabsHeader(
+              child: _buildTabs(context, tabs, viewPadding),
+            ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              16 + viewPadding.left,
+              4,
+              16 + viewPadding.right,
+              48 + viewPadding.bottom,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _buildSection(info: info, foods: foods),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Qradiyent status və nav bar-ın da arxasındadır (gotcha 10).
+        SkyBackground(child: scaffold),
+        const NavBarFade(),
+        // Təbrik üst paneli də örtür, ona görə Scaffold-un üstündədir. Bayraq
+        // true olduğu kadrda ağacdadır (giriş yalnız animasiyadır).
+        if (showCongrats)
+          Positioned.fill(
+            child: CelebrationOverlay(
+              key: ValueKey<bool>(_congratsIsFullStar),
+              card:
+                  _congratsIsFullStar
+                      ? CelebrationCard.big(
+                        title: 'Tam ulduz!',
+                        message: '${widget.animal} haqqında hər şeyi öyrəndin!',
+                        action: CelebrationAction(
+                          label: 'Yaşa!',
+                          icon: Icons.thumb_up_rounded,
+                          onPressed: _closeCongrats,
+                        ),
+                      )
+                      : const CelebrationCard.small(),
+              onDismiss: _closeCongrats,
+              // Söz tapmacanın kiçik təbriki istənilən yerə toxunanda bağlanır.
+              dismissOnTapAnywhere: !_congratsIsFullStar,
+              confetti: ElifbaConfetti(
+                controller: _congratsIsFullStar ? _bigConfetti : _smallConfetti,
+                preset:
+                    _congratsIsFullStar
+                        ? ConfettiPreset.big
+                        : ConfettiPreset.small,
               ),
             ),
           ),
-          Column(
+      ],
+    );
+  }
+
+  static final TextStyle _titleStyle = ElifbaTypography.textTheme.titleLarge!
+      .copyWith(color: ElifbaPalette.onSurface);
+
+  // ------------------------------------------------------------------ səhnə
+
+  Widget _buildStage(BuildContext context, String imageAsset, double height) {
+    final vp = MediaQuery.viewPaddingOf(context);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final stageWidth = math.max(0.0, screenWidth - vp.left - vp.right - 24);
+    // Heyvanın qutusu: 150 dp (412-də 180); planşetdə səhnənin hündürlüyü
+    // qədər.
+    final double picBox =
+        screenWidth >= 600
+            ? math.max(0.0, height - 22)
+            : (screenWidth < ElifbaLayout.largeBreakpoint ? 150 : 180);
+    final done = _store.animalDone(widget.animal);
+    final total = _store.animalTotal(widget.animal);
+    final arrival = _arrivalImage;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12 + vp.left, 0, 12 + vp.right, 0),
+      child: SizedBox(
+        height: height,
+        child: AnimalStage(
+          radius: ElifbaRadius.r32,
+          hill: StageHill.hero,
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
             children: [
-              // Şəkil dekorativ background-da
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.deepPurple.shade400,
-                      Colors.deepPurple.shade700,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              // Qidalandırma parıltısı — heyvanın ARXASINDA.
+              if (arrival != null)
+                Positioned(
+                  left: stageWidth / 2 - 110,
+                  top: height / 2 - 110,
+                  width: 220,
+                  height: 220,
+                  child: IgnorePointer(
+                    child: AnimatedBuilder(
+                      animation: _arrivalCtrl,
+                      builder:
+                          (context, child) => Opacity(
+                            opacity: _arrivalOpacity(glow: true),
+                            child: child,
+                          ),
+                      child: DecoratedBox(decoration: _glowDecoration),
+                    ),
                   ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(32),
-                    bottomRight: Radius.circular(32),
+                ),
+              // Heyvan təpənin üstündə dayanır (qutunun alt mərkəzi). Qutunun
+              // açarı uçuşun hədəfidir.
+              Positioned(
+                top: 12,
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: SizedBox(
+                    key: _animalImageKey,
+                    width: picBox,
+                    height: double.infinity,
+                    child: Image.asset(
+                      imageAsset,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.bottomCenter,
+                      cacheWidth: kAnimalHeroDecodeWidth,
+                      frameBuilder: (
+                        context,
+                        child,
+                        frame,
+                        wasSynchronouslyLoaded,
+                      ) {
+                        if (wasSynchronouslyLoaded) return child;
+                        return AnimatedOpacity(
+                          opacity: frame == null ? 0 : 1,
+                          duration: ElifbaMotion.imageFadeIn,
+                          child: child,
+                        );
+                      },
+                      errorBuilder:
+                          (context, error, stackTrace) =>
+                              const ImagePlaceholder(),
+                    ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withAlpha((0.12 * 255).toInt()),
-                      blurRadius: 32,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
                 ),
-                padding: const EdgeInsets.only(
-                  top: 24,
-                  left: 16,
-                  right: 16,
-                  bottom: 12,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Ulduzlar hero-nun sağ üst küncündədir: ayrı sətir kimi
-                    // qoyulanda Column-a sabit hündürlük əlavə edir və alçaq
-                    // ekranda `Expanded`-dəki scroll sahəsi daşırdı. Üst-qat
-                    // nişanın hündürlük xərci sıfırdır.
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IgnorePointer(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withAlpha(46),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              StarRow(
-                                filled: _store.animalStars(widget.animal),
-                                size: 18,
-                                spacing: 1,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${_store.animalDone(widget.animal)}/'
-                                '${_store.animalTotal(widget.animal)}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: Image.asset(
-                          imageAsset,
-                          key: _animalImageKey,
-                          fit: BoxFit.contain,
-                          cacheWidth: kAnimalHeroDecodeWidth,
-                          frameBuilder: (
-                            context,
-                            child,
-                            frame,
-                            wasSynchronouslyLoaded,
-                          ) {
-                            if (wasSynchronouslyLoaded) return child;
-                            return AnimatedOpacity(
-                              opacity: frame == null ? 0 : 1,
-                              duration: const Duration(milliseconds: 400),
-                              child: child,
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  size: 48,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    if (_showHeart)
-                      AnimatedOpacity(
-                        opacity: _heartScale > 0 ? 1 : 0,
-                        duration: const Duration(milliseconds: 180),
-                        child: AnimatedScale(
-                          scale: _heartScale,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.elasticOut,
-                          child: const Icon(
-                            Icons.favorite,
-                            color: Colors.red,
-                            size: 90,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black26,
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    if (_showHalo)
-                      AnimatedOpacity(
-                        opacity: _haloOpacity,
-                        duration: const Duration(milliseconds: 350),
-                        child: Container(
-                          width: 160,
-                          height: 160,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                Colors.yellow.withAlpha((0.5 * 255).toInt()),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.5, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (_showFoodEffect && _foodEffectImage != null)
-                      AnimatedOpacity(
-                        opacity: _foodEffectOpacity,
-                        duration: const Duration(milliseconds: 220),
-                        child: AnimatedScale(
-                          scale: _foodEffectScale,
-                          duration: const Duration(milliseconds: 320),
-                          curve: Curves.easeInOut,
-                          child: Image.asset(
-                            _foodEffectImage!,
-                            width: 64,
-                            height: 64,
-                            cacheWidth: kFoodDecodeWidth,
-                            frameBuilder: (
-                              context,
-                              child,
-                              frame,
-                              wasSynchronouslyLoaded,
-                            ) {
-                              if (wasSynchronouslyLoaded) return child;
-                              return AnimatedOpacity(
-                                opacity: frame == null ? 0 : 1,
-                                duration: const Duration(milliseconds: 400),
+              ),
+              // Çatan qida heyvanın üstündə "pop" edir.
+              if (arrival != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Center(
+                      child: AnimatedBuilder(
+                        animation: _arrivalCtrl,
+                        builder:
+                            (context, child) => Opacity(
+                              opacity: _arrivalOpacity(glow: false),
+                              child: Transform.scale(
+                                scale: _arrivalScale(),
                                 child: child,
-                              );
-                            },
-                            errorBuilder:
-                                (context, error, stackTrace) => const Icon(
-                                  Icons.fastfood,
-                                  size: 48,
-                                  color: Colors.orange,
-                                ),
-                          ),
+                              ),
+                            ),
+                        child: _FoodDisc(
+                          imagePath: arrival,
+                          tint: _arrivalTint,
+                          ring: 3,
                         ),
                       ),
-                  ],
-                ),
-              ),
-              // Müasir buttonlar bir sıra şəklində.
-              // Şaquli boşluq 16 deyil 10-dur: bu Column HEAD-də onsuz da
-              // 8 px daşırdı (alçaq ekranda `Expanded`-dəki scroll sahəsinə yer
-              // qalmırdı), 12 px qazanc onu bağlayır.
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 8,
-                ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children:
-                        actions
-                            .where((action) => action.visible)
-                            .map(
-                              (action) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        action.selected
-                                            ? Colors.yellowAccent
-                                            : Colors.deepPurple.shade600,
-                                    foregroundColor:
-                                        action.selected
-                                            ? Colors.deepPurple.shade800
-                                            : Colors.white,
-                                    elevation: action.selected ? 8 : 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 14,
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  onPressed: action.onTap,
-                                  child: Row(
-                                    children: [
-                                      Icon(action.icon, size: 24),
-                                      const SizedBox(width: 8),
-                                      Text(action.tooltip),
-                                      // Tamamlanmış bölmə ✓ ilə işarələnir.
-                                      // Seçili düymə sarı fondadır, ona görə
-                                      // yaşıl ✓ orada tünd tonda göstərilir.
-                                      if (action.done) ...[
-                                        const SizedBox(width: 6),
-                                        Icon(
-                                          Icons.check_circle,
-                                          size: 18,
-                                          color:
-                                              action.selected
-                                                  ? Colors.green.shade800
-                                                  : Colors.greenAccent,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
+                    ),
                   ),
                 ),
-              ),
-              // Alt bölmələr (məlumat, qidalar və s.)
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      16 + viewPadding.left,
-                      8,
-                      16 + viewPadding.right,
-                      8 + viewPadding.bottom,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (showInfo)
-                          Card(
-                            color: Colors.white.withAlpha((0.95 * 255).toInt()),
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            margin: const EdgeInsets.only(bottom: 18),
-                            child: Padding(
-                              padding: const EdgeInsets.all(18.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        'Məlumat:',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2E2B5F),
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      // İzah kanalı söndürülübsə düymə sönür
-                                      // və nə üçün işləmədiyini özü deyir.
-                                      ElevatedButton.icon(
-                                        icon: Icon(
-                                          _infoPlayer.isMuted
-                                              ? Icons.volume_off
-                                              : isPlayingInfo
-                                              ? Icons.stop
-                                              : Icons.volume_up,
-                                        ),
-                                        label: Text(
-                                          _infoPlayer.isMuted
-                                              ? 'Səs söndürülüb'
-                                              : isPlayingInfo
-                                              ? 'Dayandır'
-                                              : 'Dinlə',
-                                        ),
-                                        onPressed:
-                                            _infoPlayer.isMuted
-                                                ? null
-                                                : () => _toggleAnimalInfo(
-                                                  widget.animal,
-                                                ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              isPlayingInfo
-                                                  ? Colors.redAccent
-                                                  : Colors.deepPurple.shade400,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 10,
-                                          ),
-                                          textStyle: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    info,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF1B1A3A),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        if (showFoods && foods.isNotEmpty)
-                          Card(
-                            color: Colors.white.withAlpha((0.95 * 255).toInt()),
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            margin: const EdgeInsets.only(bottom: 18),
-                            child: Padding(
-                              padding: const EdgeInsets.all(18.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Qidaları:',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2E2B5F),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children:
-                                        foods.map((food) {
-                                          _foodKeys.putIfAbsent(
-                                            food,
-                                            () => GlobalKey(),
-                                          );
-                                          final foodImagePath =
-                                              'assets/foods/${AppConfig.normalizeFileName(food)}.webp';
-                                          // "Qidalar" bölməsi yalnız HAMISI
-                                          // verildikdə bağlanır, ona görə uşaq
-                                          // hansını verdiyini görməlidir —
-                                          // əks halda 6 qidalı heyvanda
-                                          // qaldığını tapmaq yaddaş oyununa
-                                          // çevrilir. Təkrar vermək qadağan
-                                          // deyil, sadəcə ✓ ilə işarələnir.
-                                          final fed = _store
-                                              .fedFoods(widget.animal)
-                                              .contains(food);
-                                          return GestureDetector(
-                                            key: _foodKeys[food],
-                                            onTap:
-                                                () => _animateFoodToAnimal(
-                                                  food,
-                                                  foodImagePath,
-                                                ),
-                                            child: Chip(
-                                              backgroundColor:
-                                                  fed
-                                                      ? Colors.green.shade50
-                                                      : null,
-                                              side:
-                                                  fed
-                                                      ? BorderSide(
-                                                        color:
-                                                            Colors
-                                                                .green
-                                                                .shade300,
-                                                      )
-                                                      : null,
-                                              label: Row(
-                                                mainAxisSize:
-                                                    MainAxisSize.min,
-                                                children: [
-                                                  Text(food),
-                                                  if (fed) ...[
-                                                    const SizedBox(width: 5),
-                                                    Icon(
-                                                      Icons.check_circle,
-                                                      size: 15,
-                                                      color:
-                                                          Colors.green.shade600,
-                                                    ),
-                                                  ],
-                                                ],
-                                              ),
-                                              avatar: Image.asset(
-                                                foodImagePath,
-                                                width: 32,
-                                                height: 32,
-                                                cacheWidth: kFoodDecodeWidth,
-                                                frameBuilder: (
-                                                  context,
-                                                  child,
-                                                  frame,
-                                                  wasSynchronouslyLoaded,
-                                                ) {
-                                                  if (wasSynchronouslyLoaded) {
-                                                    return child;
-                                                  }
-                                                  return AnimatedOpacity(
-                                                    opacity:
-                                                        frame == null ? 0 : 1,
-                                                    duration: const Duration(
-                                                      milliseconds: 400,
-                                                    ),
-                                                    child: child,
-                                                  );
-                                                },
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) => const Icon(
-                                                      Icons.fastfood,
-                                                    ),
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        if (showWordPuzzle) ...[
-                          const SizedBox(height: 16),
-                          AnimalWordPuzzle(
-                            word: widget.animal,
-                            onWin: () {
-                              setState(() {
-                                _congratsIsFullStar = false;
-                                showCongrats = true;
-                              });
-                              if (!AppSettings.instance.reduceMotion) {
-                                _confettiController.play();
-                              }
-                              // Qeyd təbrikdən SONRA: bu heyvanın son bölməsi
-                              // idisə `_mark` üstündən tam-ulduz təbriki
-                              // göstərəcək və sadə "Təbriklər"-i əvəz edəcək.
-                              _mark(Activity.wordPuzzle);
-                            },
-                          ),
-                        ],
-                        if (showPuzzle)
-                          showPuzzle
-                              ? Padding(
-                                padding: const EdgeInsets.only(top: 12.0),
-                                child: PuzzlePage(
-                                  animal: widget.animal,
-                                  onCompleted:
-                                      () => _mark(Activity.tilePuzzle),
-                                ),
-                              )
-                              : Card(
-                                color: Colors.white.withAlpha(
-                                  (0.95 * 255).toInt(),
-                                ),
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                margin: const EdgeInsets.only(bottom: 18),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(18.0),
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        'Pazl:',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2E2B5F),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Image.asset(
-                                        puzzleAsset,
-                                        cacheWidth: kPuzzlePreviewDecodeWidth,
-                                        errorBuilder: (
-                                          context,
-                                          error,
-                                          stackTrace,
-                                        ) {
-                                          return Container(
-                                            height: 200,
-                                            color: Colors.grey[300],
-                                            child: const Center(
-                                              child: Text(
-                                                'Pazl şəkli tapılmadı',
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                      ],
-                    ),
+              // Ulduz nişanı layout hündürlüyü tutmur (gotcha 13).
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: IgnorePointer(
+                  child: _StarPill(
+                    stars: _store.animalStars(widget.animal),
+                    done: done,
+                    total: total,
                   ),
                 ),
               ),
             ],
           ),
-          if (showCongrats)
-            Positioned.fill(
-              child: Stack(
+        ),
+      ),
+    );
+  }
+
+  /// Qidalandırma parıltısı: #FFD98A (burst) 85 % → 0, radiusun 70 %-ində
+  /// (ScreenAnimal).
+  static final BoxDecoration _glowDecoration = BoxDecoration(
+    shape: BoxShape.circle,
+    gradient: RadialGradient(
+      colors: [
+        ElifbaPalette.burst.withAlpha(0xD9),
+        ElifbaPalette.burst.withAlpha(0),
+      ],
+      stops: const [0, 0.7],
+    ),
+  );
+
+  /// Yapışqan tab zolağının fonu: 80 %-ə qədər #F1ECFF, sonra şəffaf —
+  /// altından keçən məzmun yumşaq itir.
+  static final BoxDecoration _tabStripDecoration = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        ElifbaPalette.skyMid,
+        ElifbaPalette.skyMid,
+        ElifbaPalette.skyMid.withAlpha(0),
+      ],
+      stops: const [0, 0.8, 1],
+    ),
+  );
+
+  /// Çatmanın şəffaflığı. Normal: parıltı 1 → 0 (easeOut, bütün 400 ms);
+  /// qida ilk 240 ms tam görünür, son 160 ms-də itir. Azaldılmış: hər ikisi
+  /// 200 ms görünür, 200 ms qalır, 200 ms itir.
+  double _arrivalOpacity({required bool glow}) {
+    final t = _arrivalCtrl.value;
+    if (_arrivalReduced) {
+      final o = t < 1 / 3 ? t * 3 : (t < 2 / 3 ? 1.0 : (1 - t) * 3);
+      return o.clamp(0.0, 1.0);
+    }
+    if (glow) return 1 - Curves.easeOut.transform(t);
+    if (t < _popEnd) return 1.0;
+    return (1 - (t - _popEnd) / (1 - _popEnd)).clamp(0.0, 1.0);
+  }
+
+  double _arrivalScale() =>
+      _arrivalReduced ? 1.0 : _popScale.transform(_arrivalCtrl.value);
+
+  /// Uçan disk 0.6-da bitir — "pop" oradan başlayır: 0.6 → 1.15 → 1.
+  static final double _popEnd =
+      ElifbaMotion.foodArrivalPop.inMilliseconds /
+      ElifbaMotion.foodArrival.inMilliseconds;
+  static final Animatable<double> _popScale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(
+        begin: ElifbaMotion.foodFlightEndScale,
+        end: ElifbaMotion.foodArrivalPopScale,
+      ).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 50,
+    ),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: ElifbaMotion.foodArrivalPopScale,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeOutBack)),
+      weight: 50,
+    ),
+  ]).chain(CurveTween(curve: Interval(0, _popEnd)));
+
+  // ------------------------------------------------------------------ tablar
+
+  Widget _buildTabs(
+    BuildContext context,
+    List<_TabDef> tabs,
+    EdgeInsets viewPadding,
+  ) {
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: DecoratedBox(
+        decoration: _tabStripDecoration,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          // Yuxarıdakı 12 dp ✓ nişanına, aşağıdakı 10 dp seçilmiş tabın 4 dp
+          // kənarına yer saxlayır.
+          padding: EdgeInsets.fromLTRB(
+            12 + viewPadding.left,
+            12,
+            12 + viewPadding.right,
+            10,
+          ),
+          child: Row(
+            children: [
+              for (var i = 0; i < tabs.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                PillTab(
+                  label: tabs[i].label,
+                  icon: tabs[i].icon,
+                  selected: tabs[i].section == _section,
+                  done: tabs[i].done,
+                  onTap:
+                      tabs[i].section == _section
+                          ? null
+                          : () => _select(tabs[i].section),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------- bölmələr
+
+  Widget _buildSection({required String info, required List<String> foods}) {
+    switch (_section) {
+      case _Section.info:
+        return _buildInfoCard(info);
+      case _Section.foods:
+        if (foods.isEmpty) return const SizedBox.shrink();
+        return _buildFoodCard(foods);
+      case _Section.word:
+        return AnimalWordPuzzle(
+          word: widget.animal,
+          onWin: () {
+            setState(() {
+              _congratsIsFullStar = false;
+              showCongrats = true;
+            });
+            if (!AppSettings.instance.reduceMotion) {
+              _smallConfetti.play();
+            }
+            // Qeyd təbrikdən SONRA: bu heyvanın son bölməsi idisə `_mark`
+            // üstündən tam-ulduz təbriki göstərəcək və sadə "Təbriklər"-i
+            // əvəz edəcək.
+            _mark(Activity.wordPuzzle);
+          },
+        );
+      case _Section.puzzle:
+        return PuzzlePage(
+          animal: widget.animal,
+          onCompleted: () => _mark(Activity.tilePuzzle),
+        );
+    }
+  }
+
+  Widget _buildInfoCard(String info) {
+    // Təsvirlərdə abzaslar `\n` ilə ayrılır.
+    final paragraphs =
+        info
+            .split('\n')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+    final bodyStyle = ElifbaTypography.textTheme.bodyLarge!.copyWith(
+      color: ElifbaPalette.onSurface,
+    );
+    return ElifbaCard.section(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Məlumat:',
+                  style: ElifbaTypography.textTheme.titleMedium!.copyWith(
+                    color: ElifbaPalette.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // İzah kanalı söndürülübsə düymə sönür və nə üçün işləmədiyini
+              // özü deyir.
+              AnimatedBuilder(
+                animation: AppSettings.instance,
+                builder: (context, _) {
+                  final muted = _infoPlayer.isMuted;
+                  return AudioPillButton(
+                    state: audioStateOf(muted: muted, playing: isPlayingInfo),
+                    onPressed:
+                        muted ? null : () => _toggleAnimalInfo(widget.animal),
+                  );
+                },
+              ),
+            ],
+          ),
+          if (paragraphs.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: ElifbaTextStyles.maxLineWidth(bodyStyle),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        showCongrats = false;
-                      });
-                    },
-                    child: Container(
-                      color: Colors.black.withAlpha((0.45 * 255).toInt()),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: ConfettiWidget(
-                      confettiController: _confettiController,
-                      blastDirection: -pi / 2,
-                      maxBlastForce: 5,
-                      minBlastForce: 1,
-                      emissionFrequency: 0.05,
-                      numberOfParticles: 20,
-                      gravity: 0.1,
-                    ),
-                  ),
-                  Center(
-                    child: Container(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.7,
-                        maxWidth: 400,
-                      ),
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha((0.95 * 255).toInt()),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.deepPurple.withAlpha(
-                              (0.18 * 255).toInt(),
-                            ),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Tam ulduz halında kubok yerinə üç dolu ulduz
-                            // göstərilir: mükafat ulduz sistemi ilə eyni dildə
-                            // danışsın.
-                            if (_congratsIsFullStar)
-                              const StarRow(
-                                filled: ProgressStore.maxStarsPerLetter,
-                                size: 46,
-                                spacing: 2,
-                              )
-                            else
-                              const Icon(
-                                Icons.emoji_events,
-                                color: Colors.amber,
-                                size: 54,
-                              ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _congratsIsFullStar
-                                  ? 'Tam ulduz!'
-                                  : 'Təbriklər!',
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E2B5F),
-                              ),
-                            ),
-                            if (_congratsIsFullStar) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                '${widget.animal} haqqında hər şeyi öyrəndin!',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1B1A3A),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  for (var i = 0; i < paragraphs.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    Text(paragraphs[i], style: bodyStyle),
+                  ],
                 ],
               ),
             ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildFoodCard(List<String> foods) {
+    final fedFoods = _store.fedFoods(widget.animal);
+    return ElifbaCard.section(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Qidaları:',
+            style: ElifbaTypography.textTheme.titleMedium!.copyWith(
+              color: ElifbaPalette.onSurface,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (var i = 0; i < foods.length; i++)
+                _buildFoodChip(foods[i], i, fedFoods.contains(foods[i])),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFoodChip(String food, int index, bool fed) {
+    final key = _foodKeys.putIfAbsent(food, () => GlobalKey());
+    final path = _foodImagePath(food);
+    final tint = ElifbaPalette.foodDiscTint(index);
+    // "Qidalar" bölməsi yalnız HAMISI verildikdə bağlanır, ona görə uşaq
+    // hansını verdiyini görməlidir — əks halda 6 qidalı heyvanda qaldığını
+    // tapmaq yaddaş oyununa çevrilir. Təkrar vermək qadağan deyil, sadəcə ✓
+    // ilə işarələnir.
+    return FoodChip(
+      name: food,
+      imagePath: path,
+      fed: fed,
+      cacheWidth: kFoodDecodeWidth,
+      imageTint: tint,
+      imageHidden: _dimmedFood == food,
+      imageKey: key,
+      onTap: () => _animateFoodToAnimal(food, path, tint),
+    );
+  }
+}
+
+/// Bir tabın təsviri.
+class _TabDef {
+  const _TabDef({
+    required this.section,
+    required this.icon,
+    required this.label,
+    required this.done,
+  });
+
+  final _Section section;
+  final IconData icon;
+  final String label;
+
+  /// Bölmə tamamlanıbmı — tabın küncündə ✓ nişanı.
+  final bool done;
+}
+
+/// Yapışqan tab zolağı: 12 + 48 + 10 = 70 dp.
+class _TabsHeader extends SliverPersistentHeaderDelegate {
+  _TabsHeader({required this.child});
+
+  final Widget child;
+  static const double extent = 70;
+
+  @override
+  double get minExtent => extent;
+
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => SizedBox.expand(child: child);
+
+  // Seçilmiş/✓ vəziyyəti dəyişir — həmişə yenidən qurulur.
+  @override
+  bool shouldRebuild(covariant _TabsHeader oldDelegate) => true;
+}
+
+/// Səhnənin sağ-alt küncündəki ulduz nişanı: «★★☆ 2/4».
+///
+/// Sayğac DƏQİQ bir `Text('$done/$total')`-dir (`star_ui_test` onu
+/// `findsOneWidget` ilə axtarır).
+class _StarPill extends StatelessWidget {
+  const _StarPill({
+    required this.stars,
+    required this.done,
+    required this.total,
+  });
+
+  final int stars;
+  final int done;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: '$total tapşırıqdan $done',
+      child: ExcludeSemantics(
+        child: Container(
+          height: ElifbaSize.heroBadgeHeight,
+          padding: const EdgeInsetsDirectional.only(start: 6, end: 10),
+          decoration: squishyDecoration(
+            color: ElifbaPalette.surface,
+            edge: ElifbaEdge.e2,
+            edgeColor: ElifbaPalette.outline,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StarRow(filled: stars, size: 18, spacing: 0),
+              const SizedBox(width: 4),
+              Text(
+                '$done/$total',
+                maxLines: 1,
+                textScaler: TextScaler.noScaling,
+                style: ElifbaTextStyles.heroCount.copyWith(
+                  color: ElifbaPalette.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ActionButtonData {
-  final IconData icon;
-  final String tooltip;
-  final bool selected;
-  final VoidCallback onTap;
-  final bool visible;
+/// Qidanın 44 dp dairəvi diski: uçan nüsxə və heyvanın üstündəki "pop".
+/// Şəkil çipdəki ilə eyni dekod enindədir (gotcha 8).
+class _FoodDisc extends StatelessWidget {
+  const _FoodDisc({required this.imagePath, required this.tint, this.ring = 0});
 
-  /// Bölmə tamamlanıbmı — düymənin üzərində kiçik ✓ nişanı göstərilir.
-  final bool done;
+  final String imagePath;
+  final Color tint;
+  final double ring;
 
-  _ActionButtonData({
-    required this.icon,
-    required this.tooltip,
-    required this.selected,
-    required this.onTap,
-    required this.visible,
-    this.done = false,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: ElifbaSize.chipImage,
+      height: ElifbaSize.chipImage,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: tint,
+        boxShadow: [
+          if (ring > 0)
+            BoxShadow(color: ElifbaPalette.surface, spreadRadius: ring),
+        ],
+      ),
+      child: Image.asset(
+        imagePath,
+        width: ElifbaSize.chipImage,
+        height: ElifbaSize.chipImage,
+        fit: BoxFit.contain,
+        cacheWidth: kFoodDecodeWidth,
+        errorBuilder:
+            (context, error, stackTrace) =>
+                const ImagePlaceholder(size: ElifbaSize.chipImage),
+      ),
+    );
+  }
 }
 
+/// Çipdən heyvana uçan qida (overlay-də, qlobal koordinatlarla).
+///
+/// ScreenAnimal keyframe-ləri: X xətti, Y və miqyas `Cubic(.2, .9, .35, 1)` —
+/// qövs buradan alınır; miqyas 1 → 0.6.
+class _FoodFlyer extends StatelessWidget {
+  const _FoodFlyer({
+    required this.animation,
+    required this.start,
+    required this.end,
+    required this.imagePath,
+    required this.tint,
+  });
+
+  final Animation<double> animation;
+  final Offset start;
+  final Offset end;
+  final String imagePath;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    const half = ElifbaSize.chipImage / 2;
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final t = animation.value;
+        final ty = ElifbaMotion.foodFlightCurve.transform(t);
+        final x = lerpDouble(start.dx, end.dx, t)!;
+        final y = lerpDouble(start.dy, end.dy, ty)!;
+        final s = lerpDouble(1.0, ElifbaMotion.foodFlightEndScale, ty)!;
+        return Positioned(
+          left: x - half,
+          top: y - half,
+          child: IgnorePointer(child: Transform.scale(scale: s, child: child)),
+        );
+      },
+      child: _FoodDisc(imagePath: imagePath, tint: tint, ring: 3),
+    );
+  }
+}
+
+/// Söz tapmaca: heyvanın adını hərflərdən yığmaq. Bu faylda inline qalır
+/// (CLAUDE.md gotcha 3).
 class AnimalWordPuzzle extends StatefulWidget {
   final String word;
   final VoidCallback onWin;
@@ -1202,13 +1197,17 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   final GatedPlayer _clickPlayer = GatedPlayer(SoundChannel.effect);
   final GatedPlayer _winPlayer = GatedPlayer(SoundChannel.effect);
 
+  /// Slota hərf DÜŞƏN anın sayğacı: doğru düşəndə "pop", səhv düşəndə
+  /// silkələnmə yalnız o anda oynayır — adi yenidən qurulmada yox.
+  late List<int?> _popTrigger;
+  late List<int?> _shakeTrigger;
+  int _dropCount = 0;
+
   @override
   void initState() {
     super.initState();
     _setupPuzzle();
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 2),
-    );
+    _confettiController = ConfettiPreset.small.createController();
     _initAudio();
   }
 
@@ -1239,6 +1238,8 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
       shuffledLetters = List.from(letters)..shuffle();
       currentWord = List.filled(letters.length, null);
       correct = List.filled(letters.length, false);
+      _popTrigger = List.filled(letters.length, null);
+      _shakeTrigger = List.filled(letters.length, null);
     });
   }
 
@@ -1264,6 +1265,12 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
       currentWord[toIndex] = letter;
       shuffledLetters[fromIndex] = '';
       correct[toIndex] = (letter == letters[toIndex]);
+      _dropCount++;
+      if (correct[toIndex]) {
+        _popTrigger[toIndex] = _dropCount;
+      } else {
+        _shakeTrigger[toIndex] = _dropCount;
+      }
     });
     _playClickSound();
     _checkWin();
@@ -1289,251 +1296,177 @@ class _AnimalWordPuzzleState extends State<AnimalWordPuzzle> {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Column(
-          children: [
-            const Text(
-              'Heyvanın adını düzgün doldur',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final maxWidth = constraints.maxWidth;
-                    final letterCount = currentWord.length;
-
-                    // Adaptiv ölçü hesablaması
-                    double boxWidth = 40;
-                    double boxHeight = 50;
-                    double minBoxWidth = 18;
-                    double minBoxHeight = 26;
-                    double spacing = 4;
-                    double minSpacing = letterCount > 8 ? 1 : 2;
-
-                    double totalWidth =
-                        letterCount * boxWidth +
-                        (letterCount - 1) * spacing * 2;
-
-                    if (totalWidth > maxWidth) {
-                      // Əvvəl məsafəni azalt
-                      spacing = spacing.clamp(minSpacing, spacing);
-
-                      totalWidth =
-                          letterCount * boxWidth +
-                          (letterCount - 1) * spacing * 2;
-                      if (totalWidth > maxWidth) {
-                        // Ölçünü azalt
-                        boxWidth = ((maxWidth -
-                                    (letterCount - 1) * spacing * 2) /
-                                letterCount)
-                            .clamp(minBoxWidth, boxWidth);
-                        boxHeight = (boxHeight * boxWidth / 40).clamp(
-                          minBoxHeight,
-                          boxHeight,
-                        );
-                      }
-                    }
-
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          currentWord.length,
-                          (index) => DragTarget<String>(
-                            onWillAcceptWithDetails:
-                                (data) => currentWord[index] == null,
-                            onAcceptWithDetails: (details) {
-                              final fromIndex = shuffledLetters.indexOf(
-                                details.data,
-                              );
-                              if (fromIndex != -1) {
-                                _addLetter(details.data, fromIndex, index);
-                              }
-                            },
-                            builder: (context, candidateData, rejectedData) {
-                              Color borderColor = Colors.grey;
-                              Color fillColor = Colors.white;
-                              if (currentWord[index] != null) {
-                                if (correct[index]) {
-                                  borderColor = Colors.green;
-                                  fillColor = Colors.green.shade100;
-                                } else {
-                                  borderColor = Colors.red;
-                                  fillColor = Colors.red.shade100;
-                                }
-                              }
-                              return GestureDetector(
-                                onTap: () => _removeLetter(index),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: boxWidth,
-                                  height: boxHeight,
-                                  margin: EdgeInsets.all(spacing),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: borderColor,
-                                      width: 2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: fillColor,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      currentWord[index] ?? '',
-                                      style: TextStyle(
-                                        fontSize: boxWidth * 0.6,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                ConfettiWidget(
-                  confettiController: _confettiController,
-                  blastDirection: -pi / 2,
-                  maxBlastForce: 5,
-                  minBlastForce: 1,
-                  emissionFrequency: 0.05,
-                  numberOfParticles: 20,
-                  gravity: 0.1,
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final maxWidth = constraints.maxWidth;
-                final letterCount =
-                    shuffledLetters.where((l) => l.isNotEmpty).length;
-
-                // Adaptiv ölçü hesablaması
-                double boxWidth = 40;
-                double boxHeight = 50;
-                double minBoxWidth = 18;
-                double minBoxHeight = 26;
-                double spacing = 8;
-                double runSpacing = 8;
-
-                // Hərf sayına görə məsafəni azalt
-                if (letterCount > 8) {
-                  spacing = 4;
-                  runSpacing = 6;
-
-                  // Çox hərf olduqda ölçünü azalt
-                  if (letterCount > 12) {
-                    boxWidth = boxWidth.clamp(minBoxWidth, 32);
-                    boxHeight = boxHeight.clamp(minBoxHeight, 40);
-                  }
-                } else if (letterCount > 6) {
-                  spacing = 6;
-                  runSpacing = 7;
-                }
-
-                // Ekran enindən çox hərf varsa ölçünü azalt
-                double totalWidthNeeded =
-                    letterCount * boxWidth + (letterCount - 1) * spacing;
-                if (totalWidthNeeded > maxWidth * 0.9) {
-                  boxWidth = ((maxWidth * 0.9 - (letterCount - 1) * spacing) /
-                          letterCount)
-                      .clamp(minBoxWidth, boxWidth);
-                  boxHeight = (boxHeight * boxWidth / 40).clamp(
-                    minBoxHeight,
-                    boxHeight,
-                  );
-                }
-
-                return Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: spacing,
-                  runSpacing: runSpacing,
-                  children: List.generate(
-                    shuffledLetters.length,
-                    (index) =>
-                        shuffledLetters[index].isEmpty
-                            ? SizedBox(width: boxWidth, height: boxHeight)
-                            : Draggable<String>(
-                              data: shuffledLetters[index],
-                              feedback: Material(
-                                color: Colors.transparent,
-                                child: Container(
-                                  width: boxWidth,
-                                  height: boxHeight,
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade200,
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        blurRadius: 8,
-                                        offset: Offset(2, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      shuffledLetters[index],
-                                      style: TextStyle(
-                                        fontSize: boxWidth * 0.6,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              childWhenDragging: SizedBox(
-                                width: boxWidth,
-                                height: boxHeight,
-                              ),
-                              onDragStarted: _playClickSound,
-                              child: Container(
-                                width: boxWidth,
-                                height: boxHeight,
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade100,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    shuffledLetters[index],
-                                    style: TextStyle(
-                                      fontSize: boxWidth * 0.6,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+        ElifbaCard.section(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // ≥ 44 dp kafel, sətirdə ən çox 6: uzun adlar iki sətrə düzülür.
+              final layout = wordTileLayout(
+                letters.length,
+                constraints.maxWidth,
+              );
+              final rowWidth = layout.rowMax + 0.5;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Heyvanın adını düzgün doldur',
+                    textAlign: TextAlign.center,
+                    style: ElifbaTextStyles.wordHeading.copyWith(
+                      color: ElifbaPalette.onSurface,
+                    ),
                   ),
-                );
-              },
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: rowWidth),
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: GameDecorations.wordGap,
+                      runSpacing: GameDecorations.wordRunGap,
+                      children: [
+                        for (var i = 0; i < currentWord.length; i++)
+                          _buildSlot(i, layout.tile, layout.tileHeight),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const SizedBox(
+                    width: double.infinity,
+                    height: 2,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: ElifbaPalette.surfaceContainer,
+                        borderRadius: BorderRadius.all(Radius.circular(1)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Səbət yalnız boş olmayan hərfləri çəkir; model öz
+                  // boşluqlarını saxlayır.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: rowWidth,
+                      minHeight: layout.tileHeight,
+                    ),
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: GameDecorations.wordGap,
+                      runSpacing: GameDecorations.wordRunGap,
+                      children: [
+                        for (var i = 0; i < shuffledLetters.length; i++)
+                          if (shuffledLetters[i].isNotEmpty)
+                            _buildTrayTile(i, layout.tile, layout.tileHeight),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  PillButton(
+                    label: 'Yenidən başla',
+                    icon: Icons.refresh_rounded,
+                    variant: PillButtonVariant.secondary,
+                    size: PillButtonSize.medium,
+                    onPressed: () {
+                      _setupPuzzle();
+                      _playClickSound();
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        // Daxili konfeti ağacda qalır (gotcha 16).
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: IgnorePointer(
+              child: ElifbaConfetti(controller: _confettiController),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                _setupPuzzle();
-                _playClickSound();
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Yenidən başla'),
-            ),
-          ],
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSlot(int index, double tile, double tileHeight) {
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (data) => currentWord[index] == null,
+      onAcceptWithDetails: (details) {
+        final fromIndex = shuffledLetters.indexOf(details.data);
+        if (fromIndex != -1) {
+          _addLetter(details.data, fromIndex, index);
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final letter = currentWord[index];
+        final WordTileState state;
+        final String label;
+        if (letter == null) {
+          state =
+              candidateData.isNotEmpty
+                  ? WordTileState.hover
+                  : WordTileState.empty;
+          label = 'boş';
+        } else if (correct[index]) {
+          state = WordTileState.correct;
+          label = '$letter, doğru';
+        } else {
+          state = WordTileState.wrong;
+          label = '$letter, səhv';
+        }
+        // Struktur bütün vəziyyətlərdə eynidir: pop/silkələnmənin vəziyyəti
+        // (State) yenidən qurulmada itmir.
+        return Semantics(
+          label: label,
+          button: letter != null,
+          // Uşaq semantikası atılır — toxunub hərfi geri qaytarmaq burada
+          // yenidən verilir.
+          onTap: letter != null ? () => _removeLetter(index) : null,
+          excludeSemantics: true,
+          child: GestureDetector(
+            onTap: () => _removeLetter(index),
+            child: ShakeOnTrigger(
+              trigger: _shakeTrigger[index],
+              child: PopOnTrigger(
+                trigger: _popTrigger[index],
+                child: WordTileFace(
+                  state: state,
+                  width: tile,
+                  height: tileHeight,
+                  glyph: letter ?? '',
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTrayTile(int index, double tile, double tileHeight) {
+    final letter = shuffledLetters[index];
+    return Draggable<String>(
+      key: ValueKey<int>(index),
+      data: letter,
+      feedback: WordTileFace(
+        state: WordTileState.dragging,
+        width: tile,
+        height: tileHeight,
+        glyph: letter,
+      ),
+      // Sürüklənərkən yer boş qalır — səbət yarı yolda yenidən düzülmür.
+      childWhenDragging: SizedBox(width: tile, height: tileHeight),
+      onDragStarted: _playClickSound,
+      child: WordTileFace(
+        state: WordTileState.rest,
+        width: tile,
+        height: tileHeight,
+        glyph: letter,
+      ),
     );
   }
 }

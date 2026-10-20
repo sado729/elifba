@@ -1,13 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:confetti/confetti.dart';
-import '../core/utils.dart';
-import 'dart:ui' as ui;
-import 'package:flutter/services.dart';
-import 'dart:math';
-import '../core/config.dart';
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
+import 'package:confetti/confetti.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../core/config.dart';
 import '../core/settings.dart';
 import '../core/sound.dart';
+import '../core/utils.dart';
+import '../theme/theme.dart';
+import '../widgets/badges.dart';
+import '../widgets/celebration.dart';
+import '../widgets/elifba_card.dart';
+import '../widgets/elifba_confetti.dart';
+import '../widgets/game_feedback.dart';
+import '../widgets/pill_button.dart';
+import '../widgets/pill_tab.dart';
+import '../widgets/star_row.dart';
+import 'animal_detail_page.dart' show kPuzzlePreviewDecodeWidth;
 
 class PuzzlePage extends StatefulWidget {
   final String animal;
@@ -30,25 +42,30 @@ class PuzzlePage extends StatefulWidget {
 /// 60 dp x 3.0 piksel sıxlığı = 180 fiziki px, ona görə 192.
 const int kPuzzleThumbDecodeWidth = 192;
 
-class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
-  static const double fullSize = 240;
+/// Lövhənin ən böyük eni (planşetdə lövhə ekranı tutmasın).
+const double _kMaxBoard = 480;
+
+/// Səbətdəki parçanın ən böyük ölçüsü.
+const double _kMaxTrayPiece = 64;
+
+class _PuzzlePageState extends State<PuzzlePage> {
   /// Pazl ölçüsü. Başlanğıc dəyər valideyn ayarlarından gəlir; səhifə
   /// içindəki seçici onu dəyişəndə ayar da yenilənir — ölçü üçün iki fərqli
   /// həqiqət mənbəyi olmasın.
   int gridSize = AppSettings.instance.puzzleGridSize;
-  double get tileSize => fullSize / gridSize;
   late List<int?> slots; // griddəki yerlər (null və ya parça indeksi)
   late List<int> pieces; // aşağıda qarışıq parçalar
   bool completed = false;
-  late ConfettiController _confettiController;
+  final ConfettiController _confettiController =
+      ConfettiPreset.small.createController();
   OverlayEntry? _imageOverlayEntry;
-  late List<String> letters;
-  late List<String?> placedLetters;
-  late List<Offset> randomOffsets;
   final GatedPlayer _audioPlayer = GatedPlayer(SoundChannel.effect);
   final GatedPlayer _winPlayer = GatedPlayer(SoundChannel.effect);
   bool showHint = false;
   Timer? _hintTimer;
+
+  /// Tamamlanandan 1.5 s sonra təbrik kartı.
+  Timer? _celebrationTimer;
 
   // Pazl şəkli bir dəfə dekod olunur və bütün xanalar onu paylaşır.
   // Əvvəl hər xana build zamanı `_loadImage()` çağırırdı, yəni 3x3 grid üçün
@@ -58,30 +75,23 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   Future<ui.Image>? _puzzleImageFuture;
   ui.Image? _puzzleImage;
 
-  // Doğru və ya səhv qoyulmuş parçaları izləmək üçün map
-  Map<int, bool> slotCorrectMap = {};
-
   // Hint rejimində saxlanılacaq orijinal vəziyyətlər
   List<int?> _originalSlots = [];
   List<int> _originalPieces = [];
 
+  /// Parça xanaya DÜŞƏN anın sayğacı: doğru düşəndə "pop", səhv düşəndə
+  /// silkələnmə yalnız o anda oynayır — ipucu, geri qaytarma və adi yenidən
+  /// qurulma onları oynatmır. Doğru/səhv görünüşün özü `slots[i] == i`-dən
+  /// hesablanır (ipucu zamanı və ondan sonra da düzgündür).
+  late List<int?> _popTrigger;
+  late List<int?> _shakeTrigger;
+  int _dropCount = 0;
+
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 2),
-    );
     _resetPuzzle();
-    letters = widget.animal.split('');
-    placedLetters = List.filled(letters.length, null);
     _initAudio();
-
-    // Random yerlər üçün offset-lər
-    final rand = Random();
-    randomOffsets = List.generate(
-      letters.length,
-      (_) => Offset(rand.nextDouble() * 200, rand.nextDouble() * 200),
-    );
   }
 
   Future<void> _initAudio() async {
@@ -102,10 +112,14 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   }
 
   void _resetPuzzle() {
+    // İpucu gedərkən sıfırlansa taymer köhnə (bəlkə başqa ölçülü) vəziyyəti
+    // geri qaytarmasın.
+    _hintTimer?.cancel();
     slots = List<int?>.filled(gridSize * gridSize, null);
     pieces = List.generate(gridSize * gridSize, (i) => i);
     pieces.shuffle();
-    slotCorrectMap = {};
+    _popTrigger = List<int?>.filled(gridSize * gridSize, null);
+    _shakeTrigger = List<int?>.filled(gridSize * gridSize, null);
     setState(() {
       completed = false;
       showHint = false;
@@ -113,6 +127,11 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   }
 
   void _showHint() {
+    // İpucu artıq göstərilirsə ikinci toxunuş nəzərə alınmır: əks halda
+    // "orijinal" kimi HƏLL OLUNMUŞ lövhə saxlanılar və ipucu bitəndə qalardı
+    // (gotcha 14-ün yan qapısı).
+    if (showHint) return;
+
     // Cari vəziyyəti saxla
     _originalSlots = List.from(slots);
     _originalPieces = List.from(pieces);
@@ -126,7 +145,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
 
     // Timer
     _hintTimer?.cancel();
-    _hintTimer = Timer(const Duration(seconds: 2), () {
+    _hintTimer = Timer(ElifbaMotion.hint, () {
       if (mounted) {
         setState(() {
           showHint = false;
@@ -140,10 +159,12 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _removeFullImageOverlay();
     _confettiController.dispose();
     _audioPlayer.dispose();
     _winPlayer.dispose();
     _hintTimer?.cancel();
+    _celebrationTimer?.cancel();
     _puzzleImage?.dispose();
     super.dispose();
   }
@@ -160,6 +181,84 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     return true;
   }
 
+  /// Pazl bitibsə: konfeti, qələbə səsi, ulduz və 1.5 s sonra təbrik kartı.
+  ///
+  /// ⚠️ `!showHint` şərti gotcha 14-dür: ipucu lövhəyə həll olunmuş vəziyyəti
+  /// qoyur və `_isCompleted()` true qaytarır — ipucu ulduz verməməlidir.
+  void _checkCompleted() {
+    if (!completed && !showHint && _isCompleted()) {
+      setState(() => completed = true);
+      if (!AppSettings.instance.reduceMotion) {
+        _confettiController.play();
+      }
+      _playWinSound();
+      widget.onCompleted?.call();
+      _celebrationTimer?.cancel();
+      _celebrationTimer = Timer(ElifbaMotion.puzzleDialogDelay, () {
+        if (mounted && completed && context.mounted) {
+          _showCompletedCard();
+        }
+      });
+    }
+  }
+
+  void _showCompletedCard() {
+    // Scrim-ə toxunmaq və geri düyməsi yalnız bağlayır; «Yenidən» bağlayıb
+    // pazlı yenidən qarışdırır. Konfeti tamamlanma anında artıq atılıb.
+    showSmallWinCelebration(
+      context,
+      message: 'Pazl tamamlandı!',
+      playConfetti: false,
+      action: CelebrationAction(
+        label: 'Yenidən',
+        icon: Icons.refresh_rounded,
+        onPressed: () {
+          if (mounted) _resetPuzzle();
+        },
+      ),
+    );
+  }
+
+  /// Xanaya parça düşdü. [pieceIndex] xananın qurulma anındakı dəyəridir —
+  /// yalnız boş xana qəbul edir.
+  void _onDrop(int i, int? pieceIndex, int from) {
+    setState(() {
+      if (pieceIndex == null && from < slots.length && slots[from] != null) {
+        slots[i] = slots[from];
+        slots[from] = null;
+        _markDrop(i);
+      } else if (pieceIndex == null && from >= slots.length) {
+        int pieceIdx = pieces[from - slots.length];
+        slots[i] = pieceIdx;
+        pieces.removeAt(from - slots.length);
+        _markDrop(i);
+      }
+    });
+    _checkCompleted();
+  }
+
+  void _markDrop(int i) {
+    _dropCount++;
+    // Doğru yerə qoyulubsa
+    if (slots[i] == i) {
+      _playClickSound();
+      _popTrigger[i] = _dropCount;
+    } else {
+      _shakeTrigger[i] = _dropCount;
+    }
+  }
+
+  /// Qoyulmuş parçaya toxunmaq onu səbətin sonuna qaytarır.
+  void _sendBack(int i) {
+    setState(() {
+      if (slots[i] != null) {
+        pieces.add(slots[i]!);
+        slots[i] = null;
+      }
+    });
+    _checkCompleted();
+  }
+
   @override
   Widget build(BuildContext context) {
     final animal = widget.animal;
@@ -167,498 +266,428 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     final animalData = AppConfig.findAnimal(animalLetter, animal);
     final imageAsset =
         animalData?.imagePath.replaceFirst('.webp', '_puzzle.jpg') ?? '';
+    final boardDone = !showHint && _isCompleted();
+
     return Stack(
       children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 16, bottom: 8),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTapDown:
-                            (_) => _showFullImageOverlay(context, imageAsset),
-                        onTapUp: (_) => _removeFullImageOverlay(),
-                        onTapCancel: () => _removeFullImageOverlay(),
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.deepPurple.shade50,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.deepPurple.shade200,
-                              width: 2,
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              imageAsset,
-                              fit: BoxFit.cover,
-                              cacheWidth: kPuzzleThumbDecodeWidth,
-                              errorBuilder:
-                                  (context, error, stackTrace) => const Icon(
-                                    Icons.image,
-                                    size: 32,
-                                    color: Colors.deepPurple,
-                                  ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: _resetPuzzle,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Yenidən başla'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: _showHint,
-                        icon: const Icon(Icons.lightbulb_outline),
-                        label: const Text('Kömək'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          backgroundColor: Colors.amber,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildLevelButton(3, 'Asan'),
-                      const SizedBox(width: 8),
-                      _buildLevelButton(4, 'Orta'),
-                      const SizedBox(width: 8),
-                      _buildLevelButton(5, 'Çətin'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: fullSize,
-              height: fullSize,
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.deepPurple, width: 2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Stack(
-                children: [
-                  if (showHint)
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.asset(
-                          imageAsset,
-                          fit: BoxFit.cover,
-                          opacity: const AlwaysStoppedAnimation(0.3),
-                        ),
-                      ),
-                    ),
-                  GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: gridSize,
-                      mainAxisSpacing: 2,
-                      crossAxisSpacing: 2,
-                    ),
-                    itemCount: gridSize * gridSize,
-                    itemBuilder: (context, i) {
-                      int? pieceIndex = slots[i];
-                      return SizedBox(
-                        width: tileSize,
-                        height: tileSize,
-                        child: DragTarget<int>(
-                          builder: (context, candidateData, rejectedData) {
-                            if (pieceIndex != null) {
-                              return Draggable<int>(
-                                data: i, // slot index
-                                feedback: Material(
-                                  color: Colors.transparent,
-                                  child: SizedBox(
-                                    width: tileSize,
-                                    height: tileSize,
-                                    child: _buildPuzzlePiece(
-                                      imageAsset,
-                                      pieceIndex,
-                                      gridSize,
-                                      shadow: true,
-                                      slotIndex: i,
-                                    ),
-                                  ),
-                                ),
-                                childWhenDragging: Opacity(
-                                  opacity: 0.3,
-                                  child: _buildPuzzlePiece(
-                                    imageAsset,
-                                    pieceIndex,
-                                    gridSize,
-                                    slotIndex: i,
-                                  ),
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      if (slots[i] != null) {
-                                        pieces.add(slots[i]!);
-                                        slots[i] = null;
-                                      }
-                                      if (!completed && !showHint && _isCompleted()) {
-                                        completed = true;
-                                        if (!AppSettings.instance.reduceMotion) {
-                                          _confettiController.play();
-                                        }
-                                        _playWinSound();
-                                        widget.onCompleted?.call();
-                                        final dialogContext = context;
-                                        Future.delayed(
-                                          const Duration(milliseconds: 1500),
-                                          () {
-                                            if (mounted &&
-                                                completed &&
-                                                context.mounted) {
-                                              showDialog(
-                                                context: dialogContext,
-                                                builder:
-                                                    (context) => AlertDialog(
-                                                      title: const Text(
-                                                        'Təbriklər!',
-                                                      ),
-                                                      content: const Text(
-                                                        'Pazl tamamlandı!',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                              dialogContext,
-                                                            ).pop();
-                                                            _resetPuzzle();
-                                                          },
-                                                          child: const Text(
-                                                            'Yenidən',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                              );
-                                            }
-                                          },
-                                        );
-                                      }
-                                    });
-                                  },
-                                  child: _buildPuzzlePiece(
-                                    imageAsset,
-                                    pieceIndex,
-                                    gridSize,
-                                    slotIndex: i,
-                                  ),
-                                ),
-                              );
-                            } else if (candidateData.isNotEmpty) {
-                              BorderRadius borderRadius = BorderRadius.zero;
-                              if (i == 0) {
-                                borderRadius = const BorderRadius.only(
-                                  topLeft: Radius.circular(16),
-                                );
-                              } else if (i == gridSize - 1) {
-                                borderRadius = const BorderRadius.only(
-                                  topRight: Radius.circular(16),
-                                );
-                              } else if (i == gridSize * (gridSize - 1)) {
-                                borderRadius = const BorderRadius.only(
-                                  bottomLeft: Radius.circular(16),
-                                );
-                              } else if (i == gridSize * gridSize - 1) {
-                                borderRadius = const BorderRadius.only(
-                                  bottomRight: Radius.circular(16),
-                                );
-                              }
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple.shade100,
-                                  borderRadius: borderRadius,
-                                  border: Border.all(
-                                    color: Colors.deepPurple.shade200,
-                                    width: 2,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              BorderRadius borderRadius = BorderRadius.zero;
-                              if (i == 0) {
-                                borderRadius = const BorderRadius.only(
-                                  topLeft: Radius.circular(16),
-                                );
-                              } else if (i == gridSize - 1) {
-                                borderRadius = const BorderRadius.only(
-                                  topRight: Radius.circular(16),
-                                );
-                              } else if (i == gridSize * (gridSize - 1)) {
-                                borderRadius = const BorderRadius.only(
-                                  bottomLeft: Radius.circular(16),
-                                );
-                              } else if (i == gridSize * gridSize - 1) {
-                                borderRadius = const BorderRadius.only(
-                                  bottomRight: Radius.circular(16),
-                                );
-                              }
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple.shade50,
-                                  borderRadius: borderRadius,
-                                  border: Border.all(
-                                    color: Colors.deepPurple.shade200,
-                                    width: 2,
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          onWillAcceptWithDetails: (data) => true,
-                          onAcceptWithDetails: (fromIndex) {
-                            setState(() {
-                              if (pieceIndex == null &&
-                                  fromIndex.data < slots.length &&
-                                  slots[fromIndex.data] != null) {
-                                slots[i] = slots[fromIndex.data];
-                                slots[fromIndex.data] = null;
-
-                                // Doğru yerə qoyulubsa
-                                if (slots[i] == i) {
-                                  _playClickSound();
-                                  slotCorrectMap[i] = true;
-                                } else {
-                                  slotCorrectMap[i] = false;
-                                }
-                              } else if (pieceIndex == null &&
-                                  fromIndex.data >= slots.length) {
-                                int pieceIdx =
-                                    pieces[fromIndex.data - slots.length];
-                                slots[i] = pieceIdx;
-                                pieces.removeAt(fromIndex.data - slots.length);
-
-                                // Doğru yerə qoyulubsa
-                                if (slots[i] == i) {
-                                  _playClickSound();
-                                  slotCorrectMap[i] = true;
-                                } else {
-                                  slotCorrectMap[i] = false;
-                                }
-                              }
-                              if (!completed && !showHint && _isCompleted()) {
-                                completed = true;
-                                if (!AppSettings.instance.reduceMotion) {
-                                  _confettiController.play();
-                                }
-                                _playWinSound();
-                                widget.onCompleted?.call();
-                                final dialogContext = context;
-                                Future.delayed(
-                                  const Duration(milliseconds: 1500),
-                                  () {
-                                    if (mounted &&
-                                        completed &&
-                                        context.mounted) {
-                                      showDialog(
-                                        context: dialogContext,
-                                        builder:
-                                            (context) => AlertDialog(
-                                              title: const Text('Təbriklər!'),
-                                              content: const Text(
-                                                'Pazl tamamlandı!',
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () {
-                                                    Navigator.of(
-                                                      dialogContext,
-                                                    ).pop();
-                                                    _resetPuzzle();
-                                                  },
-                                                  child: const Text('Yenidən'),
-                                                ),
-                                              ],
-                                            ),
-                                      );
-                                    }
-                                  },
-                                );
-                              }
-                            });
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: List.generate(
-                  pieces.length,
-                  (idx) => Draggable<int>(
-                    data: slots.length + idx,
-                    feedback: Material(
-                      color: Colors.transparent,
-                      child: SizedBox(
-                        width: tileSize,
-                        height: tileSize,
-                        child: _buildPuzzlePiece(
-                          imageAsset,
-                          pieces[idx],
-                          gridSize,
-                          shadow: true,
-                        ),
-                      ),
-                    ),
-                    childWhenDragging: Opacity(
-                      opacity: 0.3,
-                      child: SizedBox(
-                        width: tileSize,
-                        height: tileSize,
-                        child: _buildPuzzlePiece(
-                          imageAsset,
-                          pieces[idx],
-                          gridSize,
-                        ),
-                      ),
-                    ),
-                    onDragStarted: _playClickSound,
-                    child: SizedBox(
-                      width: tileSize,
-                      height: tileSize,
-                      child: _buildPuzzlePiece(
-                        imageAsset,
-                        pieces[idx],
-                        gridSize,
-                        slotIndex: null,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final n = gridSize;
+            final board = math.min(constraints.maxWidth, _kMaxBoard);
+            final cell =
+                (board -
+                    2 * GameDecorations.boardPadding -
+                    (n - 1) * GameDecorations.boardGap) /
+                n;
+            final piece = math.min(_kMaxTrayPiece, cell.floorToDouble());
+            return FutureBuilder<ui.Image>(
+              future: _puzzleImageOf(imageAsset),
+              builder: (context, snapshot) {
+                final img = snapshot.data;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildControls(imageAsset),
+                    const SizedBox(height: 12),
+                    _buildLevels(),
+                    const SizedBox(height: 12),
+                    Center(child: _buildBoard(board, cell, img, boardDone)),
+                    const SizedBox(height: 12),
+                    _buildTray(piece, img, boardDone),
+                  ],
+                );
+              },
+            );
+          },
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            emissionFrequency: 0.08,
-            numberOfParticles: 30,
-            maxBlastForce: 20,
-            minBlastForce: 8,
-            gravity: 0.3,
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: IgnorePointer(
+              child: ElifbaConfetti(controller: _confettiController),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPuzzlePiece(
-    String imageAsset,
-    int pieceIndex,
-    int gridSize, {
-    bool shadow = false,
-    int? slotIndex,
-  }) {
-    int row = pieceIndex ~/ gridSize;
-    int col = pieceIndex % gridSize;
-    BorderRadius borderRadius = BorderRadius.zero;
-    if (slotIndex != null) {
-      if (slotIndex == 0) {
-        borderRadius = const BorderRadius.only(topLeft: Radius.circular(16));
-      } else if (slotIndex == gridSize - 1) {
-        borderRadius = const BorderRadius.only(topRight: Radius.circular(16));
-      } else if (slotIndex == gridSize * (gridSize - 1)) {
-        borderRadius = const BorderRadius.only(bottomLeft: Radius.circular(16));
-      } else if (slotIndex == gridSize * gridSize - 1) {
-        borderRadius = const BorderRadius.only(
-          bottomRight: Radius.circular(16),
-        );
-      }
-    }
+  // ------------------------------------------------------------ idarələr
 
-    // Border rəngini təyin et
-    Color borderColor = Colors.deepPurple.shade200;
-    if (slotIndex != null) {
-      if (slotCorrectMap.containsKey(slotIndex)) {
-        borderColor = slotCorrectMap[slotIndex]! ? Colors.green : Colors.red;
-      }
-    }
-
-    return FutureBuilder<ui.Image>(
-      future: _puzzleImageOf(imageAsset),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Container(
-            width: tileSize,
-            height: tileSize,
-            color: Colors.grey.shade200,
-            child: const Icon(Icons.image, size: 40),
-          );
-        }
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: tileSize,
-          height: tileSize,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: borderColor, width: 2),
-            borderRadius: borderRadius,
-            boxShadow:
-                shadow
-                    ? [
-                      const BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 8,
-                        offset: Offset(2, 2),
+  Widget _buildControls(String imageAsset) {
+    return Row(
+      children: [
+        // Basıb saxlayanda bütöv şəkil görünür. `Tooltip` QƏSDƏN yoxdur: onun
+        // uzun-basma tanıyıcısı toxunuşu udub baxışı yarıda bağlayardı.
+        Semantics(
+          label: 'Basıb saxla',
+          button: true,
+          child: GestureDetector(
+            onTapDown: (_) => _showFullImageOverlay(context, imageAsset),
+            onTapUp: (_) => _removeFullImageOverlay(),
+            onTapCancel: () => _removeFullImageOverlay(),
+            child: Container(
+              width: ElifbaSize.puzzleThumb,
+              height: ElifbaSize.puzzleThumb,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(ElifbaRadius.r14),
+                ),
+                // CSS: `0 0 0 2px #FFFDFB, 0 0 0 4px #D2C8F2` — ağ halqa
+                // üstdə, bənövşəyi altda.
+                boxShadow: [
+                  BoxShadow(color: ElifbaPalette.outline, spreadRadius: 4),
+                  BoxShadow(color: ElifbaPalette.surface, spreadRadius: 2),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(ElifbaRadius.r14),
+                ),
+                child: Image.asset(
+                  imageAsset,
+                  fit: BoxFit.cover,
+                  cacheWidth: kPuzzleThumbDecodeWidth,
+                  errorBuilder:
+                      (context, error, stackTrace) => const ColoredBox(
+                        color: ElifbaPalette.surfaceContainerLow,
+                        child: Center(
+                          child: Icon(
+                            Icons.image_rounded,
+                            size: 32,
+                            color: ElifbaPalette.onMuted,
+                          ),
+                        ),
                       ),
-                    ]
-                    : null,
-          ),
-          child: ClipRRect(
-            borderRadius: borderRadius,
-            child: CustomPaint(
-              size: Size(tileSize, tileSize),
-              painter: PuzzleTilePainter(snapshot.data!, row, col, gridSize),
+                ),
+              ),
             ),
           ),
-        );
-      },
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: PillButton(
+            label: 'Yenidən başla',
+            icon: Icons.refresh_rounded,
+            variant: PillButtonVariant.secondary,
+            size: PillButtonSize.small,
+            // 360 dp-də yazı sığmayanda kiçilir (üç nöqtə yox).
+            expand: true,
+            onPressed: _resetPuzzle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        // İpucu göstərilərkən düymə söndürülür (ikinci toxunuş nəzərə
+        // alınmır).
+        PillButton(
+          label: 'İpucu',
+          icon: Icons.lightbulb_rounded,
+          variant: PillButtonVariant.tonal,
+          size: PillButtonSize.small,
+          onPressed: showHint ? null : _showHint,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLevels() {
+    const levels = [(3, 'Asan'), (4, 'Orta'), (5, 'Çətin')];
+    return Row(
+      children: [
+        for (var i = 0; i < levels.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(child: _buildLevelButton(levels[i].$1, levels[i].$2)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLevelButton(int size, String label) {
+    final isSelected = size == gridSize;
+    // Seçilmiş səviyyəyə toxunmaq da pazlı yenidən qarışdırır (bu günkü kimi).
+    return PillTab(
+      label: label,
+      expand: true,
+      selected: isSelected,
+      leading: GridGlyph(
+        n: size,
+        color: GridGlyph.colorFor(selected: isSelected),
+      ),
+      onTap: () => _changeGridSize(size),
+    );
+  }
+
+  // ---------------------------------------------------------------- lövhə
+
+  Widget _buildBoard(double board, double cell, ui.Image? img, bool boardDone) {
+    final n = gridSize;
+    return AnimatedContainer(
+      duration: ElifbaMotion.boardDone,
+      width: board,
+      height: board,
+      padding: const EdgeInsets.all(GameDecorations.boardContainerPadding),
+      decoration: boardDone ? GameDecorations.boardDone : GameDecorations.board,
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              for (var r = 0; r < n; r++) ...[
+                if (r > 0) const SizedBox(height: GameDecorations.boardGap),
+                Row(
+                  children: [
+                    for (var c = 0; c < n; c++) ...[
+                      if (c > 0)
+                        const SizedBox(width: GameDecorations.boardGap),
+                      _buildCell(r * n + c, cell, img, boardDone),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+          // İpucu: bütöv şəkil 40 % ilə xanaların üstündə (yenidən dekod yox —
+          // gotcha 9) və «2 s» nişanı. Toxunuşları buraxır.
+          if (showHint && img != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(13)),
+                  child: CustomPaint(
+                    painter: _FullImagePainter(img, opacity: 0.4),
+                  ),
+                ),
+              ),
+            ),
+          if (showHint)
+            const Positioned(
+              top: 10,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(child: Center(child: _HintChip())),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCell(int i, double size, ui.Image? img, bool boardDone) {
+    int? pieceIndex = slots[i];
+    // Pop/silkələnmə xananın ÖZÜNDƏdir: struktur hər vəziyyətdə eynidir, ona
+    // görə yalnız düşmə anında (trigger dəyişəndə) oynayır.
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ShakeOnTrigger(
+        trigger: _shakeTrigger[i],
+        child: PopOnTrigger(
+          trigger: _popTrigger[i],
+          child: DragTarget<int>(
+            builder: (context, candidateData, rejectedData) {
+              if (pieceIndex == null) {
+                return DecoratedBox(
+                  decoration:
+                      candidateData.isNotEmpty
+                          ? GameDecorations.cellHover
+                          : GameDecorations.cellEmpty,
+                  child: const SizedBox.expand(),
+                );
+              }
+              // Lövhə bitəndə və ipucu zamanı nişan yoxdur — lövhənin
+              // halqası vəziyyəti daşıyır.
+              final bool? mark =
+                  showHint
+                      ? null
+                      : (pieceIndex == i ? (boardDone ? null : true) : false);
+              return Draggable<int>(
+                data: i, // slot index
+                feedback: _liftedPiece(pieceIndex, size, img),
+                childWhenDragging: Opacity(
+                  opacity: 0.3,
+                  child: _boardPiece(pieceIndex, size, img),
+                ),
+                child: GestureDetector(
+                  onTap: () => _sendBack(i),
+                  child: _boardPiece(pieceIndex, size, img, mark: mark),
+                ),
+              );
+            },
+            onWillAcceptWithDetails: (data) => true,
+            onAcceptWithDetails:
+                (details) => _onDrop(i, pieceIndex, details.data),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pieceFace(int pieceIndex, ui.Image? img) {
+    if (img == null) {
+      return const ColoredBox(color: ElifbaPalette.surfaceContainerLow);
+    }
+    return CustomPaint(
+      painter: PuzzleTilePainter(
+        img,
+        pieceIndex ~/ gridSize,
+        pieceIndex % gridSize,
+        gridSize,
+      ),
+    );
+  }
+
+  /// Lövhədəki parça; [mark]: true → doğru (✓, yaşıl halqa), false → səhv
+  /// (✕, qırmızı qırıq xətt), null → işarəsiz.
+  Widget _boardPiece(int pieceIndex, double size, ui.Image? img, {bool? mark}) {
+    final face = SizedBox(
+      width: size,
+      height: size,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(ElifbaRadius.r6)),
+        child: _pieceFace(pieceIndex, img),
+      ),
+    );
+    if (mark == null) return face;
+    return Semantics(
+      label: mark ? 'doğru' : 'səhv',
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          face,
+          Positioned.fill(
+            child: IgnorePointer(
+              child:
+                  mark
+                      ? const DecoratedBox(
+                        decoration: GameDecorations.cellCorrect,
+                      )
+                      : const CustomPaint(
+                        foregroundPainter: GameDecorations.cellWrongOutline,
+                        child: DecoratedBox(
+                          decoration: GameDecorations.cellWrong,
+                        ),
+                      ),
+            ),
+          ),
+          Positioned(
+            right: GameDecorations.cellBadgeInset,
+            bottom: GameDecorations.cellBadgeInset,
+            child:
+                mark
+                    ? const CheckBadge(
+                      size: GameDecorations.cellBadgeSize,
+                      ringWidth: 0,
+                    )
+                    : const CrossBadge(
+                      size: GameDecorations.cellBadgeSize,
+                      ringWidth: 0,
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Sürüklənən parça (`Draggable.feedback`): bənövşəyi halqa, 4 dp yuxarı,
+  /// 1.06 böyük. Azaldılmış hərəkətdə yalnız halqa və kənar qalır.
+  Widget _liftedPiece(int pieceIndex, double size, ui.Image? img) {
+    Widget piece = DecoratedBox(
+      decoration: GameDecorations.trayPieceDragging,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.all(
+            Radius.circular(ElifbaRadius.r8),
+          ),
+          child: _pieceFace(pieceIndex, img),
+        ),
+      ),
+    );
+    if (!ElifbaMotion.reduced) {
+      piece = Transform.translate(
+        offset: const Offset(0, GameDecorations.trayPieceDraggingLift),
+        child: Transform.scale(
+          scale: GameDecorations.trayPieceDraggingScale,
+          child: piece,
+        ),
+      );
+    }
+    return Material(type: MaterialType.transparency, child: piece);
+  }
+
+  // ---------------------------------------------------------------- səbət
+
+  Widget _trayPiece(int pieceIndex, double size, ui.Image? img) {
+    return DecoratedBox(
+      decoration: GameDecorations.trayPiece,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.all(
+            Radius.circular(ElifbaRadius.r8),
+          ),
+          child: _pieceFace(pieceIndex, img),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTray(double piece, ui.Image? img, bool boardDone) {
+    final List<Widget> children;
+    if (boardDone && pieces.isEmpty) {
+      // Bitdi: ✓ + ulduz. Yalnız lövhə həqiqətən bitəndə — ipucu zamanı
+      // səbət sadəcə boş qalır.
+      children = [
+        Semantics(
+          label: 'Pazl tamamlandı',
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                size: 22,
+                color: ElifbaPalette.correct,
+              ),
+              SizedBox(width: 6),
+              StarGlyph(filled: true, size: 22),
+            ],
+          ),
+        ),
+      ];
+    } else {
+      children = [
+        for (var idx = 0; idx < pieces.length; idx++)
+          Draggable<int>(
+            key: ValueKey<int>(pieces[idx]),
+            data: slots.length + idx,
+            feedback: _liftedPiece(pieces[idx], piece, img),
+            childWhenDragging: Opacity(
+              opacity: 0.3,
+              child: _trayPiece(pieces[idx], piece, img),
+            ),
+            onDragStarted: _playClickSound,
+            child: _trayPiece(pieces[idx], piece, img),
+          ),
+      ];
+    }
+    return ElifbaCard(
+      radius: ElifbaRadius.r20,
+      edge: 0,
+      padding: const EdgeInsets.all(10),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: piece),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          runAlignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 6,
+          runSpacing: 6,
+          children: children,
+        ),
+      ),
     );
   }
 
@@ -682,30 +711,64 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
   void _showFullImageOverlay(BuildContext context, String imageAsset) {
     if (_imageOverlayEntry != null) return;
     final overlay = Overlay.of(context, rootOverlay: true);
+    final image = _puzzleImage;
     _imageOverlayEntry = OverlayEntry(
       builder:
           (context) => Positioned.fill(
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.45),
-              child: Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Image.asset(
-                    imageAsset,
-                    width: 320,
-                    height: 320,
-                    fit: BoxFit.contain,
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
-                          width: 320,
-                          height: 320,
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.image,
-                            size: 60,
-                            color: Colors.deepPurple,
+            // Buraxma toxunuşu miniatürün tanıyıcısına çatmalıdır.
+            child: IgnorePointer(
+              child: ColoredBox(
+                color: ElifbaPalette.scrim55,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: _kMaxBoard,
+                          maxHeight: _kMaxBoard,
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: DecoratedBox(
+                            decoration: const BoxDecoration(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(ElifbaRadius.r24),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: ElifbaPalette.surface,
+                                  spreadRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(ElifbaRadius.r24),
+                              ),
+                              child:
+                                  image != null
+                                      ? CustomPaint(
+                                        painter: _FullImagePainter(image),
+                                      )
+                                      : Image.asset(
+                                        imageAsset,
+                                        fit: BoxFit.cover,
+                                        cacheWidth: kPuzzlePreviewDecodeWidth,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const ColoredBox(
+                                                  color:
+                                                      ElifbaPalette
+                                                          .surfaceContainerLow,
+                                                  child: ImagePlaceholder(),
+                                                ),
+                                      ),
+                            ),
                           ),
                         ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -719,20 +782,73 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
     _imageOverlayEntry?.remove();
     _imageOverlayEntry = null;
   }
+}
 
-  Widget _buildLevelButton(int size, String label) {
-    final isSelected = size == gridSize;
-    return ElevatedButton(
-      onPressed: () => _changeGridSize(size),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: isSelected ? Colors.deepPurple : Colors.grey.shade200,
-        foregroundColor: isSelected ? Colors.white : Colors.black87,
+/// İpucu lövhəsindəki «💡 2 s» nişanı (sabit mətn, geri sayım deyil).
+class _HintChip extends StatelessWidget {
+  const _HintChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 30,
+      padding: const EdgeInsetsDirectional.only(start: 8, end: 12),
+      decoration: const ShapeDecoration(
+        color: ElifbaPalette.primaryContainer,
+        shape: StadiumBorder(),
       ),
-      child: Text(label),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.lightbulb_rounded,
+            size: 18,
+            color: ElifbaPalette.onPrimaryContainer,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '2 s',
+            textScaler: TextScaler.noScaling,
+            style: ElifbaTextStyles.hintChip.copyWith(
+              color: ElifbaPalette.onPrimaryContainer,
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// Bütöv pazl şəklini (artıq dekod olunmuş `ui.Image`) `cover` ilə çəkir —
+/// ipucu kölgəsi (40 %) və böyük baxış üçün. İkinci dekod yoxdur (gotcha 9).
+class _FullImagePainter extends CustomPainter {
+  _FullImagePainter(this.image, {this.opacity = 1});
+
+  final ui.Image image;
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final src = Size(image.width.toDouble(), image.height.toDouble());
+    final fitted = applyBoxFit(BoxFit.cover, src, size);
+    final srcRect = Alignment.center.inscribe(fitted.source, Offset.zero & src);
+    final dstRect = Alignment.center.inscribe(
+      fitted.destination,
+      Offset.zero & size,
+    );
+    canvas.drawImageRect(
+      image,
+      srcRect,
+      dstRect,
+      Paint()
+        ..color = Color.fromRGBO(0, 0, 0, opacity)
+        ..filterQuality = FilterQuality.medium,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FullImagePainter old) =>
+      old.image != image || old.opacity != opacity;
 }
 
 class PuzzleTilePainter extends CustomPainter {
@@ -742,7 +858,6 @@ class PuzzleTilePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final tileSize = size.width;
     final srcTileSize = image.width / gridSize;
     final src = Rect.fromLTWH(
       col * srcTileSize,
@@ -750,10 +865,20 @@ class PuzzleTilePainter extends CustomPainter {
       srcTileSize,
       srcTileSize,
     );
-    final dst = Rect.fromLTWH(0, 0, tileSize, tileSize);
-    canvas.drawImageRect(image, src, dst, Paint());
+    final dst = Offset.zero & size;
+    canvas.drawImageRect(
+      image,
+      src,
+      dst,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
   }
 
+  // Xananın parçası yerində dəyişəndə (ipucu dəyişimi) köhnə kəsik qalmasın.
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant PuzzleTilePainter oldDelegate) =>
+      oldDelegate.image != image ||
+      oldDelegate.row != row ||
+      oldDelegate.col != col ||
+      oldDelegate.gridSize != gridSize;
 }
