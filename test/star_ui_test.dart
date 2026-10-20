@@ -20,6 +20,7 @@ import 'package:elifba/pages/alphabet_page.dart';
 import 'package:elifba/pages/animal_detail_page.dart';
 import 'package:elifba/pages/animal_list_page.dart';
 import 'package:elifba/widgets/parental_gate.dart';
+import 'package:elifba/widgets/squishy.dart';
 import 'package:elifba/widgets/star_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -132,7 +133,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('hərf tam bitəndə 3 ulduz və qızılı çərçivə görünür', (
+    testWidgets('hərf tam bitəndə 3 ulduz və ✓ nişanı görünür', (
       tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: AlphabetPage()));
@@ -145,18 +146,28 @@ void main() {
       final rows = find.byType(StarRow).evaluate().toList();
       expect((rows.first.widget as StarRow).filled, 3);
 
-      // Qızılı çərçivə yalnız tam bitmiş hərfdə olur, ona görə kitab
-      // səhifəsində bir dənə görünməlidir (A, B deyil).
-      final gold =
+      // ✓ nişanı yalnız tam bitmiş hərfdə olur, ona görə kitab səhifəsində
+      // bir dənə görünməlidir (A, B deyil) və A-nın kartının içindədir.
+      final badges = find.descendant(
+        of: find.byType(PageView),
+        matching: find.byIcon(Icons.check_rounded),
+      );
+      expect(
+        badges,
+        findsOneWidget,
+        reason: 'yalnız A hərfi ✓ nişanı almalıdır',
+      );
+      final aCard =
           find
-              .byWidgetPredicate((w) {
-                if (w is! Container) return false;
-                final d = w.decoration;
-                return d is BoxDecoration && d.border?.top.color == kStarGold;
-              })
-              .evaluate()
-              .length;
-      expect(gold, 1, reason: 'yalnız A hərfi qızılı çərçivə almalıdır');
+              .ancestor(
+                of: find.text('A'),
+                matching: find.byType(SquishyButton),
+              )
+              .first;
+      expect(
+        find.descendant(of: aCard, matching: find.byIcon(Icons.check_rounded)),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
   });

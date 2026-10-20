@@ -76,7 +76,7 @@ void main() {
   testWidgets('irəli oxu növbəti hərf cütünü gətirir', (tester) async {
     await tester.pumpWidget(const MyApp());
 
-    await tester.tap(find.byIcon(Icons.arrow_forward_ios));
+    await tester.tap(find.byTooltip('Növbəti səhifə'));
     await tester.pumpAndSettle();
 
     expect(find.text('C'), findsOneWidget);
