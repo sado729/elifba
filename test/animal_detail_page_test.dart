@@ -7,10 +7,13 @@
 // async-də heç vaxt bitmir — xanalar boş qutu kimi çəkilir, məntiq isə
 // eynidir.
 
+import 'package:elifba/core/config.dart';
 import 'package:elifba/core/progress.dart';
 import 'package:elifba/core/settings.dart';
+import 'package:elifba/core/utils.dart';
 import 'package:elifba/pages/animal_detail_page.dart';
 import 'package:elifba/pages/puzzle_page.dart';
+import 'package:elifba/widgets/elifba_card.dart';
 import 'package:elifba/widgets/pill_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -108,6 +111,65 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('landşaft 640x360: tablar və bölmənin başı görünür', (
+      tester,
+    ) async {
+      _surface(tester, 640, 360);
+      tester.view.padding = const FakeViewPadding(top: 24);
+      tester.view.viewPadding = const FakeViewPadding(top: 24);
+      final store = await _pumpPage(tester, 'Ayı');
+
+      // 16:9 səhnə (320 dp) bütün sürüşən sahəni (272 dp) tuturdu.
+      final stage = tester.getRect(find.byType(AnimalStage));
+      expect(stage.height, lessThan(130));
+      const tabs = [Icons.auto_stories_rounded, Icons.restaurant_rounded];
+      for (final icon in tabs) {
+        final tab = find.ancestor(
+          of: find.byIcon(icon),
+          matching: find.byType(PillTab),
+        );
+        expect(tester.getRect(tab).bottom, lessThanOrEqualTo(360));
+        expect(find.byIcon(icon).hitTestable(), findsOneWidget);
+      }
+      final total = store.animalTotal('Ayı');
+      expect(tester.getRect(find.text('1/$total')).bottom, lessThan(360));
+      expect(tester.getRect(find.text('Məlumat:')).bottom, lessThan(360));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('portretdə səhnə 16:9 qalır (360 → 189, 412 → 218)', (
+      tester,
+    ) async {
+      _surface(tester, 360, 640);
+      tester.view.padding = const FakeViewPadding(top: 24, bottom: 24);
+      tester.view.viewPadding = const FakeViewPadding(top: 24, bottom: 24);
+      await _pumpPage(tester, 'Ayı');
+      expect(
+        tester.getSize(find.byType(AnimalStage)).height,
+        moreOrLessEquals(189),
+      );
+
+      _surface(tester, 412, 915);
+      await tester.pump();
+      expect(
+        tester.getSize(find.byType(AnimalStage)).height,
+        moreOrLessEquals(218.25),
+      );
+    });
+
+    testWidgets('Məlumat mətni enli ekranda 34 em-dən (612 dp) enli olmur', (
+      tester,
+    ) async {
+      // 800x600 test səthi.
+      await _pumpPage(tester, 'Ayı');
+      final info = AppConfig.findAnimal(getFirstLetter('Ayı'), 'Ayı')!;
+      final first = info.description
+          .split('\n')
+          .map((s) => s.trim())
+          .firstWhere((s) => s.isNotEmpty);
+      expect(tester.getSize(find.text(first)).width, lessThanOrEqualTo(612));
+    });
+
     testWidgets('360x640-da daşma yoxdur, ulduz nişanı tək mətndir', (
       tester,
     ) async {
@@ -192,6 +254,57 @@ void main() {
       expect(find.text('2 s'), findsNothing);
       expect(trayPieces(tester), 9);
       expect(calls, isEmpty);
+    });
+
+    testWidgets('ipucu zamanı uşağın öz lövhəsi görünür və toxunuşa bağlıdır', (
+      tester,
+    ) async {
+      // Səbət lövhənin altındadır: hər ikisi ekranda olsun.
+      _surface(tester, 800, 1200);
+      final calls = await pumpPuzzle(tester);
+      Finder trayPiece() => find.byWidgetPredicate(
+        (w) => w is Draggable<int> && w.data! >= 9,
+      );
+      Future<void> drag(Offset from, Offset to) async {
+        final g = await tester.startGesture(from);
+        await tester.pump();
+        await g.moveBy(const Offset(0, -12));
+        await tester.pump();
+        await g.moveTo(to);
+        await tester.pump();
+        await g.up();
+        await tester.pump();
+      }
+
+      final cell0 = tester.getCenter(find.byType(DragTarget<int>).at(0));
+      final cell1 = tester.getCenter(find.byType(DragTarget<int>).at(1));
+      await drag(tester.getCenter(trayPiece().first), cell0);
+      await tester.pump(const Duration(milliseconds: 400));
+      final marked = find.bySemanticsLabel(RegExp(r'doğru|səhv'));
+      expect(marked, findsOneWidget);
+      expect(trayPieces(tester), 8);
+
+      await tester.tap(find.text('İpucu'));
+      await tester.pump();
+      expect(find.text('2 s'), findsOneWidget);
+      // Əvvəl ipucu həll olunmuş lövhəni çəkir, səbəti boşaldırdı.
+      expect(trayPieces(tester), 8, reason: 'səbət parçalarını saxlayır');
+      expect(marked, findsOneWidget, reason: 'qoyulmuş parça nişanlıdır');
+
+      // İpucu zamanı sürükləmə və geri qaytarma heç nə dəyişmir.
+      await drag(tester.getCenter(trayPiece().first), cell1);
+      await tester.tap(find.byType(DragTarget<int>).at(0), warnIfMissed: false);
+      await tester.pump();
+      expect(trayPieces(tester), 8);
+      expect(marked, findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('2 s'), findsNothing);
+      expect(trayPieces(tester), 8);
+      expect(marked, findsOneWidget);
+      expect(calls, isEmpty);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('ipucu gedərkən ikinci toxunuş həll olunmuş lövhəni saxlamır', (

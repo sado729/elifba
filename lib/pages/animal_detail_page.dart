@@ -272,7 +272,10 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
   }
 
   void _removeFoodOverlay() {
-    _foodOverlayEntry?.remove();
+    // `OverlayEntry` ChangeNotifier-dir: çıxarılandan sonra atılmalıdır.
+    _foodOverlayEntry
+      ?..remove()
+      ..dispose();
     _foodOverlayEntry = null;
   }
 
@@ -359,10 +362,20 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
 
   /// Səhnənin hündürlüyü: 16:9, ən çox 320 dp (eni planşet/landşaftda
   /// səhnə bütün ekranı tutmasın). Səhnənin şaquli boşluğu yoxdur.
+  ///
+  /// Üstəlik sürüşən sahənin (üst paneldən aşağı) yapışqan tablardan sonra
+  /// qalan hissəsinin ən çox 60 %-i, ən azı 120 dp. Landşaft telefonda
+  /// (640x360) 16:9 səhnə bütün sahəni tuturdu: tablar, ulduz nişanı və
+  /// bölmə ekrandan kənarda qalırdı, uşağın isə sürüşdürmək üçün heç bir
+  /// işarəsi yox idi. 360x640 və 412x915-də heç nə dəyişmir (189 / 218 dp);
+  /// 800x600 test səthində 320 → 280 dp.
   double _stageHeight(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     final vp = MediaQuery.viewPaddingOf(context);
-    final width = MediaQuery.sizeOf(context).width - vp.left - vp.right - 24;
-    return math.max(0, math.min(width * 9 / 16, 320));
+    final width = size.width - vp.left - vp.right - 24;
+    final viewport = size.height - vp.top - vp.bottom - ElifbaSize.toolbar;
+    final byHeight = math.max(120.0, (viewport - _TabsHeader.extent) * 0.6);
+    return math.max(0, math.min(math.min(width * 9 / 16, 320), byHeight));
   }
 
   /// Tab seçimi. Radio qaydası: seçilmiş taba yenidən toxunmaq heç nə etmir.
@@ -502,7 +515,10 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
             ],
           ),
         ),
-        actionsPadding: const EdgeInsets.only(right: 10),
+        // Dizayn: 10 dp kənar, 44 dp qutular, aralarında 6 dp. 44 dp-lik
+        // chevron 48 dp toxunuş sahəsinə genişlənir (hər tərəfdən 2 dp), ona
+        // görə kənar 8, ara 2 — mərkəzlər dizayndakı kimi (360-da 278 və 328).
+        actionsPadding: const EdgeInsets.only(right: 8),
         actions: [
           ToolbarChevron(
             forward: false,
@@ -525,7 +541,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                     }
                     : null,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 2),
           ToolbarChevron(
             forward: true,
             width: 44,
@@ -937,19 +953,25 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
           ),
           if (paragraphs.isNotEmpty) ...[
             const SizedBox(height: 12),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: ElifbaTextStyles.maxLineWidth(bodyStyle),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (var i = 0; i < paragraphs.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 12),
-                    Text(paragraphs[i], style: bodyStyle),
+            // `stretch` sıx en verir və `ConstrainedBox` onu aşa bilmir —
+            // `Align` eni boşaldır, sonra sətir 34 em-ə (612 dp) qədər
+            // məhdudlaşır və başlanğıca yapışır (CSS `max-width: 34em`).
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: ElifbaTextStyles.maxLineWidth(bodyStyle),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < paragraphs.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      Text(paragraphs[i], style: bodyStyle),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ],
@@ -966,10 +988,14 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Dizayn başlığı `font: 700 18px Comfortaa` ilə verir — CSS-in
+          // "normal" sətri (~20 dp), DS-in 24 dp-si yox. 24 ilə çiplər 4 dp
+          // aşağı düşürdü (Məlumat kartında başlığı 48 dp-lik sətir saxlayır).
           Text(
             'Qidaları:',
             style: ElifbaTypography.textTheme.titleMedium!.copyWith(
               color: ElifbaPalette.onSurface,
+              height: 20 / 18,
             ),
           ),
           const SizedBox(height: 14),
@@ -1100,7 +1126,8 @@ class _StarPill extends StatelessWidget {
 }
 
 /// Qidanın 44 dp dairəvi diski: uçan nüsxə və heyvanın üstündəki "pop".
-/// Şəkil çipdəki ilə eyni dekod enindədir (gotcha 8).
+/// Şəkil 4 dp içəridədir (36 dp, spec §7.2/§7.4) — diskin kənarından
+/// çıxmasın. Dekod eni çipdəki ilə eynidir (gotcha 8).
 class _FoodDisc extends StatelessWidget {
   const _FoodDisc({required this.imagePath, required this.tint, this.ring = 0});
 
@@ -1108,11 +1135,15 @@ class _FoodDisc extends StatelessWidget {
   final Color tint;
   final double ring;
 
+  static const double _inset = 4;
+  static const double _art = ElifbaSize.chipImage - 2 * _inset;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: ElifbaSize.chipImage,
       height: ElifbaSize.chipImage,
+      padding: const EdgeInsets.all(_inset),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: tint,
@@ -1123,13 +1154,12 @@ class _FoodDisc extends StatelessWidget {
       ),
       child: Image.asset(
         imagePath,
-        width: ElifbaSize.chipImage,
-        height: ElifbaSize.chipImage,
+        width: _art,
+        height: _art,
         fit: BoxFit.contain,
         cacheWidth: kFoodDecodeWidth,
         errorBuilder:
-            (context, error, stackTrace) =>
-                const ImagePlaceholder(size: ElifbaSize.chipImage),
+            (context, error, stackTrace) => const ImagePlaceholder(size: _art),
       ),
     );
   }

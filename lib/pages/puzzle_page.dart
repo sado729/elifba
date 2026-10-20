@@ -48,6 +48,18 @@ const double _kMaxBoard = 480;
 /// Səbətdəki parçanın ən böyük ölçüsü.
 const double _kMaxTrayPiece = 64;
 
+/// Səhv xananın qırıq xətti: 3 dp, xananın İÇİNDƏ (ScreenAnimal
+/// `outline: 3px dashed; outline-offset: -3px`), 6/3 dp addım. DS-dəki
+/// `cellWrongOutline` (xaricə 2 dp) tək kafel üçündür — 2 dp aralı lövhədə
+/// qonşu xananın yaşıl halqasının və lövhənin kənarının üstünə çıxırdı.
+const DashedRRectPainter _kCellWrongOutline = DashedRRectPainter(
+  color: ElifbaPalette.error,
+  strokeWidth: ElifbaRing.strong,
+  radius: ElifbaRadius.r6,
+  dash: 6,
+  gap: 3,
+);
+
 class _PuzzlePageState extends State<PuzzlePage> {
   /// Pazl ölçüsü. Başlanğıc dəyər valideyn ayarlarından gəlir; səhifə
   /// içindəki seçici onu dəyişəndə ayar da yenilənir — ölçü üçün iki fərqli
@@ -136,7 +148,9 @@ class _PuzzlePageState extends State<PuzzlePage> {
     _originalSlots = List.from(slots);
     _originalPieces = List.from(pieces);
 
-    // Düzgün vəziyyət göstər
+    // Model həll olunmuş vəziyyətə keçir (gotcha 14: tamamlanma yoxlaması
+    // `!showHint` ilə qorunur). Ekran isə bu müddətdə uşağın saxlanmış
+    // vəziyyətini və üstündə kölgə şəkli göstərir (`build`).
     setState(() {
       showHint = true;
       slots = List.generate(gridSize * gridSize, (i) => i);
@@ -173,7 +187,9 @@ class _PuzzlePageState extends State<PuzzlePage> {
 
   Future<void> _playWinSound() => _winPlayer.replay();
 
-  bool _isCompleted() {
+  bool _isCompleted() => _isSolved(slots, pieces);
+
+  static bool _isSolved(List<int?> slots, List<int> pieces) {
     for (int i = 0; i < slots.length; i++) {
       if (slots[i] != i) return false;
     }
@@ -221,7 +237,13 @@ class _PuzzlePageState extends State<PuzzlePage> {
 
   /// Xanaya parça düşdü. [pieceIndex] xananın qurulma anındakı dəyəridir —
   /// yalnız boş xana qəbul edir.
+  ///
+  /// İpucu zamanı lövhə və səbət toxunuşa bağlıdır (`IgnorePointer`); bu
+  /// yoxlama ehtiyat üçündür: model o vaxt həll olunmuş vəziyyətdədir, ekran
+  /// isə uşağın öz vəziyyətini göstərir, və ipucu zamanı pop/silkələnmə
+  /// olmamalıdır (spec §9.4).
   void _onDrop(int i, int? pieceIndex, int from) {
+    if (showHint) return;
     setState(() {
       if (pieceIndex == null && from < slots.length && slots[from] != null) {
         slots[i] = slots[from];
@@ -250,6 +272,7 @@ class _PuzzlePageState extends State<PuzzlePage> {
 
   /// Qoyulmuş parçaya toxunmaq onu səbətin sonuna qaytarır.
   void _sendBack(int i) {
+    if (showHint) return;
     setState(() {
       if (slots[i] != null) {
         pieces.add(slots[i]!);
@@ -266,7 +289,14 @@ class _PuzzlePageState extends State<PuzzlePage> {
     final animalData = AppConfig.findAnimal(animalLetter, animal);
     final imageAsset =
         animalData?.imagePath.replaceFirst('.webp', '_puzzle.jpg') ?? '';
-    final boardDone = !showHint && _isCompleted();
+    // İpucu zamanı lövhə və səbət uşağın ÖZ vəziyyətini göstərir (dizayn:
+    // qoyduğu parçalar ✓/✕ ilə qalır, boş xanalar boş, səbət dolu), üstündə
+    // 40 %-lik bütöv şəkil. Model (`slots`/`pieces`) isə ipucu boyu həll
+    // olunmuş vəziyyətdədir və 2 s sonra geri qaytarılır — mexanizm və
+    // gotcha 14-ün qoruyucusu dəyişməyib.
+    final viewSlots = showHint ? _originalSlots : slots;
+    final viewPieces = showHint ? _originalPieces : pieces;
+    final boardDone = _isSolved(viewSlots, viewPieces);
 
     return Stack(
       children: [
@@ -292,9 +322,17 @@ class _PuzzlePageState extends State<PuzzlePage> {
                     const SizedBox(height: 12),
                     _buildLevels(),
                     const SizedBox(height: 12),
-                    Center(child: _buildBoard(board, cell, img, boardDone)),
+                    Center(
+                      child: _buildBoard(
+                        board,
+                        cell,
+                        img,
+                        viewSlots,
+                        boardDone,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    _buildTray(piece, img, boardDone),
+                    _buildTray(piece, img, viewPieces, boardDone),
                   ],
                 );
               },
@@ -422,7 +460,13 @@ class _PuzzlePageState extends State<PuzzlePage> {
 
   // ---------------------------------------------------------------- lövhə
 
-  Widget _buildBoard(double board, double cell, ui.Image? img, bool boardDone) {
+  Widget _buildBoard(
+    double board,
+    double cell,
+    ui.Image? img,
+    List<int?> viewSlots,
+    bool boardDone,
+  ) {
     final n = gridSize;
     return AnimatedContainer(
       duration: ElifbaMotion.boardDone,
@@ -432,21 +476,32 @@ class _PuzzlePageState extends State<PuzzlePage> {
       decoration: boardDone ? GameDecorations.boardDone : GameDecorations.board,
       child: Stack(
         children: [
-          Column(
-            children: [
-              for (var r = 0; r < n; r++) ...[
-                if (r > 0) const SizedBox(height: GameDecorations.boardGap),
-                Row(
-                  children: [
-                    for (var c = 0; c < n; c++) ...[
-                      if (c > 0)
-                        const SizedBox(width: GameDecorations.boardGap),
-                      _buildCell(r * n + c, cell, img, boardDone),
+          // İpucu zamanı xanalar toxunuşa bağlıdır: göstərilən vəziyyət
+          // modeldəki (həll olunmuş) vəziyyət deyil.
+          IgnorePointer(
+            ignoring: showHint,
+            child: Column(
+              children: [
+                for (var r = 0; r < n; r++) ...[
+                  if (r > 0) const SizedBox(height: GameDecorations.boardGap),
+                  Row(
+                    children: [
+                      for (var c = 0; c < n; c++) ...[
+                        if (c > 0)
+                          const SizedBox(width: GameDecorations.boardGap),
+                        _buildCell(
+                          r * n + c,
+                          viewSlots[r * n + c],
+                          cell,
+                          img,
+                          boardDone,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           // İpucu: bütöv şəkil 40 % ilə xanaların üstündə (yenidən dekod yox —
           // gotcha 9) və «2 s» nişanı. Toxunuşları buraxır.
@@ -473,8 +528,13 @@ class _PuzzlePageState extends State<PuzzlePage> {
     );
   }
 
-  Widget _buildCell(int i, double size, ui.Image? img, bool boardDone) {
-    int? pieceIndex = slots[i];
+  Widget _buildCell(
+    int i,
+    int? pieceIndex,
+    double size,
+    ui.Image? img,
+    bool boardDone,
+  ) {
     // Pop/silkələnmə xananın ÖZÜNDƏdir: struktur hər vəziyyətdə eynidir, ona
     // görə yalnız düşmə anında (trigger dəyişəndə) oynayır.
     return SizedBox(
@@ -495,12 +555,11 @@ class _PuzzlePageState extends State<PuzzlePage> {
                   child: const SizedBox.expand(),
                 );
               }
-              // Lövhə bitəndə və ipucu zamanı nişan yoxdur — lövhənin
-              // halqası vəziyyəti daşıyır.
+              // Lövhə bitəndə nişan yoxdur — lövhənin halqası vəziyyəti
+              // daşıyır. İpucu zamanı uşağın parçaları nişanlarını saxlayır
+              // (dizayn), kölgə şəkil onların üstündədir.
               final bool? mark =
-                  showHint
-                      ? null
-                      : (pieceIndex == i ? (boardDone ? null : true) : false);
+                  pieceIndex == i ? (boardDone ? null : true) : false;
               return Draggable<int>(
                 data: i, // slot index
                 feedback: _liftedPiece(pieceIndex, size, img),
@@ -562,12 +621,7 @@ class _PuzzlePageState extends State<PuzzlePage> {
                       ? const DecoratedBox(
                         decoration: GameDecorations.cellCorrect,
                       )
-                      : const CustomPaint(
-                        foregroundPainter: GameDecorations.cellWrongOutline,
-                        child: DecoratedBox(
-                          decoration: GameDecorations.cellWrong,
-                        ),
-                      ),
+                      : const CustomPaint(painter: _kCellWrongOutline),
             ),
           ),
           Positioned(
@@ -635,11 +689,16 @@ class _PuzzlePageState extends State<PuzzlePage> {
     );
   }
 
-  Widget _buildTray(double piece, ui.Image? img, bool boardDone) {
+  Widget _buildTray(
+    double piece,
+    ui.Image? img,
+    List<int> pieces,
+    bool boardDone,
+  ) {
     final List<Widget> children;
     if (boardDone && pieces.isEmpty) {
-      // Bitdi: ✓ + ulduz. Yalnız lövhə həqiqətən bitəndə — ipucu zamanı
-      // səbət sadəcə boş qalır.
+      // Bitdi: ✓ + ulduz. Yalnız lövhə həqiqətən bitəndə (səhv parçalı
+      // lövhədə yox). İpucu zamanı səbət uşağın parçalarını göstərir.
       children = [
         Semantics(
           label: 'Pazl tamamlandı',
@@ -679,13 +738,18 @@ class _PuzzlePageState extends State<PuzzlePage> {
       padding: const EdgeInsets.all(10),
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: piece),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          runAlignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 6,
-          runSpacing: 6,
-          children: children,
+        // İpucu zamanı göstərilən parçalar modeldə yoxdur (model həll
+        // olunmuş vəziyyətdədir) — sürüklənə bilməzlər.
+        child: IgnorePointer(
+          ignoring: showHint,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 6,
+            children: children,
+          ),
         ),
       ),
     );
@@ -779,7 +843,10 @@ class _PuzzlePageState extends State<PuzzlePage> {
   }
 
   void _removeFullImageOverlay() {
-    _imageOverlayEntry?.remove();
+    // `OverlayEntry` ChangeNotifier-dir: çıxarılandan sonra atılmalıdır.
+    _imageOverlayEntry
+      ?..remove()
+      ..dispose();
     _imageOverlayEntry = null;
   }
 }

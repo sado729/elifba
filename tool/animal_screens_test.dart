@@ -184,12 +184,27 @@ void _resetSettings() {
   s.puzzleGridSize = 3;
 }
 
-void _setSurface(WidgetTester tester, double w, double h) {
+void _setSurface(
+  WidgetTester tester,
+  double w,
+  double h, {
+  double bottomInset = 24,
+}) {
   tester.view.devicePixelRatio = 2;
   tester.view.physicalSize = Size(w * 2, h * 2);
   // Maketlər kimi: 24 dp status bar, 24 dp jest zolağı.
-  tester.view.padding = const FakeViewPadding(top: 48, bottom: 48);
-  tester.view.viewPadding = const FakeViewPadding(top: 48, bottom: 48);
+  final padding = FakeViewPadding(top: 48, bottom: bottomInset * 2);
+  tester.view.padding = padding;
+  tester.view.viewPadding = padding;
+}
+
+/// [ms] millisaniyəni 16 ms-lik kadrlarla keçir — real kadr ardıcıllığı kimi
+/// (bir böyük `pump` Squishy-nin buraxılışını növbəti kadra saxlayır və
+/// çip basılı görünür).
+Future<void> _frames(WidgetTester tester, int ms) async {
+  for (var t = 0; t < ms; t += 16) {
+    await tester.pump(Duration(milliseconds: ms - t < 16 ? ms - t : 16));
+  }
 }
 
 /// Real vaxtın keçməsinə imkan verir (dekod, konfeti fizikası).
@@ -229,9 +244,10 @@ Future<ProgressStore> _open(
   String animal, {
   double w = 360,
   double h = 640,
+  double bottomInset = 24,
   void Function(ProgressStore store)? prepare,
 }) async {
-  _setSurface(tester, w, h);
+  _setSurface(tester, w, h, bottomInset: bottomInset);
   addTearDown(tester.view.reset);
   addTearDown(_resetSettings);
   final store = ProgressStore.forTesting();
@@ -421,10 +437,9 @@ void main() {
     await _open(tester, 'Ayı');
     await _tab(tester, 'Qidalar');
     await tester.tap(find.text('Bal'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 420));
+    await _frames(tester, 420);
     await _shoot(tester, 'animal_04_food-flight_360');
-    await tester.pump(const Duration(milliseconds: 520));
+    await _frames(tester, 520);
     await _shoot(tester, 'animal_04b_food-arrival_360');
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump(const Duration(milliseconds: 300));
@@ -436,8 +451,7 @@ void main() {
     await _open(tester, 'Ayı');
     await _tab(tester, 'Qidalar');
     await tester.tap(find.text('Balıq'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await _frames(tester, 300);
     await _shoot(tester, 'animal_04d_food-reduced-hold_360');
     await tester.pump(const Duration(milliseconds: 600));
   });
@@ -576,13 +590,32 @@ void main() {
     await _open(tester, 'Ayı');
     await _tab(tester, 'Pazl');
     await _waitPuzzleImage(tester);
+    // Maketin "hint" vəziyyəti: ilk iki parça yerindədir.
+    _setSurface(tester, 360, 1400);
+    await tester.pump();
+    await _placePiece(tester, 0, 0, 3);
+    await _placePiece(tester, 1, 1, 3);
+    _setSurface(tester, 360, 640);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.text('İpucu'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await _shoot(tester, 'animal_13_puzzle-hint_360');
+    // Eyni an, bütöv lövhə və səbət (maketdə ekrandan kənardadır).
+    _setSurface(tester, 360, 1100);
+    await tester.pump();
+    await _shoot(tester, 'animal_13c_puzzle-hint-tall_360');
     // Ipucu ulduz vermir (gotcha 14) və 2 s sonra bitir.
     await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(milliseconds: 300));
+  });
+
+  testWidgets('11t puzzle 4x4 right/wrong, whole board 360', (tester) async {
+    await playing(tester, 4, 360, 640);
+    _setSurface(tester, 360, 1100);
+    await tester.pump();
+    await _shoot(tester, 'animal_11t_puzzle-4x4-whole-board_360');
   });
 
   testWidgets('13b puzzle peek 360', (tester) async {
@@ -668,6 +701,36 @@ void main() {
     await _shoot(tester, 'animal_18_food-fed_412');
   });
 
+  // ------------------------------------------- landşaft 640 x 360
+  //
+  // Dizayn yalnız portretdir; bu kadrlar səhnənin hündürlük həddini
+  // yoxlayır (tablar və bölmə 0 sürüşdürmədə görünməlidir).
+
+  testWidgets('L1 landscape info 640', (tester) async {
+    await _open(tester, 'Ayı', w: 640, h: 360, bottomInset: 0);
+    await _shoot(tester, 'animal_L1_landscape-info_640');
+  });
+
+  testWidgets('L2 landscape food 640', (tester) async {
+    await _open(tester, 'Ayı', w: 640, h: 360, bottomInset: 0);
+    await _tab(tester, 'Qidalar');
+    await _shoot(tester, 'animal_L2_landscape-food_640');
+  });
+
+  testWidgets('L3 landscape full star 640', (tester) async {
+    AppSettings.instance.reduceMotion = true;
+    await _open(
+      tester,
+      'Ayı',
+      w: 640,
+      h: 360,
+      bottomInset: 0,
+      prepare: (s) => _prepareAllButInfo(s, 'Ayı'),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await _shoot(tester, 'animal_L3_landscape-full-star_640');
+  });
+
   // ------------------------------------------------- daşma yoxlamaları
 
   testWidgets('20 test surface 800x600, every section', (tester) async {
@@ -712,8 +775,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('Alma'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 880));
+    await _frames(tester, 880);
     await _shoot(tester, 'animal_22_feeding-scrolled_360');
     await tester.pump(const Duration(milliseconds: 900));
   });
