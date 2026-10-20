@@ -137,17 +137,17 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: AlphabetPage()));
       await tester.pump();
 
-      expect(find.byIcon(Icons.volume_up), findsOneWidget);
+      expect(find.byIcon(Icons.volume_up_rounded), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.volume_up));
+      await tester.tap(find.byIcon(Icons.volume_up_rounded));
       await tester.pump();
 
       expect(settings.masterSound, isFalse);
-      expect(find.byIcon(Icons.volume_off), findsOneWidget);
-      expect(find.byIcon(Icons.volume_up), findsNothing);
+      expect(find.byIcon(Icons.volume_off_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.volume_up_rounded), findsNothing);
 
       // Geri qaytarmaq da bir toxunuşdur.
-      await tester.tap(find.byIcon(Icons.volume_off));
+      await tester.tap(find.byIcon(Icons.volume_off_rounded));
       await tester.pump();
       expect(settings.masterSound, isTrue);
       expect(tester.takeException(), isNull);

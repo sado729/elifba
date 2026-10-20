@@ -136,9 +136,7 @@ class _AlphabetPageState extends State<AlphabetPage> {
                       ),
                     ),
                     // Səsi susdurmaq qapısızdır — təcili ehtiyacdır.
-                    MuteButton(
-                      color: Colors.white.withAlpha((0.8 * 255).toInt()),
-                    ),
+                    const MuteButton(),
                     // Ayarlar isə valideyn qapısının arxasındadır.
                     IconButton(
                       icon: Icon(
@@ -310,7 +308,6 @@ class _BookPage extends StatelessWidget {
               filled: stars,
               size: 20,
               spacing: 1,
-              emptyColor: Colors.black26,
             ),
           ],
         ),

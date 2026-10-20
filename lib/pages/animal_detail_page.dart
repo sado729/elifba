@@ -1119,7 +1119,6 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                 filled: ProgressStore.maxStarsPerLetter,
                                 size: 46,
                                 spacing: 2,
-                                emptyColor: Colors.black12,
                               )
                             else
                               const Icon(

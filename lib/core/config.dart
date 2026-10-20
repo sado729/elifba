@@ -80,6 +80,23 @@ class AppConfig {
     'Z',
   ];
 
+  /// Böyük hərf → kiçik hərf, açıq cədvəllə (32 hərfin hamısı).
+  ///
+  /// `toLowerCase()` işlədilmir: o, həm `I`-ni, həm `İ`-ni `i` edir (CLAUDE.md
+  /// gotcha 2), Azərbaycan dilində isə `I → ı`, `İ → i`-dir. `ProgressStore`
+  /// əks istiqamət üçün öz cədvəlini saxlayır.
+  static const Map<String, String> _lowerLetters = {
+    'A': 'a', 'B': 'b', 'C': 'c', 'Ç': 'ç', 'D': 'd', 'E': 'e', 'Ə': 'ə',
+    'F': 'f', 'G': 'g', 'Ğ': 'ğ', 'H': 'h', 'X': 'x', 'I': 'ı', 'İ': 'i',
+    'J': 'j', 'K': 'k', 'Q': 'q', 'L': 'l', 'M': 'm', 'N': 'n', 'O': 'o',
+    'Ö': 'ö', 'P': 'p', 'R': 'r', 'S': 's', 'Ş': 'ş', 'T': 't', 'U': 'u',
+    'Ü': 'ü', 'V': 'v', 'Y': 'y', 'Z': 'z',
+  };
+
+  /// Hərfin kiçik forması (ekranda göstərmək üçün). Cədvəldə olmayan mətn
+  /// dəyişmədən qaytarılır.
+  static String lowerOf(String letter) => _lowerLetters[letter] ?? letter;
+
   /// Tələffüz səsi (`assets/audios/<hərf>/<hərf>_info_sound.mp3`) faktiki olaraq
   /// mövcud olan hərflər. Səs faylı olmayan hərfdə səsləndirmə düyməsi
   /// göstərilmir — əks halda düymə səssiz qalır və "dayandır" vəziyyətində ilişir.

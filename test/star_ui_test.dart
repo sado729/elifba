@@ -24,15 +24,21 @@ import 'package:elifba/widgets/star_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Dolu ulduzların sayı: `StarRow` dolu ulduzu `Icons.star_rounded`,
-/// boşu `Icons.star_outline_rounded` ilə çəkir.
+/// Dolu ulduzların sayı: `StarRow` hər ulduzu bir `StarGlyph` ilə çəkir,
+/// dolu olanın `filled`-i `true`-dur.
 int _filledStars(WidgetTester tester, Finder row) => find
-    .descendant(of: row, matching: find.byIcon(Icons.star_rounded))
+    .descendant(
+      of: row,
+      matching: find.byWidgetPredicate((w) => w is StarGlyph && w.filled),
+    )
     .evaluate()
     .length;
 
 int _emptyStars(WidgetTester tester, Finder row) => find
-    .descendant(of: row, matching: find.byIcon(Icons.star_outline_rounded))
+    .descendant(
+      of: row,
+      matching: find.byWidgetPredicate((w) => w is StarGlyph && !w.filled),
+    )
     .evaluate()
     .length;
 

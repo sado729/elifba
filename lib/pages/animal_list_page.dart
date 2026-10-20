@@ -51,7 +51,6 @@ class _AnimalListPageState extends State<AnimalListPage> {
               filled: ProgressStore.maxStarsPerLetter,
               size: 42,
               spacing: 2,
-              emptyColor: Colors.black12,
             ),
             title: Text('${widget.letter} hərfi tamam!'),
             content: Text(
@@ -550,7 +549,6 @@ class _ModernAnimalCardState extends State<_ModernAnimalCard> {
                       ),
                       size: 15,
                       spacing: 1,
-                      emptyColor: Colors.deepPurple.shade100,
                     ),
                   ],
                 ),
