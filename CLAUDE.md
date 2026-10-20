@@ -271,6 +271,10 @@ diacritic letters. See Gotchas.
    **Letter audio is already fixed:** `AppConfig.letterAudioPath()` maps `I` to `ı/`
    explicitly, so `I` plays `assets/audios/ı/ı_info_sound.mp3` and `İ` plays `i/`. Images
    and the rest still go through `toLowerCase()`.
+   The trap also works the other way: `toUpperCase()` turns `i` into `I`, never `İ`.
+   All-caps UI text must map `i → İ` first, as `_SectionHeader` in `settings_page.dart`
+   does (it used to show "VALIDEYN"). `ProgressStore` keys letters through its own
+   explicit lower→upper table for the same reason.
 3. **Where the widgets live.** `AnimalWordPuzzle` is defined **inline** in
    `animal_detail_page.dart`; the old duplicate `pages/animal_word_puzzle.dart`
    and the YouTube widget were deleted. Do not reintroduce copies of either.

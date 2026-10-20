@@ -398,7 +398,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
     if (hasPuzzle) {
       actions.add(
         _ActionButtonData(
-          tooltip: 'Puzzle',
+          tooltip: 'Pazl',
           icon: Icons.extension_rounded,
           selected: showPuzzle,
           onTap: () {
@@ -1023,7 +1023,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                   child: Column(
                                     children: [
                                       const Text(
-                                        'Puzzle:',
+                                        'Pazl:',
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -1044,7 +1044,7 @@ class _AnimalDetailPageState extends State<AnimalDetailPage>
                                             color: Colors.grey[300],
                                             child: const Center(
                                               child: Text(
-                                                'Puzzle şəkli tapılmadı',
+                                                'Pazl şəkli tapılmadı',
                                               ),
                                             ),
                                           );

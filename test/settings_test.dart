@@ -79,13 +79,18 @@ void main() {
       var calls = 0;
       s.addListener(() => calls++);
 
-      s.puzzleGridSize = 5;
-      expect(s.puzzleGridSize, 3, reason: '5 icazə verilən ölçü deyil');
+      s.puzzleGridSize = 6;
+      expect(s.puzzleGridSize, 3, reason: '6 icazə verilən ölçü deyil');
       expect(calls, 0);
 
       s.puzzleGridSize = 4;
       expect(s.puzzleGridSize, 4);
       expect(calls, 1);
+
+      // Oyundakı "Çətin" 5×5-dir, ona görə 5 də qəbul olunur.
+      s.puzzleGridSize = 5;
+      expect(s.puzzleGridSize, 5);
+      expect(calls, 2);
     });
   });
 

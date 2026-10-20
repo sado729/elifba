@@ -112,6 +112,7 @@ class SettingsPage extends StatelessWidget {
                         segments: const [
                           ButtonSegment(value: 3, label: Text('3 × 3')),
                           ButtonSegment(value: 4, label: Text('4 × 4')),
+                          ButtonSegment(value: 5, label: Text('5 × 5')),
                         ],
                         selected: {settings.puzzleGridSize},
                         onSelectionChanged:
@@ -327,7 +328,10 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
       child: Text(
-        title.toUpperCase(),
+        // Dart-ın `toUpperCase()`-i dildən asılı deyil: `'i'` → `'I'` verir və
+        // "Valideyn" "VALIDEYN" olurdu. Azərbaycan dilində `i`-nin böyüyü `İ`-dir
+        // (CLAUDE.md → Gotchas 2). `ı` → `I` isə onsuz da düzgündür.
+        title.replaceAll('i', 'İ').toUpperCase(),
         style: TextStyle(
           color: Colors.white.withAlpha((0.75 * 255).toInt()),
           fontSize: 12,

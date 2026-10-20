@@ -230,7 +230,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                       ElevatedButton.icon(
                         onPressed: _showHint,
                         icon: const Icon(Icons.lightbulb_outline),
-                        label: const Text('Hint'),
+                        label: const Text('Kömək'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 18,
@@ -349,7 +349,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                                         'Təbriklər!',
                                                       ),
                                                       content: const Text(
-                                                        'Puzzle tamamlandı!',
+                                                        'Pazl tamamlandı!',
                                                       ),
                                                       actions: [
                                                         TextButton(
@@ -491,7 +491,7 @@ class _PuzzlePageState extends State<PuzzlePage> with TickerProviderStateMixin {
                                             (context) => AlertDialog(
                                               title: const Text('Təbriklər!'),
                                               content: const Text(
-                                                'Puzzle tamamlandı!',
+                                                'Pazl tamamlandı!',
                                               ),
                                               actions: [
                                                 TextButton(

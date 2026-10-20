@@ -45,8 +45,10 @@ class AppSettings extends ChangeNotifier {
   /// hər dəfə SharedPreferences-ə yazmasın.
   static const Duration _saveDebounce = Duration(milliseconds: 400);
 
-  /// İcazə verilən pazl ölçüləri. `puzzle_page.dart`-dakı seçici ilə eynidir.
-  static const List<int> puzzleGridSizes = [3, 4];
+  /// İcazə verilən pazl ölçüləri. `puzzle_page.dart`-dakı seçici (Asan / Orta /
+  /// Çətin) ilə eyni olmalıdır: əvvəl burada 5 yox idi, ona görə oyunda seçilən
+  /// "Çətin" heç vaxt yadda saxlanmırdı və pazl növbəti dəfə 3×3 açılırdı.
+  static const List<int> puzzleGridSizes = [3, 4, 5];
 
   SharedPreferences? _prefs;
   Timer? _saveTimer;

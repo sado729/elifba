@@ -106,6 +106,30 @@ void main() {
 
       expect(settings.puzzleGridSize, 4);
     });
+
+    // Oyundakı "Çətin" 5×5-dir; ayarlarda yoxdursa seçim yadda saxlanmır.
+    testWidgets('5 × 5 da seçilir', (tester) async {
+      await pumpSettings(tester);
+
+      await tester.scrollUntilVisible(find.text('5 × 5'), 200);
+      await tester.ensureVisible(find.text('5 × 5'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('5 × 5'));
+      await tester.pumpAndSettle();
+
+      expect(settings.puzzleGridSize, 5);
+    });
+  });
+
+  group('bölmə başlıqları', () {
+    // `toUpperCase()` `i`-ni `I` edir: başlıq əvvəl "VALIDEYN" görünürdü.
+    testWidgets('böyük hərfli başlıqda i → İ olur', (tester) async {
+      await pumpSettings(tester);
+
+      await tester.scrollUntilVisible(find.text('VALİDEYN'), 200);
+      expect(find.text('VALİDEYN'), findsOneWidget);
+      expect(find.text('VALIDEYN'), findsNothing);
+    });
   });
 
   group('sürətli mute düyməsi', () {
