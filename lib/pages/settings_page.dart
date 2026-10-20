@@ -61,7 +61,7 @@ final TextStyle _kCreditBody = ElifbaTextStyles.listSubtitle.copyWith(
 // yuvarlaqlaşdıraraq qurur. Andika 15 → 18 + 6 = 24, Andika 16 → 20 + 6 = 26,
 // 13 px monospace (renderdə Consolas) → 12 + 3 = 15. Renderlərdə ölçülüb.
 
-/// «Versiya 1.4.0»: Andika 15/24, #5E5888.
+/// «Versiya …» (kAppVersion): Andika 15/24, #5E5888.
 const TextStyle _kAboutVersion = TextStyle(
   fontFamily: ElifbaTypography.body,
   fontWeight: FontWeight.w400,
