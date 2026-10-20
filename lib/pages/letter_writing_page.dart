@@ -279,13 +279,23 @@ class _LetterWritingPageState extends State<LetterWritingPage>
             ),
             const SizedBox(width: 2),
             Expanded(
-              child: Text(
-                '$_letter hərfini yaz',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: ElifbaTextStyles.traceTitle.copyWith(
-                  color: ElifbaPalette.onSurface,
+              // TalkBack səhifə açılanda başlığı ekranın adı kimi oxusun
+              // (`AppBar` kimi; iOS-da `namesRoute` verilmir).
+              child: Semantics(
+                container: true,
+                header: true,
+                namesRoute: switch (Theme.of(context).platform) {
+                  TargetPlatform.iOS || TargetPlatform.macOS => null,
+                  _ => true,
+                },
+                child: Text(
+                  '$_letter hərfini yaz',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ElifbaTextStyles.traceTitle.copyWith(
+                    color: ElifbaPalette.onSurface,
+                  ),
                 ),
               ),
             ),

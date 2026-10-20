@@ -33,12 +33,6 @@ const ListTileThemeData _kRowTileTheme = ListTileThemeData(
 /// Maketdə başlıqla altyazı arasındakı `gap: 1px`.
 const EdgeInsets _kSubtitleGap = EdgeInsets.only(top: 1);
 
-/// Bölmə başlığının sətir qutusu: maket `line-height` vermir (`normal`).
-/// Brauzer onu Andika-nın ascent/descent-indən, ikisini AYRI-AYRI
-/// yuvarlaqlaşdıraraq qurur: 14 px-də 17.09 → 17 və 5.47 → 5, cəmi 22 dp
-/// (renderlərdə ölçülüb). Fondasiyanın `sectionLabel`-i 14/20-dir.
-const double _kGroupHeaderHeight = 22 / 14;
-
 /// Sıfırlama dialoqunun eni (maket: `max-width: 312px`).
 const double _kResetDialogMaxWidth = 312;
 
@@ -182,7 +176,7 @@ class SettingsPage extends StatelessWidget {
         16 + insets.bottom,
       ),
       children: [
-        const _GroupHeader('Səs', first: true),
+        const ParentSectionHeader('Səs', first: true),
         gap,
         _group(
           [
@@ -219,7 +213,7 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         gap,
-        const _GroupHeader('Oyun'),
+        const ParentSectionHeader('Oyun'),
         gap,
         _group(
           [
@@ -241,7 +235,7 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         gap,
-        const _GroupHeader('Valideyn'),
+        const ParentSectionHeader('Valideyn'),
         gap,
         _group(
           [
@@ -256,7 +250,7 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
         gap,
-        const _GroupHeader('Məlumat'),
+        const ParentSectionHeader('Məlumat'),
         gap,
         _group(
           [
@@ -553,32 +547,6 @@ class _SettingsToolbar extends StatelessWidget {
   }
 }
 
-/// Bölmə başlığı: `ParentSectionHeader`-in eynisi (cümlə registri, Andika
-/// 700 14 #5C45B5, 12/16 üst və 4 alt boşluq), bircə fərqlə — sətir qutusu
-/// maketdəki kimi 22 dp-dir, fondasiyanın `sectionLabel`-indəki 20 deyil.
-/// 20 hər başlığı 2 dp qısaldır və kartlar maketdən getdikcə yuxarı sürüşür
-/// (412-də «Məlumat» 8 dp).
-class _GroupHeader extends StatelessWidget {
-  const _GroupHeader(this.title, {this.first = false});
-
-  final String title;
-
-  /// Siyahının ilk başlığı yuxarıda 12, qalanları 16 dp boşluq alır.
-  final bool first;
-
-  static final TextStyle _style = ElifbaTextStyles.sectionLabel.copyWith(
-    height: _kGroupHeaderHeight,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(4, first ? 12 : 16, 4, 4),
-      child: Semantics(header: true, child: Text(title, style: _style)),
-    );
-  }
-}
-
 /// Kartdakı bir sətrin yeri. Maketdə sətir `min-height: 64px;
 /// box-sizing: border-box`-dur və sonrakı sətirlərin 1 px `border-top`-u
 /// həmin 64-ün İÇİNDƏDİR. `ParentGroup` isə sətirlərin ARASINA ayrıca 1 dp
@@ -817,7 +785,7 @@ class _ResetConfirmDialog extends StatelessWidget {
     );
     return ParentDialogFrame(
       maxWidth: _kResetDialogMaxWidth,
-      semanticLabel: _title,
+      // Ad görünən başlıqdan gəlir (`ParentDialogTitle`) — iki dəfə oxunmasın.
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
         child: Column(
@@ -849,7 +817,7 @@ class _ResetConfirmDialog extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: _gap),
-                          Text(
+                          ParentDialogTitle(
                             _title,
                             textAlign: TextAlign.center,
                             style: titleStyle,

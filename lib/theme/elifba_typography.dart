@@ -434,7 +434,8 @@ abstract final class ElifbaTextStyles {
     fontFamily: ElifbaTypography.body,
     fontWeight: FontWeight.w700,
     fontSize: 14,
-    height: 20 / 14,
+    // 22 dp sətir qutusu — ScreenSettings renderlərində ölçülüb.
+    height: 22 / 14,
     letterSpacing: 0,
     leadingDistribution: TextLeadingDistribution.even,
     color: Color(0xFF5C45B5),

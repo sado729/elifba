@@ -48,18 +48,6 @@ const double _kMaxBoard = 480;
 /// Səbətdəki parçanın ən böyük ölçüsü.
 const double _kMaxTrayPiece = 64;
 
-/// Səhv xananın qırıq xətti: 3 dp, xananın İÇİNDƏ (ScreenAnimal
-/// `outline: 3px dashed; outline-offset: -3px`), 6/3 dp addım. DS-dəki
-/// `cellWrongOutline` (xaricə 2 dp) tək kafel üçündür — 2 dp aralı lövhədə
-/// qonşu xananın yaşıl halqasının və lövhənin kənarının üstünə çıxırdı.
-const DashedRRectPainter _kCellWrongOutline = DashedRRectPainter(
-  color: ElifbaPalette.error,
-  strokeWidth: ElifbaRing.strong,
-  radius: ElifbaRadius.r6,
-  dash: 6,
-  gap: 3,
-);
-
 class _PuzzlePageState extends State<PuzzlePage> {
   /// Pazl ölçüsü. Başlanğıc dəyər valideyn ayarlarından gəlir; səhifə
   /// içindəki seçici onu dəyişəndə ayar da yenilənir — ölçü üçün iki fərqli
@@ -621,7 +609,9 @@ class _PuzzlePageState extends State<PuzzlePage> {
                       ? const DecoratedBox(
                         decoration: GameDecorations.cellCorrect,
                       )
-                      : const CustomPaint(painter: _kCellWrongOutline),
+                      : const CustomPaint(
+                        painter: GameDecorations.cellWrongOutlineInside,
+                      ),
             ),
           ),
           Positioned(

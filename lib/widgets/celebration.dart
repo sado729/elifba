@@ -444,7 +444,14 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
               // Kartın ətrafındakı boşluq da scrim-dir: toxunuş scrim-ə
               // keçsin (defolt `opaque` onu udardı).
               hitTestBehavior: HitTestBehavior.deferToChild,
-              padding: EdgeInsets.fromLTRB(pad, pad + (big ? 64 : 0), pad, pad),
+              // Böyük kartın günəşi 64 dp yuxarı çıxır; altda da eyni boşluq
+              // olsun ki, kartın özü ekranın ortasında dursun (render 09).
+              padding: EdgeInsets.fromLTRB(
+                pad,
+                pad + (big ? 64 : 0),
+                pad,
+                pad + (big ? 64 : 0),
+              ),
               child: widget.card,
             ),
           ),
@@ -664,7 +671,7 @@ class _CelebrationRouteBodyState extends State<_CelebrationRouteBody> {
                   pad,
                   pad + (_big ? 64 : 0),
                   pad,
-                  pad,
+                  pad + (_big ? 64 : 0),
                 ),
                 child: card,
               ),

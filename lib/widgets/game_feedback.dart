@@ -154,6 +154,18 @@ abstract final class GameDecorations {
     outset: 2,
   );
 
+  /// Lövhədəki (şəbəkədəki) səhv xananın qırıq xətti: 3 dp, xananın İÇİNDƏ
+  /// (ScreenAnimal `outline: 3px dashed; outline-offset: -3px`), 6/3 dp addım.
+  /// [cellWrongOutline] (xaricə 2 dp) tək kafel üçündür — 2 dp aralı lövhədə
+  /// qonşu xananın yaşıl halqasının və lövhənin kənarının üstünə çıxır.
+  static const DashedRRectPainter cellWrongOutlineInside = DashedRRectPainter(
+    color: ElifbaPalette.error,
+    strokeWidth: ElifbaRing.strong,
+    radius: ElifbaRadius.r6,
+    dash: 6,
+    gap: 3,
+  );
+
   /// Xana nişanının ölçüsü və yeri (`bottom 3, right 3`).
   static const double cellBadgeSize = ElifbaSize.badgeS;
   static const double cellBadgeInset = 3;

@@ -153,6 +153,8 @@ class _CssRRectPainter extends BoxPainter {
 ///   dp boşluq saxlamalıdır.
 /// * Azaldılmış hərəkət bunu söndürmür — birbaşa toxunuş cavabıdır.
 /// * Hover və dalğa (ripple) yoxdur.
+/// * Klaviatura / D-pad / switch access ilə fokuslanır və Enter / Space ilə
+///   basılır; fokusda 2 dp secondary halqa görünür (mövcud halqanın yerinə).
 ///
 /// Sürüklənən kafel və pazl parçaları `Squishy` DEYİL (drag tanıyıcısı
 /// toxunuşu oğurlayardı) — onlar `GameDecorations`-dan statik üz alır.
@@ -258,7 +260,19 @@ class _SquishyState extends State<Squishy> with SingleTickerProviderStateMixin {
   /// Toxunuş basış bitməmiş buraxıldı — basış sona çatanda buraxılacaq.
   bool _releaseQueued = false;
 
+  /// Klaviatura / D-pad / switch access fokusu göstərilir.
+  bool _focusHighlight = false;
+
   bool get _on => widget.enabled && widget.onTap != null;
+
+  late final Map<Type, Action<Intent>> _actions = {
+    ActivateIntent: CallbackAction<ActivateIntent>(
+      onInvoke: (_) {
+        if (_on) widget.onTap!();
+        return null;
+      },
+    ),
+  };
 
   @override
   void didUpdateWidget(covariant Squishy oldWidget) {
@@ -310,6 +324,13 @@ class _SquishyState extends State<Squishy> with SingleTickerProviderStateMixin {
             ? RoundedRectangleBorder(borderRadius: widget.borderRadius!)
             : widget.shape;
     final depth = widget.pressDepth ?? widget.edge;
+    // Fokus halqası: 2 dp secondary, mövcud halqanın yerinə (eyni yoldan).
+    final focused = on && _focusHighlight;
+    final ringWidth =
+        focused
+            ? math.max(ElifbaRing.normal, widget.ringWidth)
+            : widget.ringWidth;
+    final ringColor = focused ? ElifbaPalette.secondary : widget.ringColor;
 
     Widget frame = AnimatedBuilder(
       animation: _v,
@@ -343,8 +364,8 @@ class _SquishyState extends State<Squishy> with SingleTickerProviderStateMixin {
                     ? (widget.edge - depth * v).clamp(0.0, widget.edge + 1)
                     : 0.0,
             edgeColor: widget.edgeColor,
-            ringWidth: on ? math.max(0.0, widget.ringWidth) : 0.0,
-            ringColor: widget.ringColor,
+            ringWidth: on ? math.max(0.0, ringWidth) : 0.0,
+            ringColor: ringColor,
           ),
           child: child,
         );
@@ -357,6 +378,18 @@ class _SquishyState extends State<Squishy> with SingleTickerProviderStateMixin {
       onTapUp: on ? _up : null,
       onTapCancel: on ? _cancel : null,
       onTap: on ? widget.onTap : null,
+      child: frame,
+    );
+
+    // Klaviatura, D-pad və switch access: Enter / Space / seç → onTap.
+    // Fokus yalnız aktiv düymədə mümkündür.
+    frame = FocusableActionDetector(
+      enabled: on,
+      actions: _actions,
+      mouseCursor: on ? SystemMouseCursors.click : MouseCursor.defer,
+      onShowFocusHighlight: (value) {
+        if (value != _focusHighlight) setState(() => _focusHighlight = value);
+      },
       child: frame,
     );
 

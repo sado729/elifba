@@ -48,6 +48,9 @@ class FoodChip extends StatelessWidget {
   /// Uçuşun başlanğıc nöqtəsi üçün diskin açarı (bu günkü `_foodKeys`).
   final Key? imageKey;
 
+  /// Şəklin diskin kənarından içəri boşluğu (44 dp disk → 36 dp şəkil).
+  static const double _artInset = 4;
+
   @override
   Widget build(BuildContext context) {
     // Uçuş zamanı BÜTÜN disk (fon da) 35 %-dir (DS "Quru yem", ScreenAnimal).
@@ -61,23 +64,29 @@ class FoodChip extends StatelessWidget {
             shape: BoxShape.circle,
             color: fed ? ElifbaPalette.surface : imageTint,
           ),
-          child: Image.asset(
-            imagePath,
-            width: ElifbaSize.chipImage,
-            height: ElifbaSize.chipImage,
-            fit: BoxFit.contain,
-            cacheWidth: cacheWidth,
-            frameBuilder: (context, child, frame, wasSync) {
-              if (wasSync) return child;
-              return AnimatedOpacity(
-                opacity: frame == null ? 0 : 1,
-                duration: ElifbaMotion.imageFadeIn,
-                child: child,
-              );
-            },
-            errorBuilder:
-                (context, error, stack) =>
-                    const ImagePlaceholder(size: ElifbaSize.chipImage),
+          // Şəkil diskin 4 dp içində (36 dp) — heyvan səhifəsindəki uçan disk
+          // də belədir, uçuşun əvvəlində ölçü tullanmır.
+          child: Padding(
+            padding: const EdgeInsets.all(_artInset),
+            child: Image.asset(
+              imagePath,
+              width: ElifbaSize.chipImage - 2 * _artInset,
+              height: ElifbaSize.chipImage - 2 * _artInset,
+              fit: BoxFit.contain,
+              cacheWidth: cacheWidth,
+              frameBuilder: (context, child, frame, wasSync) {
+                if (wasSync) return child;
+                return AnimatedOpacity(
+                  opacity: frame == null ? 0 : 1,
+                  duration: ElifbaMotion.imageFadeIn,
+                  child: child,
+                );
+              },
+              errorBuilder:
+                  (context, error, stack) => const ImagePlaceholder(
+                    size: ElifbaSize.chipImage - 2 * _artInset,
+                  ),
+            ),
           ),
         ),
       ),

@@ -66,6 +66,38 @@ class ParentDialogFrame extends StatelessWidget {
   }
 }
 
+/// Valideyn dialoqunun görünən başlığı, eyni zamanda marşrutun adı.
+///
+/// Ekran oxuyucusu dialoqun adını bu başlıqdan oxuyur (`AlertDialog` kimi):
+/// `ParentDialogFrame.semanticLabel` ilə başlıq birlikdə verilsə ad İKİ dəfə
+/// səslənərdi. iOS/macOS marşrutu adlandırmır (`AlertDialog` ilə eyni).
+class ParentDialogTitle extends StatelessWidget {
+  const ParentDialogTitle(
+    this.title, {
+    super.key,
+    required this.style,
+    this.textAlign = TextAlign.start,
+  });
+
+  final String title;
+  final TextStyle style;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final namesRoute = switch (Theme.of(context).platform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => null,
+      _ => true,
+    };
+    return Semantics(
+      container: true,
+      header: true,
+      namesRoute: namesRoute,
+      child: Text(title, textAlign: textAlign, style: style),
+    );
+  }
+}
+
 /// Adi valideyn dialoqu: istəyə görə mərkəzdə ikon (32 dp), başlıq
 /// (Comfortaa 20/26), mətn (Andika 15/22 #5E5888) və ya istənilən
 /// [content], sağda düymələr ([ParentButtonStyles] ilə).
@@ -113,12 +145,15 @@ class ParentDialog extends StatelessWidget {
 
   /// Məzmunun boşluğu; defolt `fromLTRB(20, 24, 20, 12)`.
   final EdgeInsetsGeometry? padding;
+
+  /// Marşrutun ayrıca adı. Defolt yoxdur: adı görünən başlıq verir
+  /// ([ParentDialogTitle]), ikisi birlikdə ad iki dəfə oxunardı.
   final String? semanticLabel;
   final bool scrollableContent;
 
   @override
   Widget build(BuildContext context) {
-    final titleText = Text(
+    final titleText = ParentDialogTitle(
       title,
       textAlign: icon != null ? TextAlign.center : TextAlign.start,
       style: (titleStyle ?? ElifbaTextStyles.dialogTitle).copyWith(
@@ -150,7 +185,7 @@ class ParentDialog extends StatelessWidget {
         insetPadding:
             insetPadding ??
             const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        semanticLabel: semanticLabel ?? title,
+        semanticLabel: semanticLabel,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -197,22 +232,43 @@ class ParentDialog extends StatelessWidget {
     return ParentDialogFrame(
       maxWidth: maxWidth ?? ElifbaSize.dialogMaxWidth,
       insetPadding: insetPadding ?? const EdgeInsets.all(24),
-      semanticLabel: semanticLabel ?? title,
+      semanticLabel: semanticLabel,
       child: Padding(
         padding: padding ?? const EdgeInsets.fromLTRB(20, 24, 20, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (icon != null) ...[
-              Center(child: Icon(icon, size: iconSize, color: iconColor)),
-              const SizedBox(height: 14),
-            ],
-            titleText,
-            if (bodyText != null || content != null) const SizedBox(height: 14),
-            if (bodyText != null) bodyText,
-            if (bodyText != null && content != null) const SizedBox(height: 10),
-            if (content != null) content!,
+            // Yer çatmayanda (landşaft, böyük şrift) ikon, başlıq və mətn
+            // aşağıdan səssizcə kəsilir, düymələr isə HƏMİŞƏ ekranda qalır.
+            // `ClipRect` + `Column` daşanda xəta verərdi; `UnconstrainedBox`
+            // uşağı təbii hündürlüyündə qoyur və artığını kəsir.
+            Flexible(
+              child: UnconstrainedBox(
+                constrainedAxis: Axis.horizontal,
+                alignment: Alignment.topCenter,
+                clipBehavior: Clip.hardEdge,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (icon != null) ...[
+                      Center(
+                        child: Icon(icon, size: iconSize, color: iconColor),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                    titleText,
+                    if (bodyText != null || content != null)
+                      const SizedBox(height: 14),
+                    if (bodyText != null) bodyText,
+                    if (bodyText != null && content != null)
+                      const SizedBox(height: 10),
+                    if (content != null) content!,
+                  ],
+                ),
+              ),
+            ),
             if (actionBar != null) ...[const SizedBox(height: 20), actionBar],
           ],
         ),
